@@ -1,0 +1,28 @@
+.quienesSomos{
+    text-align: center;
+    // border-top: 1px solid #BFBFBFBF;
+    padding: 1.5rem;
+
+    &__container{
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: nowrap;
+        // flex-grow: 1;
+        flex: 1;
+
+        > div{
+            flex: 1;
+            padding: 0 1rem;
+            text-align: justify;
+        }
+
+        figure{
+            flex: 1;
+        }
+
+        img {
+            width: 100%; //600px
+            height: 100%; //300px
+        }
+    }
+}

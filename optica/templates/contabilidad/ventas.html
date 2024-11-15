@@ -1,0 +1,234 @@
+{% extends 'base.html' %} {% block container %}
+
+{% load humanize %}
+
+<body>
+  <a class="previous round" 
+    href="{% url 'main' %}"
+    style="
+      position: relative !important; 
+      top: 20px !important;
+      left: 20px !important;
+      padding: 8px 16px;
+      border-radius: 50%;
+      background-color: #f1f1f1;
+    "
+  >
+    <i class="fa-solid fa-arrow-left"></i>
+  </a>
+
+  <div class="d-flex w-100 flex-column vh-100 align-items-center mt-4">
+    {% comment %}
+    <div class="row w-100">
+      {% endcomment %}
+      <div class="mx-auto">
+        <h3>Crear Venta</h3>
+      </div>
+
+      <form class="container-md" id="ventaForm">
+        <div class="row"> 
+        <div class="form-group col-sm-12 col-md-6 col-xl-3">
+          {% comment %} Este campo de factura debe llevar {% endcomment %}
+          <label for="email"># Factura</label>
+          <input
+            type="number"
+            class="form-control"
+            id="facturaVenta"
+            placeholder=""
+            name="factura"
+            value="{{factura}}"
+            {% comment %} readonly {% endcomment %}
+          />
+        </div>
+        <div class="form-group col-sm-12 col-md-6 col-xl-3">
+          <label for="cedula">cedula cliente:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="cedula"
+            placeholder="Cedula del cliente"
+            name="cliente_id"
+            required
+          />
+        </div>
+        <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+          <label for="valor">Precio de venta $</label>
+          <input
+            type="text"
+            class="form-control precio"
+            id="valor"
+            placeholder="$ 0"
+            value="$ 0"
+            name="precio"
+            required
+          />
+          
+        </div>
+        <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+          <label for="valor">Abono $</label>
+          <input
+            type="text"
+            class="form-control precio"
+            id="abono"
+            placeholder="$ 0"
+            value="$ 0"
+            name="abono"
+          />
+        </div>
+        <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+          <label for="valor">Metodo de Pago</label>
+          <select 
+            class="form-select camposbc" 
+            id="medioDePago" name="metodoPago" 
+            required
+          >
+            <option value="">Medio de pago...</option>
+            {% if mediosPago %}
+              {% for medioPago in mediosPago  %}
+                <option value="{{medioPago.id}}">{{medioPago.nombre}}</option> 
+              {% endfor %}
+            {% endif %}
+        </select>
+        </div>
+        <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+          <label for="nombreCliente">Nombre Cliente:</label>
+          <input
+            type="text"
+            class="form-control"
+            id="nombreCliente"
+            placeholder="Nombre Cliente"
+            value=""
+            name="nombreCliente"
+          />
+        </div>
+      <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+        <label for="apelidoCliente">Apellido Cliente:</label>
+        <input
+          type="text"
+          class="form-control"
+          id="apellidoCliente"
+          placeholder="ApellidoCliente"
+          value=""
+          name="apellidoCliente"
+        />
+      </div>
+      <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+        <label for="telefonocliente">Telefono:</label>
+        <input
+          type="text"
+          class="form-control telefono"
+          id="telefonoCliente"
+          placeholder="xxx-xxx-xxxx"
+          value=""
+          name="telefonocliente"
+        />
+      </div>
+        
+      <div class="form-group col-sm-12 col-md-6 col-xl-3 ">
+        <label for="password">Fecha de la venta</label>
+        <input
+          type="date"
+          class="form-control"
+          id="fechaVenta"
+          placeholder="Ingrese su contraseña"
+          name="fecha"
+          required
+        />
+      </div>
+        
+      </div>
+      <div class="row"> 
+        <div class="form-group col-sm-12 col-md-12 col-xl-6 ">
+          <label for="detalleVenta">Detalle</label>
+          <textarea
+            rows="3"
+            cols="50"
+            class="form-control"
+            id="detalleVenta"
+            name="detalle"
+            placeholder="Detalle"
+          ></textarea>
+        </div>
+        <div class="form-group col-sm-12 col-md-12 col-xl-6">
+          <label for="observacionVenta">Observaciones:</label>
+          <textarea
+            rows="3"
+            cols="50"
+            class="form-control"
+            id="observacionVenta"
+            name="observacion"
+            placeholder="Observaciones"
+          ></textarea>
+        </div>
+      </div>
+        <hr class="my-3" />
+        <div class="row my-1">
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary col-12" id="submitVenta">
+              Crear venta
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <hr class="my-3" />
+      <div class="mx-auto">
+        <h3>Facturas recientes</h3>
+      </div>
+      <div class="table-responsive container-md">
+        
+        <table class="table table-striped table-hover" >
+          {% comment %} style="width: 90%" table-bordered {% endcomment %}
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Factura</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Precio venta</th>
+              <th scope="col">Abono Total</th>
+              <th scope="col">Saldo</th>
+              <th scope="col">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% comment %} <tr>
+              <th scope="row">1</th>
+              <td>256</td>
+              <td>Otto Montoya</td>
+              <td>$ 1.120.000</td>
+              <td>$ 800.000</td>
+              <td>$ 320.000</td>
+              <th scope="col" class="text-danger">Por pagar</th>
+            </tr> {% endcomment %}
+            {% if ventas %}
+              {% for venta in ventas %}
+                  <tr>
+                    <td>{{venta.numero}}</td>
+                    <th scope="row">{{venta.factura}}</th>
+                    <td>{{venta.nombre}}</td>
+                    <td>$ {{venta.precio|floatformat:2|intcomma }}</td>
+                    <td>$ {{venta.abono|floatformat:2|intcomma }}</td>
+                    <td>$ {{venta.saldo|floatformat:2|intcomma }}</td>
+                    {% if venta.estado == "Pagado"  %}
+                    <th scope="col" class="text-success">{{venta.estado}}</th>
+                    {% else %}
+                    <th scope="col" class="text-danger">{{venta.estado}}</th>
+                    {% endif %}
+                    
+                  </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% load static %}
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/ventas.js' %}"></script>
+
+</body>
+
+{% endblock container %}

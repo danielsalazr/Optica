@@ -1,0 +1,168 @@
+{% extends 'base.html' %} {% block container %} {% load humanize %}
+{% load humanize %}
+
+<body>
+  <a
+    class="previous round"
+    href="{% url 'main' %}"
+    style="
+      position: relative !important;
+      top: 20px !important;
+      left: 20px !important;
+      padding: 8px 16px;
+      border-radius: 50%;
+      background-color: #f1f1f1;
+    "
+  >
+    <i class="fa-solid fa-arrow-left"></i>
+  </a>
+
+  <div class="d-flex w-100 flex-column vh-100 align-items-center mt-4">
+    {% comment %}
+    <div class="row w-100">
+      {% endcomment %}
+      <div class="mx-auto">
+        <h3>Realizar abono</h3>
+      </div>
+
+      <form class="container-md" id="abonarForm">
+        <div class="row">
+          <div class="form-group col-sm-12 col-md-6 col-xl-3">
+            {% comment %} Este campo de factura debe llevar {% endcomment %}
+            <label for="email"># Factura</label>
+            <input
+              type="number"
+              class="form-control"
+              id="facturaVenta"
+              placeholder=""
+              name="factura"
+              value="{{ventas.0.factura}}"
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3">
+            <label for="cedula">Cedula de cliente:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="cedula"
+              placeholder="Cedula del cliente"
+              name="cliente_id"
+              required
+              value="{{ventas.0.cliente_id}}"
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3">
+            <label for="cedula">Nombre del cliente:</label>
+            <input
+              type="text"
+              class="form-control"
+              id="cedula"
+              placeholder="Cedula del cliente"
+              name="nombre"
+              required
+              value="{{ventas.0.nombre}}"
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+            <label for="valor">Precio de venta $</label>
+            <input
+              type="text"
+              class="form-control precio text-success"
+              id="valor"
+              placeholder="$ 0"
+              value="${{ ventas.0.precio|intcomma }}"
+              name="precioVenta"
+              required
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+            <label for="valor">Abonado $</label>
+            <input
+              type="text"
+              class="form-control precio text-success"
+              id="abonado"
+              placeholder="$ 0"
+              value="$ {{ventas.0.abono|intcomma}}"
+              name="abonado"
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+            <label for="valor">Saldo $</label>
+            <input
+              type="text"
+              class="form-control precio text-danger"
+              id="saldo"
+              placeholder="$ 0"
+              value="$ {{ventas.0.saldo|intcomma}}"
+              name="saldo"
+              readonly
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+            <label for="valor">Valor a abonar $</label>
+            <input
+              type="text"
+              class="form-control precio"
+              id="abono"
+              placeholder="$ 0"
+              value="$ 0"
+              name="precio"
+            />
+          </div>
+          <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+            <label for="valor">Metodo de Pago</label>
+            <select
+              class="form-select camposbc"
+              id="medioDePago"
+              name="medioDePago"
+              required
+            >
+              <option value="">Medio de pago...</option>
+              {% if mediosPago %} 
+              {% for medioPago in mediosPago %}
+                <option value="{{medioPago.id}}">{{medioPago.nombre}}</option>
+              {% endfor %} {% endif %}
+            </select>
+          </div>
+
+          <div class="form-group col-sm-12 col-md-6 col-xl-3">
+            <label for="password">Fecha del abono</label>
+            <input
+              type="date"
+              class="form-control"
+              id="fechaVenta"
+              placeholder="Ingrese su contraseña"
+              name="fecha"
+              required
+            />
+          </div>
+        </div>
+        
+        <hr class="my-3" />
+        <div class="row my-1">
+          <div class="form-group">
+            <button
+              type="submit"
+              class="btn btn-primary col-12"
+              id="submitAbonar"
+            >
+              Realizar Abono
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% load static %}
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{% static 'js/utils.js' %}"></script>
+  <script src="{% static 'js/abonar.js' %}"></script>
+</body>
+
+{% endblock container %}
