@@ -1,92 +1,90 @@
 async function swalErr(falla) {
 
     const result = await Swal.fire({
-     //type: 'error',
-     icon: 'error',
-     title: 'Error',
-     text: falla,
-   });
+        //type: 'error',
+        icon: 'error',
+        title: 'Error',
+        text: falla,
+    });
 }
 
-async function swalQuestion(title, text){
-  const {value: confirmation} = await Swal.fire({
-    title: title,
-    text: text,
-    // icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#0f362d', //'#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Confirmar!'
-  })
+async function swalQuestion(title, text) {
+    const { value: confirmation } = await Swal.fire({
+        title: title,
+        text: text,
+        // icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0f362d', //'#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Confirmar!'
+    })
 
-  if (!confirmation) {
-    return false
-  }
-
-  return true
-}
-
-async function swalconfirmation(text){
-  Swal.fire(
-    'Completado!',
-    text,
-    'success'
-  );
-  setTimeout( () => {document.location.reload(true)}, 1500);
-}
-
-async function swalconfirmationAndReload(text){
-  Swal.fire(
-    'Completado!',
-    text,
-    'success'
-  );
-  setTimeout( () => {document.location.reload(true)}, 2000);
-}
-
-async function swalInput(titulo){
-  const result =  await Swal.fire({
-    title: titulo,
-    input: 'text',
-    inputAttributes: {
-      autocapitalize: 'off'
-    },
-    showCancelButton: true,
-    confirmButtonText: 'Ingresar',
-    showLoaderOnConfirm: true,
-    preConfirm: (login) => {
-      return login;
-    },
-    allowOutsideClick: () => !Swal.isLoading()
-  })
-  return result.value
-    
-  
-}
-
-async function swalHtmlCreation(text){
-  Swal.fire({
-    title: '<strong>Factura Creada!</strong>',
-    icon: 'success',
-    html:
-      text,
-    showCloseButton: false,
-    showCancelButton: false,
-    focusConfirm: false,
-    confirmButtonText:
-      '<i class="fa fa-thumbs-up"></i> OK!',
-    confirmButtonAriaLabel: 'Thumbs up, great!',
-    cancelButtonText:
-      '<i class="fa fa-thumbs-down"></i>',
-    cancelButtonAriaLabel: 'Thumbs down'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      document.location.reload(true)
-    } else if (result.isDenied) {
-      document.location.reload(true)
+    if (!confirmation) {
+        return false
     }
-    
-  })
+
+    return true
+}
+
+async function swalconfirmation(text) {
+    Swal.fire(
+        'Completado!',
+        text,
+        'success'
+    );
+    setTimeout(() => { document.location.reload(true) }, 1500);
+}
+
+async function swalconfirmationAndReload(text) {
+    Swal.fire(
+        'Completado!',
+        text,
+        'success'
+    );
+    setTimeout(() => { document.location.reload(true) }, 2000);
+}
+
+async function swalInput(titulo) {
+    const result = await Swal.fire({
+        title: titulo,
+        input: 'text',
+        inputAttributes: {
+            autocapitalize: 'off'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Ingresar',
+        showLoaderOnConfirm: true,
+        preConfirm: (login) => {
+            return login;
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    })
+    return result.value
+
+
+}
+
+async function swalHtmlCreation(text) {
+    Swal.fire({
+        title: '<strong>Factura Creada!</strong>',
+        icon: 'success',
+        html: text,
+        showCloseButton: false,
+        showCancelButton: false,
+        focusConfirm: false,
+        confirmButtonText: '<i class="fa fa-thumbs-up"></i> OK!',
+        confirmButtonAriaLabel: 'Thumbs up, great!',
+        cancelButtonText: '<i class="fa fa-thumbs-down"></i>',
+        cancelButtonAriaLabel: 'Thumbs down'
+    }).then((result) => {
+
+        // if (result.isConfirmed) {
+        //   document.location.reload(true)
+        // } else if (result.isDenied) {
+        //   document.location.reload(true)
+        // }
+
+    })
 }
 
 
