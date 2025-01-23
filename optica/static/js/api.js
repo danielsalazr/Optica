@@ -14,31 +14,31 @@ wl = URL.split("/");
 // const Url = wl[0]+"//"+wl[2]+"/"+wl[3]+"/";
 const BASE_URL = `${wl[0]}//${wl[2]}/`
 console.log(BASE_URL);
-        
 
-async function callApi(endPoint, options = {}){
+
+async function callApi(endPoint, options = {}) {
     options.headers = {
-        'X-CSRFToken': csrftoken,
-        'Content-Type': 'application/json',
-      }
-      //console.log(csrftoken)
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        }
+        //console.log(csrftoken)
 
     const url = BASE_URL + endPoint;
-    const response =  await fetch(url, options);
+    const response = await fetch(url, options);
     const data = await response.json();
-    return {res: response, data: data}
+    return { res: response, data: data }
 }
 
 
-async function callApiFile(endPoint, options = {}){
-  options.headers = {
-      'X-CSRFToken': csrftoken,
-      'Content-Type': 'application/json',
-    }
-    //console.log(csrftoken)
+async function callApiFile(endPoint, options = {}) {
+    options.headers = {
+            'X-CSRFToken': csrftoken,
+            //'Content-Type': 'application/json',
+        }
+        //console.log(csrftoken)
 
-  const url = BASE_URL + endPoint;
-  const response =  await fetch(url, options);
-  const data = await response.json();
-  return {res: response, data: data}
+    const url = BASE_URL + endPoint;
+    const response = await fetch(url, options);
+    const data = await response.json();
+    return { res: response, data: data }
 }

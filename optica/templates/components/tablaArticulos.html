@@ -1,0 +1,73 @@
+
+{% load static %}
+<link rel="stylesheet" href="{% static "css/selectizeTable.css" %}"  />
+
+<div class="container my-4">
+    <h2 class="mb-4">Tabla Editable</h2>
+
+    <form id="articulosForm">
+        <div class="table-responsive" style="overflow-x: visible;">
+            {% comment %} table-striped {% endcomment %}
+            <table class="table table-bordered ">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Articulo</th>
+                        <th>Cantidad</th>
+                        <th>Precio por unidad</th>
+                        <th>tipo descuento</th>
+                        <th>descuento</th>
+                        {% comment %} <th>Sujeto a retención de impuesto</th> {% endcomment %}
+                        <th>Total $</th>
+                        {% comment %} <th>Código de unidad de medida</th>
+                        <th>País/región de origen</th>
+                        <th>Número de acuerdo global</th> {% endcomment %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        
+                        <td class="bg-secondary-subtle">1</td>
+                        <td class="p-1" style="width:25%; position: relative">
+                            <select class="form-select border-0" name="numero_articulo" id="articulo">
+                                <option value="">Seleccione</option>
+                                {% for articulo in articulos %}
+                                    <option value="{{ articulo.id }}" selected>{{ articulo.nombre}}</option>
+                                {% endfor %}
+                                {% comment %} <option value="porcentaje">porcentaje %</option>
+                                <option value="precio" selected>precio $</option> {% endcomment %}
+                            </select>
+                        </td>
+                        <td class="p-1"><input type="number" class="form-control border-0" name="cantidad" placeholder="Cantidad" value="1"></td>
+                        <td class="p-1"><input type="number" class="form-control border-0" name="precio" placeholder="Precio" step="0.01"></td>
+                        <td class="p-1">
+                            <select class="form-select border-0" name="indicador_impuestos">
+                                <option value="">Seleccione</option>
+                                <option value="porcentaje">porcentaje %</option>
+                                <option value="precio" selected>precio $</option>
+                            </select>
+                        </td>
+                        <td class="p-1"><input type="number" class="form-control border-0" name="descuento" placeholder="% Descuento" step="0.01"></td>
+                        
+                        {% comment %} <td>
+                            <select class="form-select" name="retencion_impuesto">
+                                <option value="">Seleccione</option>
+                                <option value="si">Sí</option>
+                                <option value="no">No</option>
+                            </select>
+                        </td> {% endcomment %}
+                        <td class="p-1"><input type="number" class="form-control" name="total" placeholder="Total" step="0.01" readonly></td>
+                        {% comment %} <td><input type="text" class="form-control" name="unidad_medida" placeholder="Código"></td>
+                        <td><input type="text" class="form-control" name="pais_origen" placeholder="País/Región"></td>
+                        <td><input type="text" class="form-control" name="acuerdo_global" placeholder="Acuerdo"></td> {% endcomment %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-primary" onclick="addRow()">Agregar Fila</button>
+            <button type="submit" class="btn btn-success">Enviar</button>
+        </div>
+    </form>
+</div>
