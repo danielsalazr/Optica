@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabla Editable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        td input, td select {
+            width: 100%;
+            border: none;
+            background-color: transparent;
+        }
+
+        td input:focus, td select:focus {
+            outline: none;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h2>Formulario de Artículos</h2>
+    <form id="form-articulos">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Número de artículo</th>
+                    <th>Cantidad</th>
+                    <th>Precio por unidad</th>
+                    <th>% de descuento</th>
+                    <th>Indicador de impuestos</th>
+                    <th>Sujeto a retención de impuesto</th>
+                    <th>Total (ML)</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-cuerpo">
+                <tr>
+                    <td>1</td>
+                    <td><input type="text" name="numero_articulo[]" placeholder="Número de artículo"></td>
+                    <td><input type="number" name="cantidad[]" placeholder="Cantidad"></td>
+                    <td><input type="number" name="precio_unidad[]" step="0.01" placeholder="Precio"></td>
+                    <td><input type="number" name="descuento[]" step="0.01" placeholder="%"></td>
+                    <td>
+                        <select name="indicador_impuestos[]">
+                            <option value="">Seleccionar</option>
+                            <option value="SI">Sí</option>
+                            <option value="NO">No</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select name="sujeto_retencion[]">
+                            <option value="">Seleccionar</option>
+                            <option value="SI">Sí</option>
+                            <option value="NO">No</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="total[]" step="0.01" placeholder="Total"></td>
+                </tr>
+            </tbody>
+        </table>
+        <button type="button" onclick="agregarFila()">Agregar Fila</button>
+        <button type="submit">Enviar</button>
+    </form>
+
+    <script>
+        function agregarFila() {
+            const tablaCuerpo = document.getElementById("tabla-cuerpo");
+            const nuevaFila = `
+                <tr>
+                    <td>${tablaCuerpo.rows.length + 1}</td>
+                    <td><input type="text" name="numero_articulo[]" placeholder="Número de artículo"></td>
+                    <td><input type="number" name="cantidad[]" placeholder="Cantidad"></td>
+                    <td><input type="number" name="precio_unidad[]" step="0.01" placeholder="Precio"></td>
+                    <td><input type="number" name="descuento[]" step="0.01" placeholder="%"></td>
+                    <td>
+                        <select name="indicador_impuestos[]">
+                            <option value="">Seleccionar</option>
+                            <option value="SI">Sí</option>
+                            <option value="NO">No</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select name="sujeto_retencion[]">
+                            <option value="">Seleccionar</option>
+                            <option value="SI">Sí</option>
+                            <option value="NO">No</option>
+                        </select>
+                    </td>
+                    <td><input type="number" name="total[]" step="0.01" placeholder="Total"></td>
+                </tr>
+            `;
+            tablaCuerpo.insertAdjacentHTML("beforeend", nuevaFila);
+        }
+
+        document.getElementById("form-articulos").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            console.log("Datos enviados:", data);
+        });
+    </script>
+</body>
+</html>

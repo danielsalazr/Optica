@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import MediosDePago, EstadoVenta, Ventas, Abonos
+from .models import MediosDePago, EstadoVenta, Ventas, Abonos, Articulos 
 from django.forms import NumberInput
 # Register your models here.
 
@@ -33,7 +33,8 @@ class VentasAdmin(admin.ModelAdmin):
         'cliente_id',
         'nombre',
         'precio_moneda',
-        'estado'
+        'estado',
+        'foto',
     )
 
     search_fields = ('factura',)
@@ -43,6 +44,7 @@ class MediosDePagoAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'nombre',
+        'imagen',
     )
 
 
@@ -53,6 +55,19 @@ class EstadoVentaAdmin(admin.ModelAdmin):
         'nombre',
     )
 
+
+@admin.register(Articulos)
+class ArticulosAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'nombre',
+        'descripcion',
+        'precio',
+        'foto',
+    )
+
+    class Media:
+        js = ('js/utilsAdmin.js',)
 
     
 # @admin.register(MediosDePago)

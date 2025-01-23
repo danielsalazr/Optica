@@ -8,6 +8,7 @@ from django.db.models.deletion import DO_NOTHING
 class MediosDePago(models.Model):
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=50, default='')
+    imagen = models.CharField(max_length=255, blank=True, null=True)
     #nequi
     #bamcolombia
     #daviplata
@@ -76,6 +77,7 @@ class Ventas(models.Model):
     estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
+    foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
 
     class Meta:
         verbose_name = "Ventas"
@@ -125,3 +127,29 @@ class Abonos(models.Model):
     @property
     def precio_moneda(self):
         return '${:,.0f}'.format(self.precio)
+    
+class EstadoPedidoVenta(models.Model):
+    id = models.AutoField(primary_key=True)
+    cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, related_name='clientePedido')
+    nombre = models.CharField(max_length=50, default='')
+    # Entregado
+    # cancelado
+    # en fabricacion
+    # en tienda
+
+class PedidoVenta(models.Model):
+    id=models.AutoField(primary_key=True)
+    estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
+    fecha = models.DateTimeField(auto_now_add=timezone.now)
+
+class ItemsPEdidoVenta(models.Model):
+    pass
+
+
+class Articulos(models.Model):
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100, default='')
+    descripcion = models.TextField(max_length=255, default='')
+    precio = models.IntegerField(default=0)
+    foto = models.ImageField(upload_to='articulos/', null=True, blank=True)
+    

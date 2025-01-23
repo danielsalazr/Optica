@@ -26,7 +26,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
-from .models import Ventas, Abonos, MediosDePago
+from .models import Ventas, Abonos, MediosDePago, Articulos
 from usuarios.models import Clientes
 
 
@@ -42,6 +42,14 @@ class MainP(APIView):
         
         return render(request, 'contabilidad/index.html')
 
+@api_view(['GET'])
+def articulos(request,):
+    articulos = Articulos.objects.all().values()
+    context = {
+        'articulos': articulos,
+    }
+    
+    return Response(context, status=status.HTTP_200_OK)
 
 class VentasP(APIView):
     #permission_classes = (IsAuthenticated, )
@@ -65,7 +73,7 @@ class VentasP(APIView):
             ventas = cursor.fetchall()
             console.log(ventas)
 
-        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1
+        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1 if (Ventas.objects.aggregate(Max('factura'))['factura__max']) != None else 1
         console.log(maxFactura)
 
             
@@ -85,10 +93,15 @@ class VentasP(APIView):
             })
 
         console.log(listVentas)
+
+        clientes = Clientes.objects.all()
+        articulos = Articulos.objects.all()
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
             'factura': maxFactura,
+            'clientes': clientes,
+            'articulos': articulos,
         }
         
         return render(request, 'contabilidad/ventas.html', context)
@@ -131,7 +144,7 @@ class AbonosP(APIView):
             ventas = cursor.fetchall()
             console.log(ventas)
 
-        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1
+        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1 if (Ventas.objects.aggregate(Max('factura'))['factura__max'])!= None else 1
         console.log(maxFactura)
 
             
@@ -231,24 +244,30 @@ class Venta(APIView):
 
     def post(self, request):
 
+        console.log(request.data)
+
         metodoPago = request.data['metodoPago']
         precio = request.data['precio']
         abono = request.data['abono']
         factura = request.data['factura']
         cliente_id = request.data['cliente_id']
 
+        data_copy = request.data.copy()
+
         verificarCliente = Clientes.objects.filter(id=cliente_id).values()
         metodoPago = MediosDePago.objects.get(id=metodoPago)
-        
 
-        if precio ==  abono:
-            request.data['estado'] = 2
+        if precio != abono and  int(precio) > 0:
+            data_copy['estado'] = 2
+        
+        if precio == abono:
+            data_copy['estado'] = 3  # Pagado
 
         console.log(request.data)
         
 
 
-        serializer = VentaSerializer(data=request.data)
+        serializer = VentaSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if serializer.is_valid():
@@ -259,7 +278,7 @@ class Venta(APIView):
                 Clientes.objects.create(
                     id=cliente_id,
                     nombre = request.data['nombreCliente'],
-                    apellido = request.data['apellidoCliente'],
+                    # apellido = request.data['apellidoCliente'],
                     )
                 
             

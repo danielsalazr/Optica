@@ -1,0 +1,8 @@
+django==4.2
+djangorestframework
+django-environ==0.8
+django-excel
+mysqlclient
+pillow
+rich
+setuptools
