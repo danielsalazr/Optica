@@ -7,6 +7,7 @@ from django.http import HttpResponse, response, JsonResponse
 from django.views.generic import ListView
 from django.shortcuts import get_object_or_404
 import django_excel as excel
+from django.forms.models import model_to_dict
 
 from django.db.models import Max
 
@@ -50,6 +51,18 @@ def articulos(request,):
     }
     
     return Response(context, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def articuloInfo(request, id=0):
+    articulo = Articulos.objects.get(id=id) #.values()
+    articulo = dict(articulo.__dict__)
+    articulo.pop('_state')
+    console.log(articulo)
+
+    
+    return Response(articulo, status=status.HTTP_200_OK)
+
 
 class VentasP(APIView):
     #permission_classes = (IsAuthenticated, )
