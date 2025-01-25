@@ -27,6 +27,8 @@ ventaForm.addEventListener('submit', async function(e) {
     let abono = formData.get('abono');
     let metodoPago = formData.get('metodoPago');
 
+    
+
     // extraer el texto del selector del medio de pago
     let medioDePago = document.querySelector('#valorSelect');
     // var index = medioDePago.value //selectedIndex;
@@ -34,14 +36,45 @@ ventaForm.addEventListener('submit', async function(e) {
     var medioDePagoText = document.querySelector('#valorSelect').innerHTML
         // var medioDePagoText = medioDePago.options[index].text;
 
-    //convertir el texto del precio y el abono en valores numericos
-    precio = Number(precio.replace(/\D/g, ""));
-    abono = Number(abono.replace(/\D/g, ""))
 
+    const precioArticulo = formData.getAll('precioArticulo');
+    const totalArticulo =  formData.getAll('totalArticulo'); // Esto puede ser un array o un string dependiendo del envío
+
+
+
+// Convierte los valores a números sin formato
+    const precioArticulos = precioArticulo.map(valor => {
+        return fromMoneyToText(valor);
+    });
+
+    const totalArticulos = totalArticulo.map(valor => {
+        return fromMoneyToText(valor);
+    });
+
+    //console.log(preciosArticulos)
+
+    precio = fromMoneyToText(precio)
+    abono = fromMoneyToText(abono)
+    const total = fromMoneyToText($("#totalVenta").text());
 
     formData.set('telefonocliente', iti.getNumber().slice(1))
     formData.set('precio', precio)
     formData.set('abono', abono)
+    formData.set('total', total)
+
+    formData.delete('precioArticulo');
+    formData.delete('totalArticulo');
+    
+    precioArticulos.forEach(valor => {
+        console.log(valor)
+        formData.append('precioArticulo', valor); // Reasigna los valores limpios
+    });
+
+    totalArticulos.forEach(valor => {
+        console.log(valor)
+        formData.append('totalArticulo', valor); // Reasigna los valores limpios
+    });
+
 
     if (!cliente_id) {
         swalErr("Ingrese la cedula del cliente");
@@ -76,8 +109,10 @@ ventaForm.addEventListener('submit', async function(e) {
     console.log(req.data);
 
     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-    await swalHtmlCreation(`Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(precio)}<br>Medio de pago: ${medioDePagoText}`)
+    await swalHtmlCreation(`Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>Medio de pago: ${medioDePagoText}`)
 
+    almacenarInputs()
+    
 });
 
 cedula.addEventListener('blur', async() => {

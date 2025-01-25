@@ -1,10 +1,10 @@
-{% load static %} <link rel="stylesheet" href="{% static"css/selectizeTable.css"
-%}" />
+{% load static %} 
+<link rel="stylesheet" href="{% static "css/selectizeTable.css"%}" />
 
-<div class="container my-4">
-  <h2 class="mb-4">Tabla Editable</h2>
+<div class="container mw-100 my-4">
+  <h2 class="mb-4">Articulos</h2>
 
-  <form id="articulosForm">
+  {% comment %} <form id="articulosForm"> {% endcomment %}
     <div class="table-responsive" style="overflow-x: visible">
       {% comment %} table-striped {% endcomment %}
       <table class="table table-bordered">
@@ -12,8 +12,9 @@
           <tr>
             <th>#</th>
             <th>Articulo</th>
-            <th>Cantidad</th>
-            <th>Precio por unidad</th>
+            <th>Imagen</th>
+            <th>cantidad</th>
+            <th>Precio_und</th>
             <th>tipo descuento</th>
             <th>descuento</th>
             {% comment %}
@@ -47,6 +48,7 @@
                 {% endcomment %}
               </select>
             </td>
+            <td id="imageArticulo"></td>
             <td class="p-1">
               <input
                 type="number"
@@ -60,12 +62,14 @@
             </td>
             <td class="p-1">
               <input
-                type="number"
-                class="form-control border-0"
+                type="text"
+                class="form-control border-0 precio"
                 id="precioArticulo"
                 name="precioArticulo"
+                step="1000"
                 placeholder="Precio"
-                step="0.01"
+                value="$ 0"
+                
               />
             </td>
             <td class="p-1">
@@ -77,61 +81,27 @@
             </td>
             <td class="p-1">
               <input
-                type="number"
-                class="form-control border-0"
+                type="text"
+                class="form-control border-0 numerico"
                 id="descuentoArticulo"
                 name="descuento"
                 placeholder="% Descuento"
-                step="0.01"
+                
               />
             </td>
-
-            {% comment %}
-            <td>
-              <select class="form-select" name="retencion_impuesto">
-                <option value="">Seleccione</option>
-                <option value="si">Sí</option>
-                <option value="no">No</option>
-              </select>
-            </td>
-            {% endcomment %}
             <td class="p-1">
               <input
-                type="number"
+                type="text"
                 class="form-control"
                 id="totalArticulo"
-                name="total"
+                name="totalArticulo"
                 placeholder="Total"
-                step="0.01"
+                
                 readonly
+                value="0"
               />
             </td>
-            {% comment %}
-            <td>
-              <input
-                type="text"
-                class="form-control"
-                name="unidad_medida"
-                placeholder="Código"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                class="form-control"
-                name="pais_origen"
-                placeholder="País/Región"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                class="form-control"
-                name="acuerdo_global"
-                placeholder="Acuerdo"
-              />
-            </td>
-            {% endcomment %}
+            
           </tr>
         </tbody>
       </table>
@@ -143,5 +113,10 @@
       </button>
       <button type="submit" class="btn btn-success">Enviar</button>
     </div>
-  </form>
+  {% comment %} </form> {% endcomment %}
+
+  <div class="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-3" style="font-size:24px;">
+    <label class="" for="nombreCliente">Total: </label>
+    <strong id="totalVenta"> $ 0</strong>
+  </div>
 </div>
