@@ -276,7 +276,7 @@ class Venta(APIView):
         if precio == abono:
             data_copy['estado'] = 3  # Pagado
 
-        console.log(request.data)
+        # console.log(request.data)
         
 
 

@@ -1,5 +1,16 @@
 from fpdf import FPDF
 
+import usb.core
+
+# Encuentra todos los dispositivos USB
+devices = usb.core.find(find_all=True)
+
+print(devices)
+
+for device in devices:
+    if device.idVendor == 0x04b8:  # Vendor ID de Epson
+        print(f"Impresora encontrada: Vendor ID={device.idVendor}, Product ID={device.idProduct}")
+
 class ThermalInvoice(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 10)
@@ -66,3 +77,13 @@ pdf.cell(0, 5, f'Total: {total:,.0f}', ln=True, align='R')
 
 # Guardar archivo
 pdf.output('Factura_Termal.pdf')
+
+from escpos.printer import Usb
+
+# Configura la impresora USB (VendorID, ProductID)
+# Busca estos IDs con "lsusb" en Linux
+p = Usb(0x04b8, 0x0e15)  # IDs para Epson TM-T20II (pueden variar)
+
+# Envía texto a la impresora
+p.text("Hola Mundo!\n")
+p.cut()

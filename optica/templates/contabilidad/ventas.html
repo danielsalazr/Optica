@@ -228,6 +228,7 @@
             id="detalleVenta"
             name="detalle"
             placeholder="Detalle"
+            value="algo"
           ></textarea>
         </div>
         <div class="form-group col-sm-12 col-md-12 col-xl-6">
@@ -257,7 +258,11 @@
       <div id="previsualizadores" class="mt-2"></div>
 
       {% include 'components/tablaArticulos.html' %}
-        <hr class="my-3" />
+
+
+      
+
+        <hr class="my-3" >
         <div class="row my-1">
           <div class="form-group">
             <button type="submit" class="btn btn-primary col-12" id="submitVenta">
@@ -291,15 +296,7 @@
             </tr>
           </thead>
           <tbody>
-            {% comment %} <tr>
-              <th scope="row">1</th>
-              <td>256</td>
-              <td>Otto Montoya</td>
-              <td>$ 1.120.000</td>
-              <td>$ 800.000</td>
-              <td>$ 320.000</td>
-              <th scope="col" class="text-danger">Por pagar</th>
-            </tr> {% endcomment %}
+
             {% if ventas %}
               {% for venta in ventas %}
                   <tr>
@@ -324,19 +321,12 @@
     </div>
   </div>
 
-  
-
-  
-  
-  
-
-  
-
-  
-
-
 
   <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js"></script>
+
+  <script src="{% static 'js/utils.js' %}"></script>
+
+<!-- Telefono -->
   <script>
     const input = document.querySelector("#telefonoCliente");
     const iti = window.intlTelInput(input, {
@@ -353,6 +343,8 @@
 
   </script>
 
+
+<!-- Articulos -->
   <script>
 
     async function obtenerInfoArticulo(value) {
@@ -381,39 +373,75 @@
     const descuentoArticulo = $("#descuentoArticulo");
     const totalArticulo = $("#totalArticulo");
     const tipoDescuentoArticulo = $("#tipoDescuentoArticulo");
-    
+
+    /*
+    tipoDescuentoArticulo.on("change", function(){
+      if (tipoDescuentoArticulo.val() != "precio"){
+        descuentoArticulo.removeClass('precio')
+      } else {
+        descuentoArticulo.addClass('precio')
+      }
+    })
+    */
 
 
     const articulo = $('#articulo').selectize({
       onChange: async function(value) {
-        console.log(value)
-        
+        // console.log(value)
         
         if (value != ''){
           const data = await obtenerInfoArticulo(value);
-          precioArticulo.val(data.precio)
+          precioArticulo.val(moneyformat(data.precio))
           cantidadArticulo.prop('disabled', false);
           calculateTotalArticle()
         } else{
           cantidadArticulo.prop('disabled', true);
-          
         }
 
-        
       }
     })
 
-    $('#descuentoArticulo, #precioArticulo, #cantidadArticulo').on('change', function() {
-      calculateTotalArticle()
+    
+
+    async function calculateTotalArticle() {
+      if (tipoDescuentoArticulo.val() != "porcentaje"){
+      totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+      } else {
+        totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+      }
+
+      calcularTotales()
+    }
+
+    function calcularTotales(){
+      const totales = document.querySelectorAll('[id^="totalArticulo"]');
+
+      let total = 0
+      Array.from(totales).forEach(elemento => {
+        //console.log(elemento.value)
+          total += Number(Number(elemento.value.replace(/\D/g, "")))
+          //console.log(total)
+          //return elemento.value
+      })
+
+      //console.log(total)
+
+      $("#totalVenta").text(`${moneyformat(total)}`)
+      
+    }
+
+    $('#descuentoArticulo, #precioArticulo, #cantidadArticulo').on('change',async function() {
+      await calculateTotalArticle()
+      calcularTotales()
+      
     });
 
-    function calculateTotalArticle() {
-      if (tipoDescuentoArticulo.val() != "porcentaje"){
-      totalArticulo.val(precioArticulo.val() * cantidadArticulo.val() - descuentoArticulo.val())
-      } else {
-        totalArticulo.val(precioArticulo.val() * cantidadArticulo.val() - (precioArticulo.val() * cantidadArticulo.val() * descuentoArticulo.val()/100))
-      }
-    }
+    /*
+    totalArticulo.on('change', function() {
+      calcularTotales()
+      
+    });
+    */
 
     
 
@@ -436,12 +464,15 @@
   });*/
   </script>
 
-  <script>
+
+  <!-- imagenes -->
+<script>
     const imagenesInput = document.getElementById('imagenes');
     const previsualizadores = document.getElementById('previsualizadores');
     let archivosSeleccionados = []; // Arreglo global para mantener los archivos seleccionados
 
-    function actualizarArchivos() {
+    // Esto los pinta
+    function actualizarVisualizadorArchivos() {
         previsualizadores.innerHTML = ''; // Limpia la previsualización
 
         // Itera sobre los archivos seleccionados y crea la previsualización
@@ -494,16 +525,34 @@
         });
     }
 
-    function eliminarArchivo(index) {
-        archivosSeleccionados.splice(index, 1); // Elimina el archivo del arreglo global
-        actualizarArchivos(); // Actualiza la previsualización
+    async function eliminarArchivo(index) {
+      const dt = new DataTransfer();
+      await archivosSeleccionados.splice(index, 1);
+
+      for (let i = 0; i < imagenesInput.files.length; i++) {
+          console.log("iterador: ${i}, index ${index}")
+          if (i !== index) {
+              await dt.items.add(imagenesInput.files[i]);
+          }
+      }
+      imagenesInput.files = dt.files;
+      actualizarVisualizadorArchivos();
     }
 
-    imagenesInput.addEventListener('change', (e) => {
-        const nuevosArchivos = Array.from(e.target.files); // Convierte FileList a array
-        archivosSeleccionados = archivosSeleccionados.concat(nuevosArchivos); // Combina los nuevos con los existentes
-        actualizarArchivos(); // Actualiza la previsualización
-        imagenesInput.value = ''; // Limpia el input para permitir seleccionar los mismos archivos nuevamente si es necesario
+
+    // Actualiza el atributo files del input
+    function actualizarInputFiles() {
+      const dt = new DataTransfer();
+      archivosSeleccionados.forEach((archivo) => dt.items.add(archivo)); // Añade cada archivo al DataTransfer
+      imagenesInput.files = dt.files; // Actualiza el input con los nuevos archivos
+    }
+
+    // Maneja el cambio en el input
+    imagenesInput.addEventListener('change', async (e) => {
+      const nuevosArchivos = Array.from(e.target.files); // Convierte FileList a array
+      archivosSeleccionados = await archivosSeleccionados.concat(nuevosArchivos); // Combina los nuevos con los existentes
+      actualizarInputFiles(); // Actualiza el atributo files del input
+      actualizarVisualizadorArchivos(); // Actualiza la previsualización
     });
 
 
@@ -511,23 +560,10 @@
 
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="{% static 'js/selectwithImage.js' %}"></script>
-  <script src="{% static 'js/utils.js' %}"></script>
+  
   <script src="{% static 'js/ventas.js' %}"></script>
   <script src="{% static 'js/tablaArticulos.js' %}"></script>
-  
 
-  
-
-
-
-
-
-  {% comment %} Un intento mas  {% endcomment %}
-
-  
-  
-
-  
 </body>
 
 {% endblock container %}
