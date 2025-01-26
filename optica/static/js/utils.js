@@ -11,6 +11,7 @@ document.getElementById('fechaVenta').value = fecha;
 // Poner formato de moneda a campos de precios
 
 const inputPrecio = document.querySelectorAll(".precio");
+const inputNumerico = document.querySelectorAll(".numerico");
 const inputTelefono = document.querySelectorAll(".telefono");
 
 for (let i = 0; i < inputPrecio.length; i++) {
@@ -35,29 +36,8 @@ for (let i = 0; i < inputPrecio.length; i++) {
     });
 }
 
-//   for (let i=0; i<inputTelefono.length; i++){
 
-//     inputPrecio[i].addEventListener("input", () => {
 
-//       let phoneInput = inputPrecio[i]
-//       let phoneNumber = phoneInput.value.replace(/\D/g, ''); // Eliminar todos los caracteres que no sean dígitos
-//       let formattedPhoneNumber = '';
-
-//       if (phoneNumber.length > 0) {
-//         formattedPhoneNumber += phoneNumber.substring(0, 3);
-//       }
-//       if (phoneNumber.length > 3) {
-//         formattedPhoneNumber += '-' + phoneNumber.substring(3, 6);
-//       }
-//       if (phoneNumber.length > 6) {
-//         formattedPhoneNumber += '-' + phoneNumber.substring(6, 10);
-//       }
-
-//       phoneInput.value = formattedPhoneNumber;
-
-//   }
-// }
-//Aplicar formato de moneda a un texto
 
 function moneyformat(amount) {
     const cantidad = Number(amount);
@@ -131,14 +111,178 @@ function phoneFormat(input) {
 
 
 document.addEventListener('DOMContentLoaded', function() {
+    
     const inputs = document.querySelectorAll('input.precio');
     inputs.forEach(input => {
-        input.addEventListener('input', function() {
+        input.addEventListener('change', function() {
+
+            let value = this.value;
+
+            // Limpia el valor quitando caracteres no numéricos
+            let numericValue = parseFloat(value.replace(/[^\d]/g, '')) || 0;
+
+            // Si el valor ya está formateado correctamente, no lo reprocesa
+            if (new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numericValue) === value) {
+                return;
+            }
+
+            /*
+            console.log("cambio mano")
             let value = parseFloat(this.value.replace(/[^0-9.]/g, '')) || 0;
-            this.value = new Intl.NumberFormat('es-MX', {
+            this.value = new Intl.NumberFormat('es-CO', {
                 style: 'currency',
-                currency: 'MXN',
+                currency: 'COP',
             }).format(value);
+            */
+
         });
     });
+
+
+    
+    inputNumerico.forEach(element => {
+        element.addEventListener("input", function() {
+            console.log("ejecutado")
+            element.value = separadorDeMiles(element.value);
+        });
+    })
+
+    cargarInputs();
 });
+
+
+function formatMoneyInput (input) {
+    // Obtener el valor del input y convertirlo a número
+    const cant = input;
+    const cantidad = Number(cant.replace(/\D/g, ""));
+
+    // Dar formato a la cantidad como moneda con separación de decimales
+    const cantidadFormateada = cantidad.toLocaleString("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+        useGrouping: true,
+        currencyDisplay: "symbol",
+    });
+
+    // Actualizar el valor del input con la cantidad formateada
+    return cantidadFormateada;
+};
+
+
+
+function fromTextToMoney(input) {
+
+    let value = input;
+
+    // Limpia el valor quitando caracteres no numéricos
+    let numericValue = parseFloat(value.replace(/[^\d]/g, '')) || 0;
+
+    // Si el valor ya está formateado correctamente, no lo reprocesa
+    if (new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(numericValue) === value) {
+        return numericValue
+    }
+
+    return numericValue
+
+    /*
+    let value = parseFloat(input.replace(/[^0-9.]/g, '')) || 0;
+
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+    }).format(value);
+    
+    */
+}
+
+function fromMoneyToText(input){
+    return Number(input.replace(/\D/g, "").replace(',', '.'))
+    
+}
+
+function separadorDeMiles(input){
+    let value = input.replace(/\D/g, '');
+
+                // Aplica el formato con separadores de miles
+    let formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    // Establece el valor formateado en el input
+    return formattedValue;
+}
+
+function convertirSeparadorMilesANumero(formattedValue) {
+    // Elimina los puntos (separadores de miles) y convierte a número
+    let value = formattedValue.replace(/\./g, '');
+
+    // Convierte el valor a número
+    let numericValue = parseFloat(value);
+
+    return numericValue;
+}
+
+
+// Almacena los valores de todos los inputs excepto el de id="facturaVenta"
+function almacenarInputs() {
+    const inputs = document.querySelectorAll('input:not(#facturaVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
+    const valores = {};
+
+    inputs.forEach(input => {
+        if (input.tagName === 'SELECT') {
+            valores[input.id] = input.value; // Guarda el valor seleccionado en el <select>
+        } else {
+            valores[input.id] = input.value; // Guarda el valor de otros inputs o textareas
+        }
+    });
+
+    localStorage.setItem('inputs', JSON.stringify(valores)); // Guarda los valores en localStorage
+    console.log('Valores almacenados:', valores);
+}
+
+// Carga los valores desde localStorage y los asigna a los inputs
+function cargarInputs() {
+    const valores = JSON.parse(localStorage.getItem('inputs')) || {}; // Obtén los valores del localStorage
+    console.log('Cargando valores:', valores);
+
+    Object.keys(valores).forEach(id => {
+
+        console.log(valores[id])
+
+        const input = document.getElementById(id);
+        console.log(input)
+        if (input) {
+            try{
+                // input.value = valores[id];
+                if (input.tagName === 'SELECT') {
+                    input.value = valores[id]; // Asigna el valor del select
+                } else {
+                    input.value = valores[id]; // Asigna el valor de otros inputs o textareas
+                }
+            } catch {
+
+            }
+             // Asigna el valor si el input existe
+        } else {
+            console.warn(`Input con ID "${id}" no encontrado.`);
+        }
+    });
+}
+
+
+
+function obtenerTodosLosValoresLocalStorage() {
+    const valores = {};
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const clave = localStorage.key(i); // Obtén la clave del índice actual
+        const valor = localStorage.getItem(clave); // Obtén el valor asociado a la clave
+        valores[clave] = valor;
+    }
+
+    return valores;
+}
+
+// Uso
+// const valoresLocalStorage = obtenerTodosLosValoresLocalStorage();
+// console.log(valoresLocalStorage);

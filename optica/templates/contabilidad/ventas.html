@@ -108,6 +108,22 @@
         </div>
 
         <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
+          <label for="telefonocliente">Empresa:</label>
+          {% comment %} <input type="tel" id="phone"> {% endcomment %}
+          
+          <input
+            type="text"
+            class="form-control "
+            id="EmpresaCliente"
+            placeholder=""
+            value=""
+            maxlength="17"
+            name="EmpresaCliente"
+          />
+  
+        </div>
+
+        <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
           <label for="valor">Precio de venta $</label>
           <input
             type="text"
@@ -150,7 +166,7 @@
         <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
           <label for="valor">Metodo de Pago</label>
           <div class="custom-select">
-            <div class="selected form-select">
+            <div class="selectedPayment form-select">
               <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s" alt="Default">
               <span id="valorSelect">Seleccione una opción</span>
             </div>
@@ -159,7 +175,7 @@
               {% if mediosPago %}
                 {% for medioPago in mediosPago  %}
                   {% comment %} <option value="{{medioPago.id}}">{{medioPago.nombre}}</option> {% endcomment %}
-                  <div class="option" data-value="{{medioPago.id}}">
+                  <div class="optionPayment" data-value="{{medioPago.id}}">
                     <img src="{{medioPago.imagen}}" alt="{{medioPago.id}}">
                     {{medioPago.nombre}}
                   </div>
@@ -190,7 +206,7 @@
       
         
       <div class="form-group col-sm-12 col-md-6 col-xl-3 ">
-        <label for="password">Fecha de la venta</label>
+        <label for="password">Fecha de venta</label>
         <input
           type="date"
           class="form-control"
@@ -212,6 +228,7 @@
             id="detalleVenta"
             name="detalle"
             placeholder="Detalle"
+            value="algo"
           ></textarea>
         </div>
         <div class="form-group col-sm-12 col-md-12 col-xl-6">
@@ -227,19 +244,25 @@
         </div>
       </div>
       <div class="form-group col-sm-12 col-md-6 col-xl-3 ">
-        <label for="foto">Foto:</label>
+        <label for="foto">Fotos de la venta:</label>
         <input
           type="file"
           class="form-control"
-          id="foto"
+          id="imagenes" multiple accept="image/*"
           {% comment %} placeholder="Ingrese su contraseña" {% endcomment %}
           name="foto"
           
         />
       </div>
 
+      <div id="previsualizadores" class="mt-2"></div>
+
       {% include 'components/tablaArticulos.html' %}
-        <hr class="my-3" />
+
+
+      
+
+        <hr class="my-3" >
         <div class="row my-1">
           <div class="form-group">
             <button type="submit" class="btn btn-primary col-12" id="submitVenta">
@@ -273,15 +296,7 @@
             </tr>
           </thead>
           <tbody>
-            {% comment %} <tr>
-              <th scope="row">1</th>
-              <td>256</td>
-              <td>Otto Montoya</td>
-              <td>$ 1.120.000</td>
-              <td>$ 800.000</td>
-              <td>$ 320.000</td>
-              <th scope="col" class="text-danger">Por pagar</th>
-            </tr> {% endcomment %}
+
             {% if ventas %}
               {% for venta in ventas %}
                   <tr>
@@ -306,17 +321,12 @@
     </div>
   </div>
 
-  
-  
-  
-
-  
-
-  
-
-
 
   <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js"></script>
+
+  <script src="{% static 'js/utils.js' %}"></script>
+
+<!-- Telefono -->
   <script>
     const input = document.querySelector("#telefonoCliente");
     const iti = window.intlTelInput(input, {
@@ -333,11 +343,20 @@
 
   </script>
 
+
+<!-- Articulos -->
   <script>
+
+    async function obtenerInfoArticulo(value) {
+      const req = await callApi(`articuloInfo/${value}`)
+      console.log(req.data)
+      
+      return req.data
+    }
+
+
     const medioDePago = $('#medioDePago').selectize();
-    const articulo = $('#articulo').selectize({
-      maxOptions: 5,
-    })
+
     const usuario = $('#cedula').selectize({
       create: true,
       createOnBlur: true,       // Crea el valor cuando el input pierde el foco
@@ -349,6 +368,82 @@
 
   
     })
+    const precioArticulo = $("#precioArticulo");
+    const cantidadArticulo = $("#cantidadArticulo");
+    const descuentoArticulo = $("#descuentoArticulo");
+    const totalArticulo = $("#totalArticulo");
+    const tipoDescuentoArticulo = $("#tipoDescuentoArticulo");
+
+    /*
+    tipoDescuentoArticulo.on("change", function(){
+      if (tipoDescuentoArticulo.val() != "precio"){
+        descuentoArticulo.removeClass('precio')
+      } else {
+        descuentoArticulo.addClass('precio')
+      }
+    })
+    */
+
+
+    const articulo = $('#articulo').selectize({
+      onChange: async function(value) {
+        // console.log(value)
+        
+        if (value != ''){
+          const data = await obtenerInfoArticulo(value);
+          precioArticulo.val(moneyformat(data.precio))
+          cantidadArticulo.prop('disabled', false);
+          calculateTotalArticle()
+        } else{
+          cantidadArticulo.prop('disabled', true);
+        }
+
+      }
+    })
+
+    
+
+    async function calculateTotalArticle() {
+      if (tipoDescuentoArticulo.val() != "porcentaje"){
+      totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+      } else {
+        totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+      }
+
+      calcularTotales()
+    }
+
+    function calcularTotales(){
+      const totales = document.querySelectorAll('[id^="totalArticulo"]');
+
+      let total = 0
+      Array.from(totales).forEach(elemento => {
+        //console.log(elemento.value)
+          total += Number(Number(elemento.value.replace(/\D/g, "")))
+          //console.log(total)
+          //return elemento.value
+      })
+
+      //console.log(total)
+
+      $("#totalVenta").text(`${moneyformat(total)}`)
+      
+    }
+
+    $('#descuentoArticulo, #precioArticulo, #cantidadArticulo').on('change',async function() {
+      await calculateTotalArticle()
+      calcularTotales()
+      
+    });
+
+    /*
+    totalArticulo.on('change', function() {
+      calcularTotales()
+      
+    });
+    */
+
+    
 
     
 
@@ -369,25 +464,106 @@
   });*/
   </script>
 
+
+  <!-- imagenes -->
+<script>
+    const imagenesInput = document.getElementById('imagenes');
+    const previsualizadores = document.getElementById('previsualizadores');
+    let archivosSeleccionados = []; // Arreglo global para mantener los archivos seleccionados
+
+    // Esto los pinta
+    function actualizarVisualizadorArchivos() {
+        previsualizadores.innerHTML = ''; // Limpia la previsualización
+
+        // Itera sobre los archivos seleccionados y crea la previsualización
+        archivosSeleccionados.forEach((archivo, index) => {
+            const reader = new FileReader();
+            const previsualizador = document.createElement('div');
+            previsualizador.style.position = 'relative';
+            previsualizador.style.width = '120px';
+            previsualizador.style.height = '120px';
+            previsualizador.style.border = '1px solid #ddd';
+            previsualizador.style.padding = '5px';
+            previsualizador.style.display = 'inline-block';
+            previsualizador.style.margin = '5px';
+
+            const botonEliminar = document.createElement('button');
+            botonEliminar.textContent = 'X';
+            botonEliminar.style.position = 'absolute';
+            botonEliminar.style.top = '5px';
+            botonEliminar.style.right = '5px';
+            botonEliminar.style.background = 'red';
+            botonEliminar.style.color = 'white';
+            botonEliminar.style.border = 'none';
+            botonEliminar.style.borderRadius = '50%';
+            botonEliminar.style.cursor = 'pointer';
+            botonEliminar.style.width = '20px';
+            botonEliminar.style.height = '20px';
+            botonEliminar.style.display = 'flex';
+            botonEliminar.style.alignItems = 'center';
+            botonEliminar.style.justifyContent = 'center';
+            botonEliminar.style.fontSize = '12px';
+
+            botonEliminar.addEventListener('click', (e) => {
+                e.preventDefault();
+                eliminarArchivo(index);
+            });
+
+            reader.onload = (e) => {
+                const imagen = e.target.result;
+                const imgElement = document.createElement('img');
+                imgElement.src = imagen;
+                imgElement.style.width = '100%';
+                imgElement.style.height = '100%';
+                imgElement.style.objectFit = 'cover';
+                previsualizador.appendChild(imgElement);
+                previsualizador.appendChild(botonEliminar);
+                previsualizadores.appendChild(previsualizador);
+            };
+
+            reader.readAsDataURL(archivo);
+        });
+    }
+
+    async function eliminarArchivo(index) {
+      const dt = new DataTransfer();
+      await archivosSeleccionados.splice(index, 1);
+
+      for (let i = 0; i < imagenesInput.files.length; i++) {
+          console.log("iterador: ${i}, index ${index}")
+          if (i !== index) {
+              await dt.items.add(imagenesInput.files[i]);
+          }
+      }
+      imagenesInput.files = dt.files;
+      actualizarVisualizadorArchivos();
+    }
+
+
+    // Actualiza el atributo files del input
+    function actualizarInputFiles() {
+      const dt = new DataTransfer();
+      archivosSeleccionados.forEach((archivo) => dt.items.add(archivo)); // Añade cada archivo al DataTransfer
+      imagenesInput.files = dt.files; // Actualiza el input con los nuevos archivos
+    }
+
+    // Maneja el cambio en el input
+    imagenesInput.addEventListener('change', async (e) => {
+      const nuevosArchivos = Array.from(e.target.files); // Convierte FileList a array
+      archivosSeleccionados = await archivosSeleccionados.concat(nuevosArchivos); // Combina los nuevos con los existentes
+      actualizarInputFiles(); // Actualiza el atributo files del input
+      actualizarVisualizadorArchivos(); // Actualiza la previsualización
+    });
+
+
+</script>
+
   <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="{% static 'js/selectwithImage.js' %}"></script>
-  <script src="{% static 'js/utils.js' %}"></script>
+  
   <script src="{% static 'js/ventas.js' %}"></script>
   <script src="{% static 'js/tablaArticulos.js' %}"></script>
-  
 
-  
-
-
-
-
-
-  {% comment %} Un intento mas  {% endcomment %}
-
-  
-  
-
-  
 </body>
 
 {% endblock container %}

@@ -2,8 +2,10 @@ from django.db import models
 from django.utils import timezone
 from usuarios.models import Clientes
 from django.db.models.deletion import DO_NOTHING
+from PIL import Image
 
-
+from rich.console import Console
+console = Console()
 
 class MediosDePago(models.Model):
     id = models.AutoField(primary_key=True)
@@ -146,10 +148,73 @@ class ItemsPEdidoVenta(models.Model):
     pass
 
 
+# class TipoArticulos(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     nombre = models.CharField(max_length=100, default='')
+#     # Aqui van aser entregables y no entreganbles    
+
 class Articulos(models.Model):
+
+    OPCIONES = [
+        ('1', 'Articulo'),
+        ('2', 'Servicio'),
+        # ('opc3', 'Opción 3'),
+    ]
+
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100, default='')
-    descripcion = models.TextField(max_length=255, default='')
+    descripcion = models.TextField(max_length=255, default='', null=True, blank=True)
     precio = models.IntegerField(default=0)
-    foto = models.ImageField(upload_to='articulos/', null=True, blank=True)
+    tipo_articulo = models.CharField(max_length=10, choices=OPCIONES, null=True, blank=True)
+    # tipo_articulo = models.ForeignKey(TipoArticulos, on_delete=DO_NOTHING ,related_name='tipoArticulos')
+    # foto = models.ImageField(upload_to='articulos/', null=True, blank=True)
     
+
+    class Meta:
+        verbose_name = "Articulo"
+        verbose_name_plural = "Articulos"
+        managed = True
+
+    def __str__(self):
+        return self.nombre
+
+
+
+class FotosArticulos(models.Model):
+    id = models.AutoField(primary_key=True)
+    articulo = models.ForeignKey(Articulos, on_delete=models.DO_NOTHING, related_name="articuloFoto",)
+    foto = models.ImageField(upload_to='fotos_articulos/')
+
+
+    class Meta:
+        managed = True
+        verbose_name = "Fotos de Articulos"
+        verbose_name_plural = "Fotos de Articulos"
+    
+    def __str__(self):
+        return f"{self.articulo}"
+
+    def save(self, *args, **kwargs):
+        # Llama al método original `save` para guardar temporalmente la imagen
+        super().save(*args, **kwargs)
+
+        # Abre la imagen con Pillow
+        if self.foto:
+            img_path = self.foto.path  # Ruta de la imagen en el sistema de archivos
+            img = Image.open(img_path)
+
+            console.log(img.height)
+            console.log(img.width)
+
+            # Verifica si la imagen necesita ser redimensionada
+            if img.height > 800 or img.width > 800:  # Ejemplo: limitar dimensiones máximas
+                # Calcula las proporciones manteniendo el aspecto
+                # max_size = (2000, 1500)
+                max_size = (img.height / 1.4, img.width / 1.4)
+                img.thumbnail(max_size)
+
+                console.log(img.height)
+                console.log(img.width)
+
+                # Sobrescribe la imagen existente con la versión redimensionada
+                img.save(img_path, optimize=True, quality=20)

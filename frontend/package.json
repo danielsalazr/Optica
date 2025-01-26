@@ -3,6 +3,7 @@
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.3",
     "boxicons": "^2.1.4",
+    "escpos": "^3.0.0-alpha.6",
     "postcss": "^8.4.38",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
