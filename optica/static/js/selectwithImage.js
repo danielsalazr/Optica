@@ -1,6 +1,6 @@
-const selected = document.querySelector('.selected');
+const selected = document.querySelector('.selectedPayment');
 const dropdown = document.querySelector('.dropdown');
-const options = document.querySelectorAll('.option');
+const optionPayments = document.querySelectorAll('.optionPayment');
 const hiddenInput = document.querySelector('#metodoPago');
 const errorMessage = document.querySelector('.error-message');
 
@@ -10,11 +10,11 @@ selected.addEventListener('click', () => {
 });
 
 // Seleccionar una opción
-options.forEach(option => {
-    option.addEventListener('click', () => {
-        const value = option.getAttribute('data-value');
-        const text = option.textContent.trim();
-        const imgSrc = option.querySelector('img').src;
+optionPayments.forEach(optionPayment => {
+    optionPayment.addEventListener('click', () => {
+        const value = optionPayment.getAttribute('data-value');
+        const text = optionPayment.textContent.trim();
+        const imgSrc = optionPayment.querySelector('img').src;
 
         // Actualizar el seleccionado
         selected.querySelector('span').textContent = text;

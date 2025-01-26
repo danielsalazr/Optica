@@ -103,6 +103,8 @@ dist
 # TernJS port file
 .tern-port
 
+old/
+**/migrations/
 
 # Created by https://www.toptal.com/developers/gitignore/api/django,images,react
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,images,react
