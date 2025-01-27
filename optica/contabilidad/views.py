@@ -8,6 +8,7 @@ from django.views.generic import ListView
 from django.shortcuts import get_object_or_404
 import django_excel as excel
 from django.forms.models import model_to_dict
+from django.db.models import Prefetch
 
 from django.db.models import Max
 
@@ -27,7 +28,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
-from .models import Ventas, Abonos, MediosDePago, Articulos
+from .models import Ventas, Abonos, MediosDePago, Articulos, FotosArticulos
 from usuarios.models import Clientes
 
 
@@ -56,8 +57,34 @@ def articulos(request,):
 @api_view(['GET'])
 def articuloInfo(request, id=0):
     articulo = Articulos.objects.get(id=id) #.values()
+    # articulos =articulo.articuloFoto.all().first()
+    # articuloss = articulo.articuloFoto.filter(articulo=articulo).first()
+    # articulosss = Articulos.objects.prefetch_related('articuloFoto')
+    # articulosyfoto = Articulos.objects.prefetch_related(
+    #     Prefetch('articuloFoto', queryset=FotosArticulos.objects.all())
+    # ).first()
+    # resultado = [model_to_dict(i) for i in articulosss]
+
+    fotosTodas = FotosArticulos.objects.filter(articulo=articulo).select_related('articulo')
+    # resultados = [model_to_dict(i) for i in fotosTodas]
+
+
+
+    # console.log(articulos.__dict__)
+    # console.log(articuloss.__dict__)
+    # console.log(articulosss)
+    # console.log(articulosyfoto)
+    # console.log(articulosyfoto.__dict__)
+    # console.log(resultado)
+    # console.log(resultados)
+    # console.log(fotosTodas.values().first())
+    # # console.log(resultados)
+
+
     articulo = dict(articulo.__dict__)
+    #articulo = dict(articulo.__dict__)
     articulo.pop('_state')
+    articulo["fotos"]= fotosTodas.values()
     console.log(articulo)
 
     
