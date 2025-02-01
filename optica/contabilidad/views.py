@@ -134,8 +134,8 @@ class VentasP(APIView):
 
         console.log(listVentas)
 
-        clientes = Clientes.objects.all()
-        articulos = Articulos.objects.all()
+        clientes = Clientes.objects.all().values()
+        articulos = Articulos.objects.all().values()
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
@@ -143,8 +143,12 @@ class VentasP(APIView):
             'clientes': clientes,
             'articulos': articulos,
         }
+
+        console.log(context)
+
+        return Response(context, status=status.HTTP_200_OK)
         
-        return render(request, 'contabilidad/ventas.html', context)
+        #return render(request, 'contabilidad/ventas.html', context)
 
 
 class AbonosP(APIView):
@@ -210,6 +214,10 @@ class AbonosP(APIView):
             'ventas': listVentas,
             'factura': maxFactura,
         }
+
+        return Response(context, status=status.HTTP_200_OK)
+
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         return render(request, 'contabilidad/abonos.html', context)       
 

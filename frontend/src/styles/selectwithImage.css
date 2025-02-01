@@ -1,0 +1,66 @@
+
+
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+
+.selectedPayment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  background-color: white;
+}
+
+.selectedPayment img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+
+.dropdown.show {
+  display: block;
+}
+
+.optionPayment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.optionPayment:hover {
+  background-color: #f0f0f0;
+}
+
+.optionPayment img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+}
