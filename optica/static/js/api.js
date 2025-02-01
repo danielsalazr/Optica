@@ -10,9 +10,12 @@ const csrftoken = getCookie('csrftoken');
 
 /* Aqui se define la URL del proyecto*/
 const URL = window.location.href
-wl = URL.split("/");
+// wl = URL.split("/");
+// const BASE_URL = `${wl[0]}//${wl[2]}/`;
+
+let wl = URL.split(/[:/]/); //("/",);
 // const Url = wl[0]+"//"+wl[2]+"/"+wl[3]+"/";
-const BASE_URL = `${wl[0]}//${wl[2]}/`
+const BASE_URL = `${wl[0]}://${wl[3]}:8000/`
 console.log(BASE_URL);
 
 

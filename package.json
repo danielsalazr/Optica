@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "intl-tel-input": "^25.2.1",
+    "react-intl-tel-input": "^8.2.0"
+  }
+}
