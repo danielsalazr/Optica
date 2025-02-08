@@ -3,6 +3,7 @@ import MedioPago from './MedioPago'
 import { executeUtils } from '@/utils/js/utils.js';
 import { fromMoneyToText, fromNumberToMoney } from '@/utils/js/utils.js';
 import 'boxicons';
+import Button from 'react-bootstrap/Button';
 
 
 function Abonos({data}) {
@@ -59,7 +60,8 @@ function Abonos({data}) {
 
   return (
     <div className="container mw-100 my-4" onLoad={handleLoad}>
-          <h2 className="mb-4">Pagos</h2>
+          <h2 className="mb-4">Abonos</h2>
+         
           
             <div className="table-responsive" style={{overflowX: 'visible'}}>
               <table className="table table-bordered">
@@ -134,12 +136,15 @@ function Abonos({data}) {
               </button> */}
 
               {/* <button type="submit" className="btn btn-success">Enviar</button> */}
+              <div 
+              // className="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-3"
+               style={{fontSize: 24}}>
+                <label className="" htmlFor="nombreCliente">Total: </label>
+                <strong id="totalVenta">{fromNumberToMoney(abonoTotal)}</strong>
+              </div>
             </div>
             
-          <div className="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-3" style={{fontSize: 24}}>
-            <label className="" htmlFor="nombreCliente">Total: </label>
-            <strong id="totalVenta">{fromNumberToMoney(abonoTotal)}</strong>
-          </div>
+          
         </div>
     
         //   <button onClick={datatos}>lets do it</button>

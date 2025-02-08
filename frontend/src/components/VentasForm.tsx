@@ -1,18 +1,34 @@
 "use client";
 import React, { useRef, useEffect, useState, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
+import ClientesForm from './usuarios/ClientesForm';
 
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
 import { IP_URL, callApiFile } from '@/utils/js/api';
+
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
+import "@/styles/style.css"
 import Abonos from './Abonos';
+import MedioPago from './MedioPago';
+import FormulaLentes from './FormulaLentes';
 
 import $ from 'jquery';
 import 'selectize';
 import dynamic from 'next/dynamic';
-import MedioPago from './MedioPago';
-// import intlTelInput from 'intl-tel-input';
-// import IntlTelInput from 'react-intl-tel-input';
+
+import BootstrapModal from './BootstrapModal';
+import Button from 'react-bootstrap/Button';
+import clientesForm from './usuarios/ClientesForm';
+import EmpresaForm from './usuarios/EmpresaForm';
+
+
+// Iconos
+import { UserRoundPlus } from 'lucide-react';
+import { Icon } from "@iconify/react";
+import { IconArrowLeft } from '@tabler/icons-react';
+import { FaBeer } from 'react-icons/fa';
+
+
 const IntlTelInput = dynamic(() => import("intl-tel-input/react/build/IntlTelInputWithUtils"), {
   ssr: false,
 });
@@ -26,6 +42,9 @@ function VentasForm({data}) {
     const [telefono, setTelefono] = useState('');
     const [usuario, setUsuario] = useState(null);
     const [iti,setIti] = useState(null);
+    const [modalShow, setModalShow] = React.useState(false);
+
+    const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
 
     const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(fechaHoy)
@@ -108,23 +127,51 @@ function VentasForm({data}) {
           };
 
   return (
-    <form className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef,usuario, telefonoRef)} encType="multipart/form-data">
+    <>
+            <BootstrapModal
+                    show={modalShow}
+                    onHide={() => setModalShow(false)}
+                    title="Crear cliente"
+                    
+                >
+                    <ClientesForm/>
+                </BootstrapModal> 
+
+                <BootstrapModal
+                    show={modalEmpresaShow}
+                    onHide={() => setModalEmpresaShow(false)}
+                    title="Crear Empresa"
+                >
+                    <EmpresaForm />
+                </BootstrapModal> 
+        <form className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef,usuario, telefonoRef)} encType="multipart/form-data">
+                
+                
+
+                
+
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     
                     <label htmlFor="email"># Factura</label>
                     <input type="number" className="form-control" id="facturaVenta"  name="factura" defaultValue={data.factura} />
                 </div>
+
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
-                    <label htmlFor="cedula">cedula cliente:</label>
+                    <label htmlFor="cedula position-absolute">cedula cliente:</label>
+                   
                     {/* {'{'}% comment %{'}'} <input type="text" className="form-control" id="cedula" placeholder="Cedula del cliente" name="cliente_id" required /> {'{'}% endcomment %{'}'} */}
-                    <select ref={usuarioRef} className="form-select camposbc" id="cedula" name="cliente_id" required>
-                        <option key="">--</option>
-                        {data.clientes.map(element => (
-                            <option key={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
-                            {element.id}</option> 
-                        ))}
-                    </select>
+                    <div className="input-group mb-3">
+                        
+                        <select ref={usuarioRef} className="form-select camposbc " id="cedula" name="cliente_id" required>
+                            <option key="">--</option>
+                            {data.clientes.map(element => (
+                                <option key={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
+                                {element.id}</option> 
+                            ))}
+                        </select>
+                        <button className="btn btn-outline-dark position-relative" onClick={() => setModalShow(true)}> <UserRoundPlus  size={24} /> </button>
+                    </div>
                 </div>
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     <label htmlFor="nombreCliente">Nombre Cliente:</label>
@@ -150,7 +197,15 @@ function VentasForm({data}) {
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
+                    <div className="input-group mb-3">
                     <input type="text" className="form-control" id="EmpresaCliente"  maxLength={17} name="EmpresaCliente" />
+                    
+                    
+                        <button className="btn btn-outline-dark position-relative" onClick={() => setModalEmpresaShow(true)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width={28} height={28} viewBox="0 0 1024 1024"><path fill="currentColor" d="M839.7 734.7c0 33.3-17.9 41-17.9 41S519.7 949.8 499.2 960c-10.2 5.1-20.5 5.1-30.7 0c0 0-314.9-184.3-325.1-192c-5.1-5.1-10.2-12.8-12.8-20.5V368.6c0-17.9 20.5-28.2 20.5-28.2L466 158.6q19.2-7.65 38.4 0s279 161.3 309.8 179.2c17.9 7.7 28.2 25.6 25.6 46.1c-.1-5-.1 317.5-.1 350.8M714.2 371.2c-64-35.8-217.6-125.4-217.6-125.4c-7.7-5.1-20.5-5.1-30.7 0L217.6 389.1s-17.9 10.2-17.9 23v297c0 5.1 5.1 12.8 7.7 17.9c7.7 5.1 256 148.5 256 148.5c7.7 5.1 17.9 5.1 25.6 0c15.4-7.7 250.9-145.9 250.9-145.9s12.8-5.1 12.8-30.7v-74.2l-276.5 169v-64c0-17.9 7.7-30.7 20.5-46.1L745 535c5.1-7.7 10.2-20.5 10.2-30.7v-66.6l-279 169v-69.1c0-15.4 5.1-30.7 17.9-38.4zM919 135.7c0-5.1-5.1-7.7-7.7-7.7h-58.9V66.6c0-5.1-5.1-5.1-10.2-5.1l-30.7 5.1c-5.1 0-5.1 2.6-5.1 5.1V128h-56.3c-5.1 0-5.1 5.1-7.7 5.1v38.4h69.1v64c0 5.1 5.1 5.1 10.2 5.1l30.7-5.1c5.1 0 5.1-2.6 5.1-5.1v-56.3h64z"></path></svg>    
+                        </button>
+                    </div>
+
                     
                                 </div>
                 {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
@@ -216,8 +271,10 @@ function VentasForm({data}) {
                 <hr className="my-3" />
                 <div className="row my-1">
                 <div className="form-group">
+                {/* <FormulaLentes data={data} />  */}
                 <TablaArticulos articulos={data.articulos || []} />
                 <Abonos data={data} />
+                
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Crear venta
                     </button>
@@ -226,6 +283,7 @@ function VentasForm({data}) {
 
                 
             </form>
+        </>
   )
 }
 

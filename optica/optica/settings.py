@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'contabilidad.apps.ContabilidadConfig',
     'usuarios.apps.UsuariosConfig',
     'django.contrib.humanize',

@@ -130,22 +130,6 @@ class Abonos(models.Model):
     def precio_moneda(self):
         return '${:,.0f}'.format(self.precio)
     
-class EstadoPedidoVenta(models.Model):
-    id = models.AutoField(primary_key=True)
-    cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, related_name='clientePedido')
-    nombre = models.CharField(max_length=50, default='')
-    # Entregado
-    # cancelado
-    # en fabricacion
-    # en tienda
-
-class PedidoVenta(models.Model):
-    id=models.AutoField(primary_key=True)
-    estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
-    fecha = models.DateTimeField(auto_now_add=timezone.now)
-
-class ItemsPEdidoVenta(models.Model):
-    pass
 
 
 # class TipoArticulos(models.Model):
@@ -218,3 +202,25 @@ class FotosArticulos(models.Model):
 
                 # Sobrescribe la imagen existente con la versión redimensionada
                 img.save(img_path, optimize=True, quality=20)
+
+
+
+class EstadoPedidoVenta(models.Model):
+    id = models.AutoField(primary_key=True)
+    cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, related_name='clientePedido')
+    nombre = models.CharField(max_length=50, default='')
+    # Entregado
+    # cancelado
+    # en fabricacion
+    # en tienda
+
+class PedidoVenta(models.Model):
+    id = models.AutoField(primary_key=True)
+    estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
+    fecha = models.DateTimeField(auto_now_add=timezone.now)
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
+    
+
+class ItemsPEdidoVenta(models.Model):
+    pedido = models.ForeignKey(PedidoVenta, on_delete=DO_NOTHING ,related_name='idPEdido')
+    itemPedido = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloPedido')
