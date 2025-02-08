@@ -26,16 +26,16 @@ async function swalQuestion(title, text) {
     return true
 }
 
-async function swalconfirmation(text) {
+export async function swalconfirmation(text) {
     Swal.fire(
         'Completado!',
         text,
         'success'
     );
-    setTimeout(() => { document.location.reload(true) }, 1500);
+    // setTimeout(() => { document.location.reload(true) }, 1500);
 }
 
-async function swalconfirmationAndReload(text) {
+export async function swalconfirmationAndReload(text) {
     Swal.fire(
         'Completado!',
         text,
@@ -44,7 +44,7 @@ async function swalconfirmationAndReload(text) {
     setTimeout(() => { document.location.reload(true) }, 2000);
 }
 
-async function swalInput(titulo) {
+export async function swalInput(titulo) {
     const result = await Swal.fire({
         title: titulo,
         input: 'text',
@@ -87,6 +87,33 @@ export async function swalHtmlCreation(text) {
     })
 }
 
+export async function swalHtml(title, htmltext) {
+
+    let TextError = '';
+
+    for (let key in htmltext) {
+        if (htmltext.hasOwnProperty(key)) {
+            console.log(key);
+            console.log(htmltext[key]) // This will print each own key in the object
+            TextError += `<b>${key}: </b><span>${htmltext[key]}</span>\n`
+        }
+    }
+
+    await Swal.fire({
+        title: `<strong><u>${title}</u></strong>`,
+        icon: 'info',
+        html:
+        //htmltext,
+            TextError,
+        showCloseButton: true,
+        showCancelButton: false,
+        // focusConfirm: false,
+        confirmButtonText: '<i class="fa fa-thumbs-up"></i> OK!',
+        confirmButtonAriaLabel: 'Thumbs up, great!',
+        cancelButtonText: '<i class="fa fa-thumbs-down"></i>',
+        cancelButtonAriaLabel: 'Thumbs down'
+    })
+}
 
 // Swal.fire({
 //   title: '<strong>HTML <u>example</u></strong>',

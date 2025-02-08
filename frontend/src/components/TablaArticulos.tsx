@@ -191,7 +191,7 @@ function TablaArticulos({articulos}) {
     
   return (
     <>
-    <div className="container mw-100 my-4">
+    <div className="container mw-100 my-2">
       <h2 className="mb-4">Articulos</h2>
       
         <div className="table-responsive" style={{overflowX: 'visible'}}>
@@ -201,7 +201,7 @@ function TablaArticulos({articulos}) {
                 <th>#</th>
                 <th>Articulo</th>
                 <th>Imagen</th>
-                <th>cantidad</th>
+                <th style={{width: "10%"}}>cantidad</th>
                 <th>Precio_und</th>
                 <th>tipo descuento</th>
                 <th>descuento</th>
@@ -249,6 +249,7 @@ function TablaArticulos({articulos}) {
                     name="cantidad" 
                     placeholder="Cantidad" 
                     defaultValue={1}
+                    
                     // onInput={calcularTotales}
                     disabled 
                   />
@@ -310,13 +311,15 @@ function TablaArticulos({articulos}) {
             Agregar Fila
           </button>
           {/* <button type="submit" className="btn btn-success">Enviar</button> */}
+          <div 
+            // className="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-1"
+             style={{fontSize: 24}}>
+            <label className="" htmlFor="nombreCliente">Total: </label>
+            <strong id="totalVenta">{fromNumberToMoney(ventaTotal)}</strong>
+          </div>
         </div>
         
-      <div 
-        className="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-3" style={{fontSize: 24}}>
-        <label className="" htmlFor="nombreCliente">Total: </label>
-        <strong id="totalVenta">{fromNumberToMoney(ventaTotal)}</strong>
-      </div>
+      
     </div>
 
       {/* <button onClick={datatos}>lets do it</button> */}
