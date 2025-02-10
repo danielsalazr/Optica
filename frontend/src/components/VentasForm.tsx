@@ -29,22 +29,27 @@ import { IconArrowLeft } from '@tabler/icons-react';
 import { FaBeer } from 'react-icons/fa';
 
 
-const IntlTelInput = dynamic(() => import("intl-tel-input/react/build/IntlTelInputWithUtils"), {
-  ssr: false,
-});
+// const IntlTelInput = dynamic(() => import("intl-tel-input/react/build/IntlTelInputWithUtils"), {
+//   ssr: false,
+// });
 // import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js")
 
 function VentasForm({data}) {
     const formRef = useRef(null);
     const usuarioRef = useRef(null);
+    const empresaRef = useRef(null);
     const telefonoRef = useRef(null);
 
     const [telefono, setTelefono] = useState('');
+    const [empresa, setEmpresa] = useState('');
     const [usuario, setUsuario] = useState(null);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
+    // const [clientes, setClientes] = useState(data.clientes);
 
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
+    const [clientes, setClientes] = useState(data.clientes);
+    const [empresas, setEmpresas] = useState(data.empresas);
 
     const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(fechaHoy)
@@ -61,70 +66,84 @@ function VentasForm({data}) {
                 await import('@/utils/js/api.js');
                 await import ("@/utils/js/intlInput.js");
                 
-                // await import ("@/utils/js/selectwithImage.js");
                 
-                await import ("@/utils/js/selectizeElements.js");
+                // await import ("@/utils/js/selectizeElements.js");
                 // const selectize = await import ("selectize/dist/js/standalone/selectize.min.js");
                 await import ("@/utils/js/imagenesInputs.js");
                 await import ("@/utils/js/ventas.js");
                 // const intlInput =  await import ("@/utils/js/intlInput");
-                //console.log(utils); // Verifica que se haya importado correctamente
-                // const script = document.createElement('script');
-                // script.src = "./selectizeElements.js";
-                // script.async = true;
-                // document.body.appendChild(script);
-                // setUtilsLoaded(true);
+                
               };
               loadUtils();
 
 
-              if (usuarioRef.current) {
+            if (usuarioRef.current) {
                 const selectizeInstance = $(usuarioRef.current).selectize({
                     create: true,
                     createOnBlur: true,
                     persist: false,
                     maxItems: 1,
-                    maxOptions: 10,
+                    hideSelected: true,
+                    //maxOptions: 10,
                 });
     
                 setUsuario(selectizeInstance);
             }
-            //   if (telefonoRef.current) {
-            //     intlTelInput(telefonoRef.current, {
-            //         loadUtils: () => import("intl-tel-input/utils"),
-            //     });
-            // }
 
-                // setIti(intlTelInput(telefonoRef.current,))
-                // console.log(iti)
-
-                // const input = telefonoRef.current;
-                // const instance = intlTelInput(input, {
-                // initialCountry: 'co',
-                // utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/utils.js',
-                // });
-
-                // setIti(instance);
-
-              
-      
-              // const data = await getData();
-              // ejecutarSelectize()
-              //loadIntlTelInput();
-              // obtenerInfoArticulo();
-              
-              //intelInputUtil();
-
-            //   return () => {
-            //     instance.destroy();
-            //   };
+            if (empresaRef.current) {
+                const selectizeInstance2 = $(empresaRef.current).selectize({
+                
+                    // create: true,
+                    createOnBlur: true,
+                    persist: false,
+                    maxItems: 1,
+                    highlight: false,
+                    // closeAfterSelect: true,
+                    hideSelected: true,
+                    // onBlur: function(value) {
+                    //     this.items(value);
+                    // },
+                    //maxOptions: 10,
+                    // onChange: function(value) {
+                    //     this.refreshOptions();
+                    // },
+                    
+                });
+    
+                setEmpresa(selectizeInstance2);
+            }
+            
               
           },[])
 
-          const handleTelefonoChange = () => {
+
+       
+          
+
+        //   const handleTelefonoChange = () => {
             
-            telefonoRef.current?.getInstance().getNumber(telefono);
-          };
+        //     telefonoRef.current?.getInstance().getNumber(telefono);
+        //   };
+
+        const handleNuevoCliente = (nuevoCliente) => {
+            setClientes([...clientes, nuevoCliente]); // Agregar el nuevo cliente al estado
+            if (usuario) {
+                usuario[0].selectize.addOption({ value: nuevoCliente.id, text: `${nuevoCliente.id} - ${nuevoCliente.nombre} - ${nuevoCliente.telefono}`}); // Agregar el nuevo cliente al selector
+                usuario[0].selectize.refreshOptions(false); // Refrescar las opciones del selector
+            }
+        };
+
+        const handleNuevaEmpresa = (nuevaEmpresa) => {
+             // Agregar el nuevo cliente al estado
+            if (empresa) {
+                console.log(empresas)
+                const maxId = empresas.reduce((max, item) => (item.id > max ? item.id : max), empresas[0].id);
+                console.log(maxId)
+                setEmpresas([...empresas, nuevaEmpresa]);
+                empresa[0].selectize.addOption({ value: maxId+1, text: `${nuevaEmpresa.nombre}`}); // Agregar el nuevo cliente al selector
+                empresa[0].selectize.refreshOptions(false); // Refrescar las opciones del selector
+            }
+        };
 
   return (
     <>
@@ -132,6 +151,7 @@ function VentasForm({data}) {
                     show={modalShow}
                     onHide={() => setModalShow(false)}
                     title="Crear cliente"
+                    onSubmit={handleNuevoCliente}
                     
                 >
                     <ClientesForm/>
@@ -141,10 +161,11 @@ function VentasForm({data}) {
                     show={modalEmpresaShow}
                     onHide={() => setModalEmpresaShow(false)}
                     title="Crear Empresa"
+                    onSubmit={handleNuevaEmpresa}
                 >
                     <EmpresaForm />
                 </BootstrapModal> 
-        <form className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef,usuario, telefonoRef)} encType="multipart/form-data">
+        <form className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef,usuario, empresa, telefonoRef)} encType="multipart/form-data">
                 
                 
 
@@ -157,7 +178,7 @@ function VentasForm({data}) {
                     <input type="number" className="form-control" id="facturaVenta"  name="factura" defaultValue={data.factura} />
                 </div>
 
-                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                <div className="form-group col-sm-12 col-md-12 col-xl-6">
                     <label htmlFor="cedula position-absolute">cedula cliente:</label>
                    
                     {/* {'{'}% comment %{'}'} <input type="text" className="form-control" id="cedula" placeholder="Cedula del cliente" name="cliente_id" required /> {'{'}% endcomment %{'}'} */}
@@ -165,40 +186,50 @@ function VentasForm({data}) {
                         
                         <select ref={usuarioRef} className="form-select camposbc " id="cedula" name="cliente_id" required>
                             <option key="">--</option>
-                            {data.clientes.map(element => (
-                                <option key={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
-                                {element.id}</option> 
+                            {/* {data.clientes.map(element => ( */}
+                            {clientes.map(element => (
+                                <option key={element.cedula} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
+                                {element.cedula} - {element.nombre} - {element.telefono}</option> 
                             ))}
                         </select>
                         <button className="btn btn-outline-dark position-relative" onClick={() => setModalShow(true)}> <UserRoundPlus  size={24} /> </button>
                     </div>
                 </div>
-                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+
+                {/* <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     <label htmlFor="nombreCliente">Nombre Cliente:</label>
                     <input type="text" className="form-control" id="nombreCliente" placeholder="Nombre Cliente"  name="nombreCliente" />
                 </div>
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 d-flex flex-column">
-                    <label htmlFor="telefonocliente">Telefono:</label>
+                    <label htmlFor="telefonocliente">Telefono:</label> */}
                     {/* <input type="text" className="form-control telefono" id="telefonoCliente" placeholder="xxx-xxx-xxxx"  maxLength={17} name="telefonocliente" value={telefono}
         onChange={handleTelefonoChange} /> */}
-                    <IntlTelInput
+
+                    {/* <IntlTelInput
                         ref={telefonoRef}
                         inputProps={{
                             className: "form-control  " // Agrega la clase "mi-clase-input" al input de teléfono
                           }}
                         id="EmpresaCliente"
                         onChangeNumber={handleTelefonoChange}
-        // onChangeValidity={setIsValid}
                         initOptions={{
                             initialCountry: "co",
                         }}
-                    />
-                </div>
+                    /> */}
+                {/* </div> */}
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
                     <div className="input-group mb-3">
-                    <input type="text" className="form-control" id="EmpresaCliente"  maxLength={17} name="EmpresaCliente" />
+                    <select ref={empresaRef} className="form-select  " id="EmpresaCliente" name="EmpresaCliente" required>
+                        <option key="">--</option>
+                        {/* {data.clientes.map(element => ( */}
+                        {empresas.map(element => (
+                            <option key={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
+                            {element.nombre}</option> 
+                        ))}
+                    </select>
+                    {/* <input type="text" className="form-control" id="EmpresaCliente"  maxLength={17} name="EmpresaCliente" /> */}
                     
                     
                         <button className="btn btn-outline-dark position-relative" onClick={() => setModalEmpresaShow(true)}>

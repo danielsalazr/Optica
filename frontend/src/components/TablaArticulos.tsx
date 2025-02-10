@@ -92,6 +92,7 @@ function TablaArticulos({articulos}) {
       if (selectElement) {
 
         $(selectElement).selectize({
+          hideSelected: true,
           onChange: async function (value) {
             if (value != 'Seleccione') {
               const data = await obtenerInfoArticulo(value);

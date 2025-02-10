@@ -27,7 +27,15 @@ function EmpresaForm(props) {
         console.log(req.data);
         
         await swalconfirmation("Se creo la empresa correctamente.")
-        return true;
+        const nuevaEmpresa = {
+          nombre: formRef.current.querySelector('#nombre').value,
+          nit: formRef.current.querySelector('#nit').value,
+          email: formRef.current.querySelector('#email').value,
+          personas_contacto: formRef.current.querySelector('#personas_contacto').value,
+        };
+          
+        return nuevaEmpresa;
+        // return true;
 
       };
 

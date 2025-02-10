@@ -6,12 +6,7 @@ import Modal from 'react-bootstrap/Modal';
 export default function BootstrapModal(props) {
     const formRef = useRef(null);
     const { onHide, title, children, onSubmit } = props;
-    
-    // const handleSubmit = () => {
-    //     if (formRef.current) {
-    //       onSubmit(formRef.current); // Llamar la función onSubmit con la referencia al formulario
-    //     }
-    //   };
+  
 
       const handleSubmit = async () => {
         console.log('Se activo')
@@ -20,14 +15,14 @@ export default function BootstrapModal(props) {
             console.log(formRef.current.current)
             const consulta = await formRef.current.submit();
             console.log(consulta)
-            if (consulta == true)  onHide();
-          // const formData = new FormData(formRef.current.current); // Obtener los datos del formulario
-        //   if (onSubmit) {
-        //     onSubmit(formData); // Pasar los datos a la función de submit
-        //   }
+            // console.log(formRef.telefono.getInstance().getNumber(telefono))
+            if (consulta != false)  {
+              
+                onSubmit(consulta);
+              onHide(); // Cerrar el modal
+              }      
         }
-       
-        // Cerrar el modal
+    
       };
 
       useEffect(() => {
