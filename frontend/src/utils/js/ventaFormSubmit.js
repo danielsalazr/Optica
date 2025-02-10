@@ -4,7 +4,7 @@ import 'selectize';
 import { swalErr, swalHtmlCreation} from "@/utils/js/sweetAlertFunctions"
 
 import { callApiFile } from './api';
-export const handleFormSubmit = async (e, formRef, usuario, iti) => {
+export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
 
     const hiddenInput = document.querySelector('#metodoPago');
@@ -23,6 +23,7 @@ export const handleFormSubmit = async (e, formRef, usuario, iti) => {
     }
 
     let cliente_id = usuario[0].selectize.getValue()
+    let empresaID = empresa[0].selectize.getValue() 
     console.log(cliente_id) //formData.get('cliente_id');
     let factura = formData.get('factura');
     let precio = formData.get('precio');
@@ -66,6 +67,7 @@ export const handleFormSubmit = async (e, formRef, usuario, iti) => {
     formData.set('precio', precio)
     formData.set('abono', abono)
     formData.set('total', total)
+    formData.set('EmpresaCliente', empresaID)
 
     formData.delete('precioArticulo');
     formData.delete('totalArticulo');

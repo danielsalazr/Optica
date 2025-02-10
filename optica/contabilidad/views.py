@@ -29,7 +29,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
 from .models import Ventas, Abonos, MediosDePago, Articulos, FotosArticulos
-from usuarios.models import Clientes
+from usuarios.models import Clientes, Empresa
 
 
 from django.db.models import Q
@@ -109,7 +109,7 @@ class VentasP(APIView):
                 T3.nombre, 
                 T0.cliente_id 
             FROM contabilidad_ventas T0
-            left join usuarios_clientes T1 on T0.cliente_id = T1.id
+            left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
             left join contabilidad_abonos T2 on T0.factura = T2.factura_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             group by 
@@ -145,12 +145,14 @@ class VentasP(APIView):
 
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
+        empresa = Empresa.objects.all().values()
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
             'factura': maxFactura,
             'clientes': clientes,
             'articulos': articulos,
+            'empresas': empresa,
         }
 
         console.log(context)
@@ -218,10 +220,13 @@ class AbonosP(APIView):
             })
 
         console.log(listVentas)
+
+        
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
             'factura': maxFactura,
+            
         }
 
         return Response(context, status=status.HTTP_200_OK)
