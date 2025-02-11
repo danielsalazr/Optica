@@ -34,6 +34,7 @@ from usuarios.models import Clientes, Empresa
 
 from django.db.models import Q
 
+import json
 from rich.console import Console
 console = Console()
 
@@ -308,22 +309,26 @@ class Venta(APIView):
 
         console.log(request.data)
 
-        metodoPago = request.data['metodoPago']
-        precio = request.data['precio']
-        abono = request.data['abono']
+        console.log(json.loads(request.data['venta']))
+
+        console.log(json.loads(request.data['abonos']))
+
+        # metodoPago = request.data['metodoPago']
+        # precio = request.data['precio']
+        # abono = request.data['abono']
         factura = request.data['factura']
         cliente_id = request.data['cliente_id']
 
         data_copy = request.data.copy()
 
-        verificarCliente = Clientes.objects.filter(id=cliente_id).values()
-        metodoPago = MediosDePago.objects.get(id=metodoPago)
+        verificarCliente = Clientes.objects.filter(cedula=cliente_id).values()
+        # metodoPago = MediosDePago.objects.get(id=metodoPago)
 
-        if precio != abono and  int(precio) > 0:
-            data_copy['estado'] = 2
+        # if precio != abono and  int(precio) > 0:
+        #     data_copy['estado'] = 2
         
-        if precio == abono:
-            data_copy['estado'] = 3  # Pagado
+        # if precio == abono:
+        #     data_copy['estado'] = 3  # Pagado
 
         # console.log(request.data)
         
@@ -344,13 +349,13 @@ class Venta(APIView):
                     )
                 
             
-            if metodoPago and abono != 0:
-                abonar = Abonos.objects.create(
-                    factura_id=factura,
-                    cliente_id=cliente_id,
-                    precio=abono,
-                    medioDePago=metodoPago,  
-                )
+            # if metodoPago and abono != 0:
+            #     abonar = Abonos.objects.create(
+            #         factura_id=factura,
+            #         cliente_id=cliente_id,
+            #         precio=abono,
+            #         medioDePago=metodoPago,  
+            #     )
 
 
             

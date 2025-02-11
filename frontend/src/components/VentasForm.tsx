@@ -165,7 +165,7 @@ function VentasForm({data}) {
                 >
                     <EmpresaForm />
                 </BootstrapModal> 
-        <form className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef,usuario, empresa, telefonoRef)} encType="multipart/form-data">
+        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
                 
                 
 
@@ -185,10 +185,10 @@ function VentasForm({data}) {
                     <div className="input-group mb-3">
                         
                         <select ref={usuarioRef} className="form-select camposbc " id="cedula" name="cliente_id" required>
-                            <option key="">--</option>
+                            <option key="" value="">--</option>
                             {/* {data.clientes.map(element => ( */}
                             {clientes.map(element => (
-                                <option key={element.cedula} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
+                                <option key={element.cedula} value={element.cedula}  style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
                                 {element.cedula} - {element.nombre} - {element.telefono}</option> 
                             ))}
                         </select>
@@ -222,10 +222,10 @@ function VentasForm({data}) {
 
                     <div className="input-group mb-3">
                     <select ref={empresaRef} className="form-select  " id="EmpresaCliente" name="EmpresaCliente" required>
-                        <option key="">--</option>
+                        <option key="" value="">--</option>
                         {/* {data.clientes.map(element => ( */}
                         {empresas.map(element => (
-                            <option key={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
+                            <option key={element.id} value={element.id} style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
                             {element.nombre}</option> 
                         ))}
                     </select>
