@@ -54,7 +54,7 @@ export default function RootLayout({
 
         {/* <script src="http://localhost:8000/static/js/getCookie.js" async></script>
         <script src="http://localhost:8000/static/js/api.js" async></script> */}
-        <script src="http://localhost:8000/static/js/utils.js" async></script>
+        {/* <script src="http://localhost:8000/static/js/utils.js" async></script> */}
         {/* <script src="http://localhost:8000/static/js/intlTel.js" async></script> */}
         {/* <script src="http://localhost:8000/static/js/imagenesInput.js" async></script>
         

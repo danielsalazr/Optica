@@ -7,10 +7,11 @@ import Button from 'react-bootstrap/Button';
 
 
 function Abonos({data}) {
+  console.log(data)
   const [abonoTotal, setAbonoTotal] = useState(0)
   const [rows, setRows] = useState([[{
     precio: '$ 0',
-    total: '$ 0',
+    // total: '$ 0',
   }]]);
 
     useEffect(() => {
@@ -25,7 +26,7 @@ function Abonos({data}) {
       // Añadir una fila vacía al estado
       setRows(prevRows => [...prevRows, { 
         precio: '$ 0',
-        total: '$ 0', 
+        // total: '$ 0', 
       }]);
       
     }
@@ -66,12 +67,12 @@ function Abonos({data}) {
             <div className="table-responsive" style={{overflowX: 'visible'}}>
               <table className="table table-bordered">
                 <thead className="table-light">
-                  <tr>
-                    <th>#</th>
-                    <th>Medio de Pago</th>
+                  <tr s>
+                    <th style={{width: "2%"}}>#</th>
+                    <th style={{width: "35%"}}>Medio de Pago</th>
                     <th>Descripcion</th>
-                    <th>Valor</th>
-                    <th>Total $</th>
+                    <th style={{width: "20%"}}>Valor</th>
+                    {/* <th>Total $</th> */}
                     </tr>
                 </thead>
                 <tbody>
@@ -79,9 +80,14 @@ function Abonos({data}) {
                   <tr key={index}>
                   <td className="bg-secondary-subtle">{index + 1}</td>
                   <td style={{ width: '25%' }}>
-                    <MedioPago data={data} name="metodoPago" className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 w-100"/>
+                    <MedioPago 
+                      data={data} 
+                      name="metodoPago" 
+                      className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 w-100"
+                      required={true}
+                    />
                   </td>
-                  <td>
+                  <td width={40}>
                     <input
                       className="form-control"
                       id={`descripcion-${index}`}
@@ -91,22 +97,23 @@ function Abonos({data}) {
                       // defaultValue={0}
                     />
                   </td>
-                  <td>
+                  <td width={150}>
                     <input
                       type="text"
                       className="form-control border-0 precio"
                       id={`precioArticulo-${index}`}
-                      name="precioArticulo"
+                      name="precioAbono"
                       step={1000}
                       placeholder="Precio"
                       value={row.precio}
                       onChange={(e) => handlePrecioChange(index, e.target.value)}
                       onBlur={(e) => handlePrecioChange(index, e.target.value)}
+                      defaultValue={`$ 0`}
                       // defaultValue="$ 0"
                       
                     />
                   </td>
-                  <td>
+                  {/* <td>
                     <input
                       className="form-control"
                       id={`totalAbono-${index}`}
@@ -116,8 +123,8 @@ function Abonos({data}) {
                       value={row.total}
                       // defaultValue={0}
                     />
-                  </td>
-                  <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell"}} color="red" ></box-icon>
+                  </td> */}
+                  <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell", width: "4.2%"}} color="red" ></box-icon>
                 </tr>
                   ))}
                 </tbody>
@@ -140,7 +147,7 @@ function Abonos({data}) {
               // className="d-flex justify-content-end col-sm-12 col-md-12 col-xl-12 col-xl-12 mt-3"
                style={{fontSize: 24}}>
                 <label className="" htmlFor="nombreCliente">Total: </label>
-                <strong id="totalVenta">{fromNumberToMoney(abonoTotal)}</strong>
+                <strong id="totalAbono">{fromNumberToMoney(abonoTotal)}</strong>
               </div>
             </div>
             

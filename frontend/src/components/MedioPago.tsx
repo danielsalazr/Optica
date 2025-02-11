@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function MedioPago({ data, name, className, labelInput }) {
+function MedioPago({ data, name, className, labelInput, required }) {
     const containerRef = useRef(null);
     const dropdownRef = useRef(null);
     const hiddenInputRef = useRef(null);
@@ -17,6 +17,7 @@ function MedioPago({ data, name, className, labelInput }) {
     };
 
     const selectOption = (element) => {
+        console.log(element)
         setSelectedOption({
             value: element.id,
             text: element.nombre,
@@ -63,7 +64,7 @@ function MedioPago({ data, name, className, labelInput }) {
                         </div>
                     ))}
                 </div>
-                <input ref={hiddenInputRef} type="hidden" name={name} required />
+                <input ref={hiddenInputRef} type="hidden" name={name}  required={required} />
                 <div className="error-message" style={{ display: 'none' }}>
                     Este campo es obligatorio.
                 </div>

@@ -61,7 +61,7 @@ export  function moneyformat(amount) {
 }
 
 // funcion para hacer separador de miles en texto
-function separadorMiles(numero) {
+export function separadorMiles(numero) {
     return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
@@ -239,7 +239,7 @@ export function separadorDeMiles(input){
     return formattedValue;
 }
 
-function convertirSeparadorMilesANumero(formattedValue) {
+export function convertirSeparadorMilesANumero(formattedValue) {
     // Elimina los puntos (separadores de miles) y convierte a número
     let value = formattedValue.replace(/\./g, '');
 
@@ -251,7 +251,7 @@ function convertirSeparadorMilesANumero(formattedValue) {
 
 
 // Almacena los valores de todos los inputs excepto el de id="facturaVenta"
-function almacenarInputs() {
+export function almacenarInputs() {
     const inputs = document.querySelectorAll('input:not(#facturaVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
     const valores = {};
 
@@ -268,7 +268,7 @@ function almacenarInputs() {
 }
 
 // Carga los valores desde localStorage y los asigna a los inputs
-function cargarInputs() {
+export function cargarInputs() {
     const valores = JSON.parse(localStorage.getItem('inputs')) || {}; // Obtén los valores del localStorage
     console.log('Cargando valores:', valores);
 
@@ -531,10 +531,10 @@ function fromNumberToMoney(input) {
 
 
 
- function fromMoneyToText(input){
+  function fromMoneyToText(input){
     return Number(input.replace(/\D/g, "").replace(',', '.'))
-    
-}
+ 
+  }
 
  function separadorDeMiles(input){
     let value = input.replace(/\D/g, '');

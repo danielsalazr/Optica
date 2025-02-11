@@ -222,7 +222,7 @@ function TablaArticulos({articulos}) {
                     // id="articulo"
                     id={`articulo-${index}`}
                   >
-                    <option key="">Seleccione</option>
+                    <option key="" value="">Seleccione</option>
                     {
                       articulos.map(element => (
                         <option 
@@ -272,7 +272,7 @@ function TablaArticulos({articulos}) {
                     className="form-select border-0"
                     // id="tipoDescuentoArticulo"
                     id={`tipoDescuentoArticulo-${index}`}
-                    name="indicador_impuestos"
+                    name="tipo_descuento"
                     defaultValue="precio"
                   >
                     <option value="">Seleccione</option>
@@ -287,6 +287,7 @@ function TablaArticulos({articulos}) {
                     id={`descuentoArticulo-${index}`} 
                     name="descuento" 
                     placeholder="% Descuento" 
+                    defaultValue={0}
                   />
                 </td>
                 <td className="">
@@ -301,7 +302,7 @@ function TablaArticulos({articulos}) {
                     defaultValue={0} 
                   />
                 </td>
-                <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell"}} color="red" ></box-icon>
+                <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell", width: "4.2%"}} color="red" ></box-icon>
               </tr> 
             ))}
             </tbody>
