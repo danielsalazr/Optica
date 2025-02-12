@@ -36,7 +36,7 @@ export async function addRow() {
         </td>
         <td ><img id="imageArticulo${numeroFila}" height="35" src="" /> </td>
         <td class=""><input type="number" class="form-control " id="cantidadArticulo${numeroFila}" name="cantidad" placeholder="Cantidad" value="1" disabled></td>
-        <td><input type="text" class="form-control precio" id="precioArticulo${numeroFila}" name="precioArticulo" placeholder="Precio" step="1000"></td>
+        <td><input type="text" class="form-control precio" id="precio_articulo${numeroFila}" name="precio_articulo" placeholder="Precio" step="1000"></td>
         <td>
             <select class="form-select" id="tipoDescuentoArticulo${numeroFila}" name="indicador_impuestos">
                 <option value="">Seleccione</option>
@@ -64,7 +64,7 @@ export async function addRow() {
 
   
   
-  const precioArticuloTable = $(`#precioArticulo${numeroFila}`);
+  const precio_articuloTable = $(`#precio_articulo${numeroFila}`);
   const cantidadArticuloTable = $(`#cantidadArticulo${numeroFila}`);
   const descuentoArticuloTable = $(`#descuentoArticulo${numeroFila}`);
   const totalArticuloTable = $(`#totalArticulo${numeroFila}`);
@@ -72,8 +72,8 @@ export async function addRow() {
   const imageArticuloTable = $(`#imageArticulo${numeroFila}`);
 
 
-  precioArticuloTable.on('input', function () {
-    precioArticuloTable.val(formatMoneyInput(precioArticuloTable.val())) 
+  precio_articuloTable.on('input', function () {
+    precio_articuloTable.val(formatMoneyInput(precio_articuloTable.val())) 
   })
 
   
@@ -84,8 +84,8 @@ export async function addRow() {
 
 
   /*
-  precioArticuloTable.on('change', function () {
-    precioArticuloTable.val(fromTextToMoney(precioArticuloTable.val())) 
+  precio_articuloTable.on('change', function () {
+    precio_articuloTable.val(fromTextToMoney(precio_articuloTable.val())) 
   })
   */
 
@@ -97,7 +97,7 @@ export async function addRow() {
 
         console.log(data);
 
-        precioArticuloTable.val(moneyformat(data.precio))
+        precio_articuloTable.val(moneyformat(data.precio))
         cantidadArticuloTable.prop('disabled', false);
         calculateTotalArticleTable()
         imageArticuloTable.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
@@ -120,7 +120,7 @@ export async function addRow() {
 
     // console.log("totalizado")
 
-    const precio = precioArticuloTable.val();
+    const precio = precio_articuloTable.val();
 
     if (tipoDescuentoArticuloTable.val() != "porcentaje"){
     totalArticuloTable.val(moneyformat(precio.replace(/\D/g, "") * cantidadArticuloTable.val() - descuentoArticuloTable.val().replace(/\D/g, "")))
@@ -132,7 +132,7 @@ export async function addRow() {
   }
 
 
-  $(`#descuentoArticulo${numeroFila}, #precioArticulo${numeroFila}, #cantidadArticulo${numeroFila}`).on('change', async function() {
+  $(`#descuentoArticulo${numeroFila}, #precio_articulo${numeroFila}, #cantidadArticulo${numeroFila}`).on('change', async function() {
     // console.log("A totalizar")
     await calculateTotalArticleTable()
     calcularTotales()

@@ -68,7 +68,7 @@ function TablaArticulos({articulos}) {
       }
 
     const initializeSelectize = (index) => {
-      const precioArticulo = $(`#precioArticulo-${index}`);
+      const precio_articulo = $(`#precio_articulo-${index}`);
       const cantidadArticulo = $(`#cantidadArticulo-${index}`);
       const descuentoArticulo = $(`#descuentoArticulo-${index}`);
       const totalArticulo = $(`#totalArticulo-${index}`);
@@ -81,9 +81,9 @@ function TablaArticulos({articulos}) {
       async function calculateTotalArticle() {
         console.log(tipoDescuentoArticulo.val())
         if (tipoDescuentoArticulo.val() != "porcentaje"){
-        totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+        totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
         } else {
-          totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+          totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
         }
     
         calcularTotales()
@@ -97,7 +97,7 @@ function TablaArticulos({articulos}) {
             if (value != 'Seleccione') {
               const data = await obtenerInfoArticulo(value);
               // Actualizar directamente los valores en la tabla
-              precioArticulo.val(formatMoneyInput(`$ ${data.precio}`));
+              precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
               totalArticulo.val(`$ ${data.precio}`);
               cantidadArticulo.prop('disabled', false);
               imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
@@ -106,7 +106,7 @@ function TablaArticulos({articulos}) {
             } else{
               cantidadArticulo.prop('disabled', true);
               imageArticulo.attr("src", ``);
-              precioArticulo.val('$ 0');
+              precio_articulo.val('$ 0');
             }
           }
         });
@@ -114,8 +114,8 @@ function TablaArticulos({articulos}) {
 
       
     
-      precioArticulo.on('input', function () {
-        precioArticulo.val(formatMoneyInput(precioArticulo.val())) 
+      precio_articulo.on('input', function () {
+        precio_articulo.val(formatMoneyInput(precio_articulo.val())) 
       })
 
       descuentoArticulo.on("input", function() {
@@ -125,7 +125,7 @@ function TablaArticulos({articulos}) {
 
       
 
-      $(`#descuentoArticulo-${index}, #precioArticulo-${index}, #cantidadArticulo-${index}`).on('change',async function() {
+      $(`#descuentoArticulo-${index}, #precio_articulo-${index}, #cantidadArticulo-${index}`).on('change',async function() {
           await calculateTotalArticle()
           calcularTotales()
           
@@ -259,9 +259,9 @@ function TablaArticulos({articulos}) {
                   <input 
                     type="text"
                     className="form-control border-0 precio"
-                    // id="precioArticulo"
-                    id={`precioArticulo-${index}`}
-                    name="precioArticulo"
+                    // id="precio_articulo"
+                    id={`precio_articulo-${index}`}
+                    name="precio_articulo"
                     step={1000}
                     placeholder="Precio"
                     defaultValue="$ 0" 

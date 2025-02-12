@@ -67,75 +67,7 @@ class EstadoFactura(models.Model):
 
 # Dee haber una pabtalla que me cruce los dos
 
-class Ventas(models.Model):
-    #id es el numero de factura de la venta, hay que asegurarse que empiece a partir de un nuemero de factura
-    factura = models.IntegerField(primary_key=True)
-    #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
-    cliente_id = models.BigIntegerField(default=0, verbose_name="Id de cliente", blank=True, null=True)
-    detalle = models.TextField(max_length=50, default='', blank=True, null=True)
-    observacion = models.TextField(max_length=50, default='', blank=True, null=True)
-    precio = models.IntegerField(default=0)
-    #estado = models.CharField(max_length=50, default='')
-    estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
-    fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
-    fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
-    foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
 
-    class Meta:
-        verbose_name = "Ventas"
-        verbose_name_plural = "Ventas"
-        managed = True
-
-    def resumen(self):
-        return self.factura[:50] + '...' 
-
-
-    def __int__(self):
-        return self.factura
-
-    def nombre(self):
-        nombre = Clientes.objects.get(id=self.cliente_id)
-        nombre = f"{nombre.nombre} {nombre.apellido}"
-        return nombre
-
-    @property
-    def precio_moneda(self):
-        return '${:,.0f}'.format(self.precio)
-
-
-class Abonos(models.Model):
-    id = models.AutoField(primary_key=True)
-    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
-    #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
-    cliente_id = models.BigIntegerField(verbose_name="Id de cliente", blank=True, null=True, default=0)
-    precio = models.IntegerField(default=0)
-    medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de Pago")
-    fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
-    # abono debe mostrar el saldo, osea el valor a pagar
-
-    class Meta:
-        verbose_name = "Abonos"
-        verbose_name_plural = "Abonos"
-        managed = True
-
-    def n_Factura(self):
-        return self.factura.factura
-    
-    def nombre(self):
-        nombre = Clientes.objects.get(id=self.cliente_id)
-        nombre = f"{nombre.nombre} {nombre.apellido}"
-        return nombre
-
-    @property
-    def precio_moneda(self):
-        return '${:,.0f}'.format(self.precio)
-    
-
-
-# class TipoArticulos(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     nombre = models.CharField(max_length=100, default='')
-#     # Aqui van aser entregables y no entreganbles    
 
 class Articulos(models.Model):
 
@@ -162,6 +94,105 @@ class Articulos(models.Model):
     def __str__(self):
         return self.nombre
 
+
+class Ventas(models.Model):
+    #id es el numero de factura de la venta, hay que asegurarse que empiece a partir de un nuemero de factura
+    factura = models.IntegerField(primary_key=True)
+    #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
+    cliente_id = models.BigIntegerField(default=0, verbose_name="Id de cliente", blank=True, null=True)
+    detalle = models.TextField(max_length=50, default='', blank=True, null=True)
+    observacion = models.TextField(max_length=50, default='', blank=True, null=True)
+    precio = models.IntegerField(default=0)
+    # Descuento = models.IntegerField(default=0)
+    # total_venta = models.IntegerField(default=0)
+    #estado = models.CharField(max_length=50, default='')
+    estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
+    fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
+    fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
+    foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Ventas"
+        verbose_name_plural = "Ventas"
+        managed = True
+
+
+    def __str__(self):
+        return str(self.factura)
+
+
+    def resumen(self):
+        return self.factura[:50] + '...' 
+
+    
+    
+    def __int__(self):
+        return str(self.factura)
+
+    def nombre(self):
+        nombre = Clientes.objects.get(cedula=self.cliente_id)
+        nombre = f"{nombre.nombre}"
+        return nombre
+
+    @property
+    def precio_moneda(self):
+        return '${:,.0f}'.format(self.precio)
+    
+
+class ItemsVenta(models.Model):
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='idVenta')
+    articulo = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloVenta')
+    cantidad = models.IntegerField(default=0)
+    precio_articulo = models.IntegerField(default=0)
+    descuento = models.IntegerField(default=0)
+    totalArticulo = models.IntegerField(default=0)
+    # tipo_descuento
+
+
+class Abonos(models.Model):
+    id = models.AutoField(primary_key=True)
+    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Factura", blank=True, null=True)
+    #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
+    cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
+    precio = models.IntegerField(default=0, verbose_name="valor")
+    medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de Pago")
+    fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+    # abono debe mostrar el saldo, osea el valor a pagar
+
+    class Meta:
+        verbose_name = "Abono"
+        verbose_name_plural = "Abonos"
+        managed = True
+
+    def n_Factura(self):
+        return self.factura.factura
+    
+    def nombre(self):
+        nombre = Clientes.objects.get(cedula=self.cliente_id)
+        nombre = f"{nombre.nombre}"
+        return nombre
+
+    @property
+    def precio_moneda(self):
+        return '${:,.0f}'.format(self.precio)
+    
+
+
+# class TipoArticulos(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     nombre = models.CharField(max_length=100, default='')
+#     # Aqui van aser entregables y no entreganbles    
+
+class Saldos(models.Model): 
+    cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="saldosCliente",)
+    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="saldoVenta")
+    saldo = models.IntegerField(default=0)
+
+
+    class Meta:
+        managed = True
+        verbose_name = "Saldo"
+        verbose_name_plural = "Saldos"
 
 
 class FotosArticulos(models.Model):

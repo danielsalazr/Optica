@@ -43,6 +43,7 @@ function VentasForm({data}) {
     const [telefono, setTelefono] = useState('');
     const [empresa, setEmpresa] = useState('');
     const [usuario, setUsuario] = useState(null);
+    const [factura, setFactura] = useState(data.factura);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
     // const [clientes, setClientes] = useState(data.clientes);
@@ -145,6 +146,13 @@ function VentasForm({data}) {
             }
         };
 
+        const handleFormSubmitWrapper = async (e, formRef, usuario, empresa, telefonoRef) => {
+            const formulario = await handleFormSubmit(e, formRef, usuario, empresa, telefonoRef);
+    
+            // Incrementar el valor de factura en el estado
+            if (formulario == true) setFactura(parseInt(factura) + 1 );
+        };
+
   return (
     <>
             <BootstrapModal
@@ -165,7 +173,7 @@ function VentasForm({data}) {
                 >
                     <EmpresaForm />
                 </BootstrapModal> 
-        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmit(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
+        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
                 
                 
 
@@ -175,7 +183,7 @@ function VentasForm({data}) {
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     
                     <label htmlFor="email"># Factura</label>
-                    <input type="number" className="form-control" id="facturaVenta"  name="factura" defaultValue={data.factura} />
+                    <input type="number" className="form-control" id="facturaVenta"  name="factura" value={factura} onChange={(e) => setFactura(Number(e.target.value))} />
                 </div>
 
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">
