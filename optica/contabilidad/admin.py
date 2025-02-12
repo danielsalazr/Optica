@@ -1,6 +1,15 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import MediosDePago, EstadoVenta, Ventas, Abonos, Articulos, FotosArticulos
+from .models import (
+    MediosDePago,
+    EstadoVenta,
+    Ventas,
+    Abonos,
+    Articulos,
+    FotosArticulos,
+    ItemsVenta,
+    Saldos,
+)
 from django.forms import NumberInput
 from django.utils.html import mark_safe
 
@@ -21,6 +30,7 @@ console = Console()
 @admin.register(Abonos)
 class AbonosAdmin(admin.ModelAdmin):
     list_display = (
+        'id',
         'n_Factura',
         'cliente_id',
         'nombre',
@@ -29,8 +39,34 @@ class AbonosAdmin(admin.ModelAdmin):
         'medioDePago',
         'fecha',
     )
+    list_display_links = ('id', 'n_Factura',)
+    search_fields = ('id', 'n_Factura',)
 
-    search_fields = ('factura',)
+@admin.register(Saldos)
+class SaldosAdmin(admin.ModelAdmin):
+    list_display = (
+        'factura',
+        'cliente',
+        'saldo',
+    )
+    list_display_links = ('factura', 'cliente',)
+    search_fields = ('factura', 'cliente',)
+
+
+    # 
+@admin.register(ItemsVenta)
+class ItemsVentaAdmin(admin.ModelAdmin):
+    list_display = (
+        'venta',
+        'articulo',
+        'cantidad',
+        'precio_articulo',
+        'descuento',
+        'totalArticulo',
+    )
+
+    # search_fields = ('factura',)
+
 
 @admin.register(Ventas)
 class VentasAdmin(admin.ModelAdmin):

@@ -22,7 +22,12 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.db import connection
 
-from .serializers import VentaSerializer, AbonoSerializer
+from .serializers import (
+    VentaSerializer,
+    AbonoSerializer,
+    ItemsVentaSerializer,
+    SaldoSerializer,
+ )
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
@@ -309,9 +314,16 @@ class Venta(APIView):
 
         console.log(request.data)
 
+        venta = json.loads(request.data['venta'])
         console.log(json.loads(request.data['venta']))
 
+        abono = json.loads(request.data['abonos'])
+
         console.log(json.loads(request.data['abonos']))
+
+        saldo = json.loads(request.data['saldo'])
+
+        console.log(json.loads(request.data['saldo']))
 
         # metodoPago = request.data['metodoPago']
         # precio = request.data['precio']
@@ -337,16 +349,47 @@ class Venta(APIView):
         serializer = VentaSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
 
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            console.log(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            serializer.save()
+        serializer.save()
 
-            if not verificarCliente:
-                Clientes.objects.create(
-                    id=cliente_id,
-                    nombre = request.data['nombreCliente'],
-                    # apellido = request.data['apellidoCliente'],
-                    )
+        serializerVenta = ItemsVentaSerializer(data=venta, many=True)
+        serializerAbono = AbonoSerializer(data=abono, many=True)
+        serializerSaldo = SaldoSerializer(data=saldo, many=False)
+
+        if not serializerVenta.is_valid():
+            console.log(serializerVenta.errors)
+            return Response(serializerVenta.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not serializerAbono.is_valid():
+            console.log(serializerAbono.errors)
+            return Response(serializerAbono.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+        if not serializerSaldo.is_valid():
+            console.log(serializerSaldo.errors)
+            return Response(serializerSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        console.log("Venta valida")
+        
+
+        serializerVenta.save()
+        serializerAbono.save()
+        serializerSaldo.save()
+
+        return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
+            
+
+            
+
+            # if not verificarCliente:
+            #     Clientes.objects.create(
+            #         id=cliente_id,
+            #         nombre = request.data['nombreCliente'],
+            #         # apellido = request.data['apellidoCliente'],
+            #         )
                 
             
             # if metodoPago and abono != 0:
@@ -361,7 +404,7 @@ class Venta(APIView):
             
 
             #return JsonResponse({'accion': 'ok'}, status=200)
-            return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
+        return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)

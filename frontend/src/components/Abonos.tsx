@@ -101,7 +101,7 @@ function Abonos({data}) {
                     <input
                       type="text"
                       className="form-control border-0 precio"
-                      id={`precioArticulo-${index}`}
+                      id={`precio_articulo-${index}`}
                       name="precioAbono"
                       step={1000}
                       placeholder="Precio"

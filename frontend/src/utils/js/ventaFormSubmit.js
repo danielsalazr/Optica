@@ -68,15 +68,15 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
         // var medioDePagoText = medioDePago.options[index].text;
 
 
-    const precioArticulo = formData.getAll('precioArticulo');
+    const precio_articulo = formData.getAll('precio_articulo');
     const totalArticulo =  formData.getAll('totalArticulo');
     const precioAbono = formData.getAll("precioAbono");
     const descuento = formData.getAll("descuento");
     
-    const arrayPrueba = transformarArray(precioArticulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
-    console.log(arrayPrueba)
+    // const arrayPrueba = transformarArray(precio_articulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
+    // console.log(arrayPrueba)
 
-    const precioArticulos = transformarArray(precioArticulo, fromMoneyToText)
+    const precio_articulos = transformarArray(precio_articulo, fromMoneyToText)
     const totalArticulos = transformarArray(totalArticulo, fromMoneyToText)
     const precioAbonos = transformarArray(precioAbono, fromMoneyToText)
     const descuentos = transformarArray(descuento, convertirSeparadorMilesANumero)
@@ -84,7 +84,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
 
     const total = fromMoneyToText($("#totalVenta").text());
-    const totalAbono = fromMoneyToText($("totalVenta").text());
+    const totalAbono = fromMoneyToText($("#totalAbono").text());
     const metodoPago = formData.getAll("metodoPago")
     const numero_articulo = formData.getAll("numero_articulo")
     const cantidad = formData.getAll("cantidad")
@@ -103,36 +103,46 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     
     agregarArrayAFormData(formData, 'descuento', descuentos, true);
-    agregarArrayAFormData(formData, 'precioArticulo', precioArticulos, true);
+    agregarArrayAFormData(formData, 'precio_articulo', precio_articulos, true);
     agregarArrayAFormData(formData, 'totalArticulo', totalArticulos, true);
-
     agregarArrayAFormData(formData, 'precioAbono', precioAbonos, true);
 
-    eliminarElementosFormData(formData, ['descuento', 'precioArticulo', 'totalArticulo', 'tipo_descuento', 'cantidad', 'numero_articulo'])
+
+    eliminarElementosFormData(formData, ['descuento', 'precio_articulo', 'totalArticulo', 'tipo_descuento', 'cantidad', 'numero_articulo'])
     eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', ])
 
     const articulos = numero_articulo.map((numeroArticulo, index) => {
         return {
-            numero_articulo: numeroArticulo,
+            venta: factura,
+            articulo: numeroArticulo,
             cantidad: cantidad[index],
-            precioArticulo: precioArticulos[index],
+            precio_articulo: precio_articulos[index],
             tipo_descuento: tipo_descuento[index],
-            descuentos: descuentos[index],
+            descuento: descuentos[index],
             totalArticulo:  totalArticulos[index],//formData.getAll("totalArticulo")[index]
         };
     });
 
     const abono = metodoPago.map((metodo_Pago, index) => {
         return {
-            metodoPago: metodo_Pago,
+            factura: factura,
+            cliente_id: cliente_id,
+            medioDePago: metodo_Pago,
             descripcionAbono: descripcionAbono[index],
-            precioAbono: precioAbonos[index],
+            precio: precioAbonos[index],
 
         };
     });
 
+    const saldo =  {
+            factura: factura,
+            cliente: cliente_id,
+            saldo: total - totalAbono,
+
+        };
     formData.set('venta', JSON.stringify(articulos))
     formData.set('abonos', JSON.stringify(abono))
+    formData.set('saldo', JSON.stringify(saldo))
     
     console.log(JSON.stringify(articulos));
 
@@ -189,6 +199,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     almacenarInputs()
     
+    return true
 }
 //);
 
@@ -233,21 +244,21 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 //         // var medioDePagoText = medioDePago.options[index].text;
 
 
-//     const precioArticulo = formData.getAll('precioArticulo');
+//     const precio_articulo = formData.getAll('precio_articulo');
 //     const totalArticulo =  formData.getAll('totalArticulo');
     
-//     const arrayPrueba = transformarArray(precioArticulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
+//     const arrayPrueba = transformarArray(precio_articulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
 //     console.log(arrayPrueba)
 
-//     const precioArticulos = transformarArray(precioArticulo, fromMoneyToText)
+//     const precio_articulos = transformarArray(precio_articulo, fromMoneyToText)
 //     const totalArticulos = transformarArray(totalArticulo, fromMoneyToText)
     
 
 // // Convierte los valores a números sin formato
-//     // const precioArticulos = precioArticulo.map(valor => {
+//     // const precio_articulos = precio_articulo.map(valor => {
 //     //     return fromMoneyToText(valor);
 //     // });
-//     // console.log(precioArticulos)
+//     // console.log(precio_articulos)
 //     // const totalArticulos = totalArticulo.map(valor => {
 //     //     return fromMoneyToText(valor);
 //     // });
@@ -267,12 +278,12 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 //     formData.set('total', total)
 //     formData.set('EmpresaCliente', empresaID)
 
-//     formData.delete('precioArticulo');
+//     formData.delete('precio_articulo');
 //     formData.delete('totalArticulo');
     
-//     precioArticulos.forEach(valor => {
+//     precio_articulos.forEach(valor => {
 //         console.log(valor)
-//         formData.append('precioArticulo', valor); // Reasigna los valores limpios
+//         formData.append('precio_articulo', valor); // Reasigna los valores limpios
 //     });
 
 //     totalArticulos.forEach(valor => {
