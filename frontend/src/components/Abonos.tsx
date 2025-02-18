@@ -6,6 +6,7 @@ import 'boxicons';
 import Button from 'react-bootstrap/Button';
 
 
+
 function Abonos({data}) {
   console.log(data)
   const [abonoTotal, setAbonoTotal] = useState(0)
@@ -14,13 +15,23 @@ function Abonos({data}) {
     // total: '$ 0',
   }]]);
 
-    useEffect(() => {
-        // const loadUtils = async () => {
-        //     await import('@/utils/js/utils.js');     
-        // }
-        // loadUtils()
+    // useEffect(() => {
+    //     // const loadUtils = async () => {
+    //     //     await import('@/utils/js/utils.js');     
+    //     // }
+    //     // loadUtils()
         
-    }, [])
+    // }, [])
+
+    // const fechaHoy = 
+    const hoy = new Date();
+
+    // Sumar 2 meses a la fecha actual
+    hoy.setMonth(hoy.getMonth() + 2);
+
+    // Formatear la fecha como YYYY-MM-DD
+    const hoyMas2Meses = hoy.toISOString().split('T')[0];
+    console.log(hoyMas2Meses)
 
     const addMetodoPago = () => {
       // Añadir una fila vacía al estado
@@ -62,9 +73,13 @@ function Abonos({data}) {
   return (
     <div className="container mw-100 my-4" onLoad={handleLoad}>
           <h2 className="mb-4">Abonos</h2>
-         
+
+          <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                    <label htmlFor="password">Fecha de vencimiento</label>
+                    <input type="date" className="form-control" id="fecha_Vencimiento" placeholder="Ingrese su contraseña" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required />
+                </div>
           
-            <div className="table-responsive" style={{overflowX: 'visible'}}>
+            <div className="table-responsive mt-4" style={{overflowX: 'visible'}}>
               <table className="table table-bordered">
                 <thead className="table-light">
                   <tr s>

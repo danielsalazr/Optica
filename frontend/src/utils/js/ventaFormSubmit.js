@@ -95,9 +95,9 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     console.log(metodoPago)
     // numero_articulo
     
-    formData.set('total', total)
+    formData.set('precio', total)  // total
     formData.set('totalAbono', totalAbono)
-    formData.set('EmpresaCliente', empresaID)
+    formData.set('empresaCliente', empresaID)
 
     
 

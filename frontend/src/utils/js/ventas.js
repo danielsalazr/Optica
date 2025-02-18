@@ -40,7 +40,7 @@ export async function obtenerInfoArticulo(value) {
     maxOptions: 10,
   })
 
-  const precioArticulo = $("#precioArticulo");
+  const precio_articulo = $("#precio_articulo");
   const cantidadArticulo = $("#cantidadArticulo");
   const descuentoArticulo = $("#descuentoArticulo");
   const totalArticulo = $("#totalArticulo");
@@ -63,7 +63,7 @@ export async function obtenerInfoArticulo(value) {
       
       if (value != ''){
         const data = await obtenerInfoArticulo(value);
-        precioArticulo.val(moneyformat(data.precio))
+        precio_articulo.val(moneyformat(data.precio))
         cantidadArticulo.prop('disabled', false);
         calculateTotalArticle()
         imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
@@ -80,17 +80,17 @@ export async function obtenerInfoArticulo(value) {
     descuentoArticulo.val(separadorDeMiles(descuentoArticulo.val()));
   });
 
-  precioArticulo.on('input', function () {
-    precioArticulo.val(formatMoneyInput(precioArticulo.val())) 
+  precio_articulo.on('input', function () {
+    precio_articulo.val(formatMoneyInput(precio_articulo.val())) 
   })
 
   
 
 async function calculateTotalArticle() {
     if (tipoDescuentoArticulo.val() != "porcentaje"){
-    totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+    totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
     } else {
-      totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+      totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
     }
 
     calcularTotales()
@@ -98,7 +98,7 @@ async function calculateTotalArticle() {
 
 
 
-  $('#descuentoArticulo, #precioArticulo, #cantidadArticulo').on('change',async function() {
+  $('#descuentoArticulo, #precio_articulo, #cantidadArticulo').on('change',async function() {
     await calculateTotalArticle()
     calcularTotales()
     
@@ -172,13 +172,13 @@ export function calcularTotales(){
 //         // var medioDePagoText = medioDePago.options[index].text;
 
 
-//     const precioArticulo = formData.getAll('precioArticulo');
+//     const precio_articulo = formData.getAll('precio_articulo');
 //     const totalArticulo =  formData.getAll('totalArticulo'); // Esto puede ser un array o un string dependiendo del envío
 
 
 
 // // Convierte los valores a números sin formato
-//     const precioArticulos = precioArticulo.map(valor => {
+//     const precio_articulos = precio_articulo.map(valor => {
 //         return fromMoneyToText(valor);
 //     });
 
@@ -199,12 +199,12 @@ export function calcularTotales(){
 //     formData.set('abono', abono)
 //     formData.set('total', total)
 
-//     formData.delete('precioArticulo');
+//     formData.delete('precio_articulo');
 //     formData.delete('totalArticulo');
     
-//     precioArticulos.forEach(valor => {
+//     precio_articulos.forEach(valor => {
 //         console.log(valor)
-//         formData.append('precioArticulo', valor); // Reasigna los valores limpios
+//         formData.append('precio_articulo', valor); // Reasigna los valores limpios
 //     });
 
 //     totalArticulos.forEach(valor => {

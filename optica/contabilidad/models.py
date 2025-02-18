@@ -96,20 +96,31 @@ class Articulos(models.Model):
 
 
 class Ventas(models.Model):
+
+    OPCIONES = [
+        ('1', 'personal'),
+        ('2', 'convenio'),
+        # ('opc3', 'Opción 3'),
+    ]
     #id es el numero de factura de la venta, hay que asegurarse que empiece a partir de un nuemero de factura
     factura = models.IntegerField(primary_key=True)
     #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     cliente_id = models.BigIntegerField(default=0, verbose_name="Id de cliente", blank=True, null=True)
+    empresaCliente = models.CharField(max_length=60,)
     detalle = models.TextField(max_length=50, default='', blank=True, null=True)
     observacion = models.TextField(max_length=50, default='', blank=True, null=True)
-    precio = models.IntegerField(default=0)
+    precio = models.IntegerField(default=0, verbose_name="Precio")
+    totalAbono = models.IntegerField(default=0, verbose_name="Abono inicial")
     # Descuento = models.IntegerField(default=0)
     # total_venta = models.IntegerField(default=0)
     #estado = models.CharField(max_length=50, default='')
-    estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
+    estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Estado venta", blank=True, null=True)
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
+    tipo_venta = models.CharField(max_length=10, choices=OPCIONES, null=True, blank=True)
+
+
 
     class Meta:
         verbose_name = "Ventas"
@@ -135,8 +146,12 @@ class Ventas(models.Model):
         return nombre
 
     @property
-    def precio_moneda(self):
+    def precio_venta(self):
         return '${:,.0f}'.format(self.precio)
+    
+    @property
+    def abono_inicial(self):
+        return '${:,.0f}'.format(self.totalAbono)
     
 
 class ItemsVenta(models.Model):
@@ -183,16 +198,33 @@ class Abonos(models.Model):
 #     nombre = models.CharField(max_length=100, default='')
 #     # Aqui van aser entregables y no entreganbles    
 
-class Saldos(models.Model): 
+class Saldos(models.Model):
+    id = models.AutoField(primary_key=True)
     cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="saldosCliente",)
     factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="saldoVenta")
     saldo = models.IntegerField(default=0)
+    fecha_Vencimiento = models.DateField(verbose_name="fecha vencimiento", blank=True, null=True,)
 
 
     class Meta:
         managed = True
         verbose_name = "Saldo"
         verbose_name_plural = "Saldos"
+
+
+class HistoricoSaldos(models.Model):
+    id = models.AutoField(primary_key=True)
+    cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="historicoSaldoCliente",)
+    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoSaldoVenta")
+    saldo = models.IntegerField(default=0)
+    fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+
+
+    class Meta:
+        managed = True
+        verbose_name = "Saldos - historico"
+        verbose_name_plural = "Saldos - historico"
+
 
 
 class FotosArticulos(models.Model):
@@ -255,3 +287,4 @@ class PedidoVenta(models.Model):
 class ItemsPEdidoVenta(models.Model):
     pedido = models.ForeignKey(PedidoVenta, on_delete=DO_NOTHING ,related_name='idPEdido')
     itemPedido = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloPedido')
+    cantidad = models.IntegerField(default=0)

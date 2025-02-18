@@ -290,6 +290,7 @@ function VentasForm({data}) {
                     <label htmlFor="password">Fecha de venta</label>
                     <input type="date" className="form-control" id="fechaVenta" placeholder="Ingrese su contraseña" name="fecha" defaultValue={fechaHoy} required />
                 </div>
+                
                 </div>
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-12 col-xl-6 ">

@@ -24,7 +24,7 @@ async function obtenerInfoArticulo(value) {
 
 
   })
-  const precioArticulo = $("#precioArticulo");
+  const precio_articulo = $("#precio_articulo");
   const cantidadArticulo = $("#cantidadArticulo");
   const descuentoArticulo = $("#descuentoArticulo");
   const totalArticulo = $("#totalArticulo");
@@ -47,7 +47,7 @@ async function obtenerInfoArticulo(value) {
       
       if (value != ''){
         const data = await obtenerInfoArticulo(value);
-        precioArticulo.val(moneyformat(data.precio))
+        precio_articulo.val(moneyformat(data.precio))
         cantidadArticulo.prop('disabled', false);
         calculateTotalArticle()
         imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
@@ -64,17 +64,17 @@ async function obtenerInfoArticulo(value) {
     descuentoArticulo.val(separadorDeMiles(descuentoArticulo.val()));
   });
 
-  precioArticulo.on('input', function () {
-    precioArticulo.val(formatMoneyInput(precioArticulo.val())) 
+  precio_articulo.on('input', function () {
+    precio_articulo.val(formatMoneyInput(precio_articulo.val())) 
   })
 
   
 
 async function calculateTotalArticle() {
     if (tipoDescuentoArticulo.val() != "porcentaje"){
-    totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+    totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
     } else {
-      totalArticulo.val(moneyformat(precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precioArticulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+      totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
     }
 
     calcularTotales()
@@ -97,7 +97,7 @@ function calcularTotales(){
     
   }
 
-  $('#descuentoArticulo, #precioArticulo, #cantidadArticulo').on('change',async function() {
+  $('#descuentoArticulo, #precio_articulo, #cantidadArticulo').on('change',async function() {
     await calculateTotalArticle()
     calcularTotales()
     

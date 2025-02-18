@@ -6,7 +6,6 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import TablaArticulos from "@/components/TablaArticulos";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 // import 'bootstrap/dist/js/bootstrap.bundle.min';
 
@@ -47,7 +46,11 @@ const data = await getData();
           <Link href="ventas" type="button" className="btn btn-primary btn-lg my-1">Ventas</Link>
           <Link href="abonos" type="button" className="btn btn-primary btn-lg my-1">Abonos</Link>
           <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
+          <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Pedidos</Link>
+          <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Saldos</Link>
           <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Administrador</Link>
+          {/* <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
+          <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Administrador</Link> */}
           {/* {'{'}% comment %{'}'} <button type="button" className="btn btn-primary btn-lg my-1">Crear Proveedor</button>
           <button type="button" className="btn btn-primary btn-lg my-1" /> {'{'}% endcomment %{'}'} */}
            {/* <form>
