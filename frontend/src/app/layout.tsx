@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import 'bootstrap/dist/css/bootstrap.min.css';
 //import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./globals.css";
+import '@/styles/dropdown.css'
+
 import Header from "@/components/Header";
 
 const geistSans = Geist({
@@ -54,15 +56,7 @@ export default function RootLayout({
 
         {/* <script src="http://localhost:8000/static/js/getCookie.js" async></script>
         <script src="http://localhost:8000/static/js/api.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/utils.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/intlTel.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/imagenesInput.js" async></script>
-        
-        <script src="http://localhost:8000/static/js/abonar.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/tablaArticulos.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/selectizeElements.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/selectwithImage.js" async></script> */}
-        {/* <script src="http://localhost:8000/static/js/ventas.js" async></script> */}
+
 
       </body>
     </html>

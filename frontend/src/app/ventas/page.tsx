@@ -1,40 +1,15 @@
-//"use client"; 
+// "use client"; 
 import React from 'react'
-//import { useEffect,useState } from 'react';
 import '@/styles/selectwithImage.css';
-import MyPhoneInput  from '@/components/MyPhoneInput ';
-import PhoneInputIntl from '@/components/PhoneInputIntl';
-//import '@/utils/js/intlInput.js';
-//import "selectize/dist/css/selectize.css";
-
-// import intlTelInput from "intl-tel-input";
-import IntlTelInput from 'react-intl-tel-input';
+import Link from "next/link";
 import "intl-tel-input/build/css/intlTelInput.css";
 
-import TablaArticulos from '@/components/TablaArticulos';
-import dynamic from 'next/dynamic';
-
-import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
-import { callApiFile } from '@/utils/js/api';
-
-import VentasForm from '@/components/VentasForm';
-
-// const PhoneInput = dynamic(() => import('../components/PhoneInput'), { ssr: false });
-
-// import ("@/utils/js/selectizeElements");
-// import ("@/utils/js/ventas");
-// import ("@/utils/js/imagenesInputs");
-// import ("@/utils/js/selectwithImage");
-// import ("@/utils/js/intlInput");
-{/* <script src="{% static 'js/selectwithImage.js' %}"></script>
-  
-  <script src="{% static 'js/ventas.js' %}"></script>
-  <script src="{% static 'js/tablaArticulos.js' %}"></script> */}
+import DataTables from '@/components/Datatables';
+import { moneyformat } from '@/utils/js/utils';
 
 
-
-async function getData() {
-    const res = await fetch("http://localhost:8000/ventas/", {
+  async function getDataVentas() {
+    const res = await fetch("http://localhost:8000/venta/", {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {
@@ -49,9 +24,21 @@ async function page() {
 
     
     
-    const data = await getData();
+    // const data = await getData();
+    // console.log(data)
 
-    console.log(data)
+
+    let table = await getDataVentas();
+    console.log(table)
+
+    // Modificar la propiedad "precio" de cada objeto en la lista
+    table = table.map(item => {
+      // Eliminar el símbolo "$" y reemplazar "." por ","
+      item.precio = moneyformat(item.precio)
+      item.totalAbono = moneyformat(item.totalAbono)
+      item.saldo = moneyformat(item.saldo)
+      return item; // Retornar el objeto modificado
+    });
 
 
     
@@ -61,7 +48,8 @@ async function page() {
   return (
     <>
       
-        <div>
+        <div className='container-md'>
+          
         {/* <link rel="stylesheet" href="{% static " css selectwithimage.css" %}" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" integrity="sha512-Ars0BmSwpsUJnWMw+KoUKGKunT7+T8NGK0ORRKj+HT8naZzLSIQoOSIIM3oyaJljgLxFi0xImI5oZkAWEFARSA==" crossOrigin="anonymous" referrerPolicy="no-referrer" /> */}
         <a className="previous round" href="{% url 'main' %}" 
@@ -69,40 +57,33 @@ async function page() {
             <i className="fa-solid fa-arrow-left" />
         </a>
         <div className="d-flex w-100 flex-column vh-100 align-items-center mt-4">
+
+          <div className="mx-auto">
+              <h3>Ventas</h3>
+          </div>
+            
+          <div className='d-flex w-100 justify-content-end'>
+            <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
+          </div>
+
+          <DataTables 
+            data={table}
+            // header={[
+            //   'factura',
+            //   'cedula',
+            //   'cliente',
+            //   'empresaCliente',
+            //   'detalle',
+            //   'observacion',
+            //   'precio',
+            //   'totalAbono',
+            //   'estado_id',
+            //   'fecha',]}
+          />
             {/* {'{'}% comment %{'}'}
             <div className="row w-100">
             {'{'}% endcomment %{'}'} */}
-            <div className="mx-auto">
-                <h3>Crear Venta</h3>
-            </div>
-            < VentasForm data={data} />
-            <hr className="my-3" />
             
-            
-            <div className="mx-auto">
-                <h3>Facturas recientes</h3>
-            </div>
-            <div className="table-responsive container-md">
-                {/* <table className="table table-striped table-hover"><thead>
-                    <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Factura</th>
-                    <th scope="col">Nombre</th>
-                    <th scope="col">Precio venta</th>
-                    <th scope="col">Abono Total</th>
-                    <th scope="col">Saldo</th>
-                    <th scope="col">Estado</th>
-                    </tr>
-                </thead>
-                <tbody><tr>
-                    <td>{'{'}{'{'}venta.numero{'}'}{'}'}</td>
-                    <th scope="row">{'{'}{'{'}venta.factura{'}'}{'}'}</th>
-                    <td>{'{'}{'{'}venta.nombre{'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.precio|floatformat:2|intcomma {'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.abono|floatformat:2|intcomma {'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.saldo|floatformat:2|intcomma {'}'}{'}'}</td><th scope="col" className="text-success">{'{'}{'{'}venta.estado{'}'}{'}'}</th><th scope="col" className="text-danger">{'{'}{'{'}venta.estado{'}'}{'}'}</th></tr></tbody>
-                </table> */}
-            </div>
             {/* </div> */}
         </div>
         </div>

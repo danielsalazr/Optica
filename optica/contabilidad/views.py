@@ -10,7 +10,7 @@ import django_excel as excel
 from django.forms.models import model_to_dict
 from django.db.models import Prefetch
 
-from django.db.models import Max
+from django.db.models import Max, OuterRef, Subquery
 
 #Django Rest Framework 
 from rest_framework.views import APIView
@@ -27,6 +27,7 @@ from .serializers import (
     AbonoSerializer,
     ItemsVentaSerializer,
     SaldoSerializer,
+    HistoricoSaldosSerializer,
  )
 
 from django.shortcuts import render
@@ -307,8 +308,61 @@ def abonar(request, factura = 0):
 class Venta(APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
+
+        cliente_nombre_subquery = Clientes.objects.filter(
+            cedula=OuterRef('cliente_id')
+        ).values('nombre')[:1]
+
+        ventas = Ventas.objects.all().annotate(
+            cliente=Subquery(cliente_nombre_subquery)
+        ).values(
+            'factura',
+            'cliente_id',
+            'cliente',
+            'empresaCliente',
+            'detalle',
+            'observacion',
+            'precio',
+            'totalAbono',
+            'estado_id',
+            'fecha',
+            # 'cliente_nombre',  # Incluir el nombre del cliente
+        ).order_by('factura')
+
+        query = """
+            SELECT 
+                T0.factura,
+                T0.cliente_id as cedula,
+                T1.nombre as cliente,
+                #CONCAT(T1.nombre, ' ', T1.apellido),
+                
+                T0.precio,
+                T0.totalAbono,
+                #sum(T2.precio) as abono,
+                T4.saldo,
+                #T0.precio - sum(T2.precio) as saldo, 
+                T3.nombre as estado,
+                
+                T0.detalle
+            FROM contabilidad_ventas T0
+            left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
+            #left join contabilidad_abonos T2 on T0.factura = T2.factura_id
+            inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
+            LEFT join contabilidad_saldos T4 on T4.factura_id  = T0.factura
+            #where factura = {factura}
+            
+            #order by factura desc;
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            columns = [col[0] for col in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         
-        return render(request, 'contabilidad/ventas.html')
+        
+        console.log(ventas)
+        
+        return Response(results, status=status.HTTP_200_OK)
+        # return render(request, 'contabilidad/ventas.html')
 
     def post(self, request):
 
@@ -358,6 +412,7 @@ class Venta(APIView):
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
         serializerAbono = AbonoSerializer(data=abono, many=True)
         serializerSaldo = SaldoSerializer(data=saldo, many=False)
+        serializerHistoricoSaldo = HistoricoSaldosSerializer(data=saldo, many=False)
 
         if not serializerVenta.is_valid():
             console.log(serializerVenta.errors)
@@ -372,12 +427,17 @@ class Venta(APIView):
             console.log(serializerSaldo.errors)
             return Response(serializerSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        if not serializerHistoricoSaldo.is_valid():
+            console.log(serializerHistoricoSaldo.errors)
+            return Response(serializerHistoricoSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         console.log("Venta valida")
         
 
         serializerVenta.save()
         serializerAbono.save()
         serializerSaldo.save()
+        serializerHistoricoSaldo.save()
 
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
             
@@ -412,7 +472,7 @@ class Venta(APIView):
 
 
 class Abono(APIView):
-    def get(self, request):
+    def get(self, request, factura=None):
 
         mediosPago = MediosDePago.objects.all().values()
             
@@ -423,13 +483,15 @@ class Abono(APIView):
 
             query = f"""
                 SELECT 
-                    factura,
-                    CONCAT(T1.nombre, ' ', T1.apellido),
-                    T0.precio as preciov, sum(T2.precio) as abono,
-                    T0.precio - sum(T2.precio) as saldo,
-                    T3.nombre,
-                    T0.detalle 
-                FROM contabilidad_ventas T0
+                    T0.cliente_id as cedula,
+                    T1.nombre as cliente,
+                    T0.factura_id as factura,
+                    fecha,
+                    id,
+                    medioDePago_id,
+                    precio,
+
+                FROM contabilidad_abonos T0
                     left join usuarios_clientes T1 on T0.cliente_id = T1.id
                     left join contabilidad_abonos T2 on T0.factura = T2.factura_id
                     inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
@@ -443,6 +505,12 @@ class Abono(APIView):
                 cursor.execute(query)
                 facturaSearched = cursor.fetchall()
                 console.log(facturaSearched)
+
+            # with connection.cursor() as cursor:
+                # cursor.execute(query)
+                # columns = [col[0] for col in cursor.description]
+                # results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            
 
             listVentas = []
 
@@ -467,7 +535,34 @@ class Abono(APIView):
             
             return render(request, 'contabilidad/abonos.html', context)
         
-        return JsonResponse({'accion': 'valid'}, status=200)
+        abonos = Abonos.objects.all().values()
+
+        query = f"""
+            SELECT 
+                T0.cliente_id as cedula,
+                T1.nombre as cliente,
+                T0.factura_id,
+                T0.fecha,
+                T0.id,
+                # T0.medioDePago_id,
+                T2.nombre as medioDePago,
+                T0.precio
+            FROM contabilidad_abonos T0
+                left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
+                left join contabilidad_mediosdepago T2 on T0.medioDePago_id = T2.id
+                #inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
+            
+            ;
+        """
+        
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            columns = [col[0] for col in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            
+
+        return Response(results, status=status.HTTP_200_OK)
+        # return JsonResponse({'accion': 'valid'}, status=200)
 
     def post(self, request):
 

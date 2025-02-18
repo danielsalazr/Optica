@@ -9,12 +9,36 @@ from .models import (
     FotosArticulos,
     ItemsVenta,
     Saldos,
+    HistoricoSaldos,
+    EstadoPedidoVenta,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
 
 from rich.console import Console
 console = Console()
+
+
+from django.contrib.admin import AdminSite
+from django.contrib.admin.apps import AdminConfig
+
+class CustomAdminSite(AdminSite):
+    site_header = "Administración Personalizada"
+    site_title = "Administración Personalizada"
+    index_title = "Bienvenido a la Administración Personalizada"
+
+custom_admin_site = CustomAdminSite(name='custom_admin')
+
+
+# class MiAdminConfig(AdminConfig):
+#     index_title = 'Panel de Administración'
+#     # index_template = 'admin/custom_index.html'
+
+# # admin.site.index_template = 'admin/custom_index.html'
+# admin.site.site_header = 'Panel de Administración'
+# admin.site.site_title = 'Panel de Administración'
+# custom_admin_site.register(Abonos)
+
 
 # from PIL import Image
 # Register your models here.
@@ -39,21 +63,39 @@ class AbonosAdmin(admin.ModelAdmin):
         'medioDePago',
         'fecha',
     )
+
     list_display_links = ('id', 'n_Factura',)
     search_fields = ('id', 'n_Factura',)
 
-@admin.register(Saldos)
+# CustomAdminSite.register(Abonos, AbonosAdmin)
+
+
+# @admin.register(Saldos, site=custom_admin_site)
+@admin.register(Saldos,)
 class SaldosAdmin(admin.ModelAdmin):
     list_display = (
+        'id',
         'factura',
         'cliente',
         'saldo',
     )
-    list_display_links = ('factura', 'cliente',)
+    list_display_links = ('id', 'factura', 'cliente',)
     search_fields = ('factura', 'cliente',)
 
 
-    # 
+@admin.register(HistoricoSaldos)
+class HistoricoSaldosAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'factura',
+        'cliente',
+        'saldo',
+        'fecha',
+    )
+    list_display_links = ('id', 'factura', 'cliente',)
+    search_fields = ('factura', 'cliente',)
+
+
 @admin.register(ItemsVenta)
 class ItemsVentaAdmin(admin.ModelAdmin):
     list_display = (
@@ -74,7 +116,10 @@ class VentasAdmin(admin.ModelAdmin):
         'factura',
         'cliente_id',
         'nombre',
-        'precio_moneda',
+        'precio_venta',
+        'abono_inicial',
+        'empresaCliente',
+        'fecha',
         'estado',
         'foto',
     )
@@ -154,6 +199,15 @@ class ArticulosAdmin(admin.ModelAdmin):
         except:
             pass
 
+
+
+@admin.register(EstadoPedidoVenta)
+class EstadoPedidoVentaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'cliente',
+        'nombre',
+    )
     
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):

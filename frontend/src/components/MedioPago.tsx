@@ -52,7 +52,7 @@ function MedioPago({ data, name, className, labelInput, required }) {
                     <img src={selectedOption.imgSrc} alt="Selected" />
                     <span>{selectedOption.text}</span>
                 </div>
-                <div ref={dropdownRef} className="dropdown form-select">
+                <div ref={dropdownRef} className="dropdownSelector form-select">
                     {data.mediosPago.map((element) => (
                         <div
                             key={element.id}
