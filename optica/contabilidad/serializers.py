@@ -1,6 +1,18 @@
 from rest_framework import serializers
-from .models import Ventas, Abonos, ItemsVenta, Articulos, Saldos, HistoricoSaldos
-
+from .models import (
+    Ventas,
+    Abonos,
+    ItemsVenta,
+    Articulos,
+    Saldos,
+    HistoricoSaldos,
+    EstadoVenta,
+    PedidoVenta,
+    ItemsPEdidoVenta,
+    EstadoPedidoVenta,
+    # EstadoVenta,
+    # MediosDePago,
+)
 from usuarios.models import Clientes, Empresa
 
 from rich.console import Console
@@ -46,6 +58,8 @@ class VentaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
     # Obtenemos el ID de la empresa enviado en la solicitud
         empresa_id = validated_data.pop('empresaCliente', None)
+        abono = validated_data['totalAbono']
+        total = validated_data["precio"]
         console.log(f"El empresa ID es {empresa_id}")
         if empresa_id:
             # Buscamos la empresa en la base de datos
@@ -53,18 +67,29 @@ class VentaSerializer(serializers.ModelSerializer):
             console.log(empresa)
             # Asignamos el nombre de la empresa al campo `empresaCliente`
             validated_data['empresaCliente'] = empresa.nombre
-        # Creamos la instancia de Ventas
+        
+        if abono > 0:
+            validated_data['estado'] = EstadoVenta.objects.get(id=2)
+        if abono == total:
+            validated_data['estado'] = EstadoVenta.objects.get(id=3)
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
         empresa_id = validated_data.pop('empresa_id', None)
+        abono = validated_data['totalAbono']
+        total = validated_data["precio"]
         if empresa_id:
             # Buscamos la empresa en la base de datos
             empresa = Empresa.objects.get(id=empresa_id.id)
             # Asignamos el nombre de la empresa al campo `empresaCliente`
             validated_data['empresaCliente'] = empresa.nombre
-        # Actualizamos la instancia de Ventas
+
+        if abono > 0:
+            validated_data['estado'] = EstadoVenta.objects.get(id=2)
+        if abono == total:
+            validated_data['estado'] = EstadoVenta.objects.get(id=3)
+        
         return super().update(instance, validated_data)
 
 class ItemsVentaSerializer(serializers.ModelSerializer):
@@ -127,11 +152,10 @@ class HistoricoSaldosSerializer(serializers.ModelSerializer):
 class PedidoVentaSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = HistoricoSaldos
+        model = PedidoVenta
         fields = [
-            'venta',
             'estado',
-            'fecha',
+            'factura',
         ]
         # extra_kwargs = {
         #     'detalle': {'required': False},
@@ -139,13 +163,46 @@ class PedidoVentaSerializer(serializers.ModelSerializer):
         #     'estado' : {'required': False},
         # } 
 
+    def create(self, validated_data):
+        # Obtenemos el ID de la empresa enviado en la solicitud
+        console.log(validated_data)
+        abono = int(self.initial_data.get("totalAbono"))
+        total = int(self.initial_data.get("precio"))
+
+        # console.log(self.initial_data)
+
+        console.log(abono)
+        console.log(total)
+
+        if abono > total / 2:
+            validated_data['estado'] = EstadoPedidoVenta(id=2)
+        # empresa_id = validated_data.pop('empresaCliente', None)
+        # abono = validated_data['totalAbono']
+        # total = validated_data["precio"]
+        # console.log(f"El empresa ID es {empresa_id}")
+        # if empresa_id:
+        #     # Buscamos la empresa en la base de datos
+        #     empresa = Empresa.objects.get(id=empresa_id)
+        #     console.log(empresa)
+        #     # Asignamos el nombre de la empresa al campo `empresaCliente`
+        #     validated_data['empresaCliente'] = empresa.nombre
+        
+        # if abono > 0:
+        #     validated_data['estado'] = EstadoVenta.objects.get(id=2)
+        # if abono == total:
+        #     validated_data['estado'] = EstadoVenta.objects.get(id=3)
+        return super().create(validated_data)
+
+
 
 class ItemsPEdidoVentaSerializer(serializers.ModelSerializer):
+    pedido = serializers.PrimaryKeyRelatedField(queryset=PedidoVenta.objects.all())
+    # itemPedido = serializers.PrimaryKeyRelatedField(queryset=Articulos.objects.all())
 
     class Meta:
-        model = HistoricoSaldos
+        model = ItemsPEdidoVenta
         fields = [
             'pedido',
-            'itemPedido',
+            'articulo',
             'cantidad',
         ]

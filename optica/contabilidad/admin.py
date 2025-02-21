@@ -11,6 +11,8 @@ from .models import (
     Saldos,
     HistoricoSaldos,
     EstadoPedidoVenta,
+    PedidoVenta,
+    ItemsPEdidoVenta,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -205,10 +207,30 @@ class ArticulosAdmin(admin.ModelAdmin):
 class EstadoPedidoVentaAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'cliente',
+        #'cliente',
         'nombre',
     )
-    
+
+
+@admin.register(PedidoVenta)
+class EstadoPedidoVentaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        #'cliente',
+        'factura',
+        'estado',
+        'fecha',
+    )
+
+
+@admin.register(ItemsPEdidoVenta)
+class ItemsPEdidoVentaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'pedido',
+        'articulo',
+        'cantidad',
+    )
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):
 #     list_display = (
