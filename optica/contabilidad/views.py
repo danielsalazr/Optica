@@ -28,6 +28,9 @@ from .serializers import (
     ItemsVentaSerializer,
     SaldoSerializer,
     HistoricoSaldosSerializer,
+    PedidoVentaSerializer,
+    ItemsPEdidoVentaSerializer,
+
  )
 
 from django.shortcuts import render
@@ -185,14 +188,15 @@ class AbonosP(APIView):
         query = f"""
             SELECT 
                 factura,
-                CONCAT(T1.nombre, ' ', T1.apellido)e,
+                #CONCAT(T1.nombre, ' ', T1.apellido),
+                T1.nombre,
                 T0.precio as preciov, sum(T2.precio) as abono,
                 T0.precio - sum(T2.precio) as saldo,
                 T3.nombre,
                 T0.cliente_id,
                 T0.detalle
             FROM contabilidad_ventas T0
-                left join usuarios_clientes T1 on T0.cliente_id = T1.id
+                left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
                 left join contabilidad_abonos T2 on T0.factura = T2.factura_id
                 inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             {('where factura = '+factura) if factura != 0 else ''}
@@ -236,7 +240,7 @@ class AbonosP(APIView):
             
         }
 
-        return Response(context, status=status.HTTP_200_OK)
+        # return Response(context, status=status.HTTP_200_OK)
 
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
@@ -260,14 +264,15 @@ def abonar(request, factura = 0):
     query = f"""
         SELECT 
             factura,
-            CONCAT(T1.nombre, ' ', T1.apellido),
+            #CONCAT(T1.nombre, ' ', T1.apellido),
+            T1.nombre,
             T0.precio as preciov, sum(T2.precio) as abono,
             T0.precio - sum(T2.precio) as saldo, 
             T3.nombre,
             T0.cliente_id,
             T0.detalle
         FROM contabilidad_ventas T0
-        left join usuarios_clientes T1 on T0.cliente_id = T1.id
+        left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
         left join contabilidad_abonos T2 on T0.factura = T2.factura_id
         inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
         where factura = {factura}
@@ -365,40 +370,23 @@ class Venta(APIView):
         # return render(request, 'contabilidad/ventas.html')
 
     def post(self, request):
-
         console.log(request.data)
 
         venta = json.loads(request.data['venta'])
-        console.log(json.loads(request.data['venta']))
-
         abono = json.loads(request.data['abonos'])
-
-        console.log(json.loads(request.data['abonos']))
-
         saldo = json.loads(request.data['saldo'])
 
+        console.log(json.loads(request.data['venta'])) 
+        console.log(json.loads(request.data['abonos']))
         console.log(json.loads(request.data['saldo']))
 
-        # metodoPago = request.data['metodoPago']
-        # precio = request.data['precio']
-        # abono = request.data['abono']
-        factura = request.data['factura']
+        # factura = request.data['factura']
         cliente_id = request.data['cliente_id']
 
         data_copy = request.data.copy()
 
-        verificarCliente = Clientes.objects.filter(cedula=cliente_id).values()
-        # metodoPago = MediosDePago.objects.get(id=metodoPago)
-
-        # if precio != abono and  int(precio) > 0:
-        #     data_copy['estado'] = 2
+        # verificarCliente = Clientes.objects.filter(cedula=cliente_id).values()
         
-        # if precio == abono:
-        #     data_copy['estado'] = 3  # Pagado
-
-        # console.log(request.data)
-        
-
 
         serializer = VentaSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
@@ -409,8 +397,24 @@ class Venta(APIView):
 
         serializer.save()
 
+        console.log(request.data)
+        # data_copy['saldo'] = saldo['saldo']
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
         serializerAbono = AbonoSerializer(data=abono, many=True)
+        serializerPedido = PedidoVentaSerializer(data=data_copy, many=False)
+
+        if not serializerPedido.is_valid():
+            console.log(serializerPedido.errors)
+            return Response(serializerPedido.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        pedido = serializerPedido.save()
+
+        for item in venta:
+            item['pedido'] = pedido.id
+        
+
+        serializerItemsPedidoVenta = ItemsPEdidoVentaSerializer(data=venta, many=True)
+        
         serializerSaldo = SaldoSerializer(data=saldo, many=False)
         serializerHistoricoSaldo = HistoricoSaldosSerializer(data=saldo, many=False)
 
@@ -422,6 +426,10 @@ class Venta(APIView):
             console.log(serializerAbono.errors)
             return Response(serializerAbono.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        
+        if not serializerItemsPedidoVenta.is_valid():
+            console.log(serializerItemsPedidoVenta.errors)
+            return Response(serializerItemsPedidoVenta.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if not serializerSaldo.is_valid():
             console.log(serializerSaldo.errors)
@@ -431,13 +439,20 @@ class Venta(APIView):
             console.log(serializerHistoricoSaldo.errors)
             return Response(serializerHistoricoSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        
+        
         console.log("Venta valida")
+        # console.log(serializerPedido.data)
         
 
         serializerVenta.save()
         serializerAbono.save()
+        
+        serializerItemsPedidoVenta.save()
+        
         serializerSaldo.save()
         serializerHistoricoSaldo.save()
+        
 
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
             

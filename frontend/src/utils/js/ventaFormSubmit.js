@@ -143,6 +143,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     formData.set('venta', JSON.stringify(articulos))
     formData.set('abonos', JSON.stringify(abono))
     formData.set('saldo', JSON.stringify(saldo))
+    formData.set('estado', 1)
     
     console.log(JSON.stringify(articulos));
 

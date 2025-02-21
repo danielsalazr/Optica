@@ -270,21 +270,42 @@ class FotosArticulos(models.Model):
 
 class EstadoPedidoVenta(models.Model):
     id = models.AutoField(primary_key=True)
-    cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, related_name='clientePedido')
     nombre = models.CharField(max_length=50, default='')
-    # Entregado
-    # cancelado
-    # en fabricacion
-    # en tienda
+
+
+    class Meta:
+        managed = True
+        verbose_name = "Estado pedido de venta"
+        verbose_name_plural = "Estado pedidos de venta"
+
+    def __str__(self):
+        return f"{self.nombre}"
 
 class PedidoVenta(models.Model):
     id = models.AutoField(primary_key=True)
     estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
     fecha = models.DateTimeField(auto_now_add=timezone.now)
-    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
+    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
     
 
+    class Meta:
+        managed = True
+        verbose_name = "Pedido venta"
+        verbose_name_plural = "Pedidos ventas"
+
+    def __str__(self):
+        return f"{self.id}"
+
 class ItemsPEdidoVenta(models.Model):
+    id = models.AutoField(primary_key=True)
     pedido = models.ForeignKey(PedidoVenta, on_delete=DO_NOTHING ,related_name='idPEdido')
-    itemPedido = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloPedido')
+    articulo = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloPedido')
     cantidad = models.IntegerField(default=0)
+
+    class Meta:
+        managed = True
+        verbose_name = "Items pedido Venta"
+        verbose_name_plural = "Items pedidos Venta"
+
+    def __str__(self):
+        return f"{self.articulo}"
