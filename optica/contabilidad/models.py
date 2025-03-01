@@ -286,7 +286,8 @@ class PedidoVenta(models.Model):
     estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
     fecha = models.DateTimeField(auto_now_add=timezone.now)
     factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
-    
+    fecha_aprobacion = models.DateTimeField(default=None, blank=True, null=True,)
+    fecha_entrega = models.DateField(default=None, blank=True, null=True,)
 
     class Meta:
         managed = True
