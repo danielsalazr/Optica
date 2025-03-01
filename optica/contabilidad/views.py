@@ -37,7 +37,15 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
-from .models import Ventas, Abonos, MediosDePago, Articulos, FotosArticulos
+from .models import (
+    Ventas,
+    Abonos,
+    MediosDePago,
+    Articulos,
+    FotosArticulos,
+    PedidoVenta,
+    ItemsPEdidoVenta,
+    )
 from usuarios.models import Clientes, Empresa
 
 
@@ -598,3 +606,10 @@ class Abono(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
+
+class Pedidos(APIView):
+    def get(self, request):
+        pass
+
+        # query = 
+        # Se debe hacer que al hacer la mitad del pago se ponga la fecha de inicio de fabricacion y la fecha de entrega

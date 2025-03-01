@@ -1,12 +1,13 @@
 // "use client"; 
 import React from 'react'
-import '@/styles/selectwithImage.css';
 import Link from "next/link";
-import "intl-tel-input/build/css/intlTelInput.css";
 
+import VentasData from '@/components/ventas/VentasData';
 import DataTables from '@/components/Datatables';
 import { moneyformat } from '@/utils/js/utils';
 
+import '@/styles/selectwithImage.css';
+import "intl-tel-input/build/css/intlTelInput.css";
 
   async function getDataVentas() {
     const res = await fetch("http://localhost:8000/venta/", {
@@ -21,13 +22,6 @@ import { moneyformat } from '@/utils/js/utils';
 
 
 async function page() {
-
-    
-    
-    // const data = await getData();
-    // console.log(data)
-
-
     let table = await getDataVentas();
     console.log(table)
 
@@ -66,25 +60,8 @@ async function page() {
             <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
           </div>
 
-          <DataTables 
-            data={table}
-            // header={[
-            //   'factura',
-            //   'cedula',
-            //   'cliente',
-            //   'empresaCliente',
-            //   'detalle',
-            //   'observacion',
-            //   'precio',
-            //   'totalAbono',
-            //   'estado_id',
-            //   'fecha',]}
-          />
-            {/* {'{'}% comment %{'}'}
-            <div className="row w-100">
-            {'{'}% endcomment %{'}'} */}
-            
-            {/* </div> */}
+          <VentasData data={table} />
+          
         </div>
         </div>
 
