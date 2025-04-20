@@ -1,16 +1,17 @@
-from django.shortcuts import render
-import os
-from datetime import datetime
 
+import django_excel as excel
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, response, JsonResponse
 from django.views.generic import ListView
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
-import django_excel as excel
 from django.forms.models import model_to_dict
-from django.db.models import Prefetch
+from django.db import connection
+from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery
+from django.db.models.functions import Coalesce
 
-from django.db.models import Max, OuterRef, Subquery
+from django.contrib.auth.decorators import login_required
+
 
 #Django Rest Framework 
 from rest_framework.views import APIView
@@ -18,9 +19,10 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+
 # from .serializers import InventorySerializer
 
-from django.db import connection
+
 
 from .serializers import (
     VentaSerializer,
@@ -30,12 +32,7 @@ from .serializers import (
     HistoricoSaldosSerializer,
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
-
  )
-
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
 
 from .models import (
     Ventas,
@@ -45,13 +42,16 @@ from .models import (
     FotosArticulos,
     PedidoVenta,
     ItemsPEdidoVenta,
+    Saldos,
     )
 from usuarios.models import Clientes, Empresa
 
 
-from django.db.models import Q
+
 
 import json
+import os
+from datetime import datetime
 from rich.console import Console
 console = Console()
 
@@ -505,58 +505,37 @@ class Abono(APIView):
             # facturaSearched = Ventas.objects.filter(factura=factura)
 
             query = f"""
-                SELECT 
-                    T0.cliente_id as cedula,
-                    T1.nombre as cliente,
-                    T0.factura_id as factura,
-                    fecha,
-                    id,
-                    medioDePago_id,
-                    precio,
-
-                FROM contabilidad_abonos T0
-                    left join usuarios_clientes T1 on T0.cliente_id = T1.id
-                    left join contabilidad_abonos T2 on T0.factura = T2.factura_id
-                    inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-                where factura = {factura}
-                group by 
+                SELECT                                                                                                                                    
+                    T0.cliente_id as cedula,                                                                                                              
+                    T1.nombre as cliente,                                                                                                                 
+                    T0.factura_id as factura,                                                                                                             
+                    DATE_FORMAT(T0.fecha, '%d/%m/%Y') as fecha,                                                                                                                                
+                    T0.id,                                                                                                                                   
+                    T0.medioDePago_id,   
+                    T2.nombre as "medioDePago",
+                    T2.imagen as "imagenMedioPago",
+                    T0.precio                                                                                                                                                                                                                                                                
+                FROM contabilidad_abonos T0                                                                                                               
+                    left join usuarios_clientes T1 on T0.cliente_id = T1.cedula                                                                               
+                    left join contabilidad_mediosdepago T2 on T2.id  =  T0.medioDePago_id                                                                       
+                #inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id  
+                where factura_id = {factura}
+                /*group by 
                     #T0.cliente_id,
-                    T0.factura
-                order by factura desc;
+                    T0.factura_id
+                */
+                order by factura_id desc;
             """
+
+            console.log(query)
             with connection.cursor() as cursor:
                 cursor.execute(query)
-                facturaSearched = cursor.fetchall()
-                console.log(facturaSearched)
+                # facturaSearched = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                # console.log(facturaSearched)
 
-            # with connection.cursor() as cursor:
-                # cursor.execute(query)
-                # columns = [col[0] for col in cursor.description]
-                # results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-            
-
-            listVentas = []
-
-            for i, venta in enumerate(facturaSearched):
-                listVentas.append({
-                    'numero': i+1,
-                    'factura': venta[0],
-                    'nombre': venta[1],
-                    'precio': venta[2],
-                    'abono': venta[3],
-                    'saldo': venta[4],
-                    'estado': venta[5],
-                    'detalle': venta[6],
-                })
-
-            context = {
-                'mediosPago': mediosPago,
-                'ventas': listVentas,
-            }
-
-            console.log(facturaSearched)
-            
-            return render(request, 'contabilidad/abonos.html', context)
+            return Response(results, status=status.HTTP_200_OK)
         
         abonos = Abonos.objects.all().values()
 
@@ -568,13 +547,12 @@ class Abono(APIView):
                 T0.fecha,
                 T0.id,
                 # T0.medioDePago_id,
-                T2.nombre as medioDePago,
+                T2.nombre,
                 T0.precio
             FROM contabilidad_abonos T0
                 left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
                 left join contabilidad_mediosdepago T2 on T0.medioDePago_id = T2.id
                 #inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-            
             ;
         """
         
@@ -588,21 +566,42 @@ class Abono(APIView):
         # return JsonResponse({'accion': 'valid'}, status=200)
 
     def post(self, request):
-
-        metodoPago = request.data['medioDePago']
-        metodoPago = MediosDePago.objects.get(id=metodoPago)
-        
         console.log(request.data)
+        metodoPago = request.data.get('medioDePago')
+        factura =  request.data.get('factura')
+        
+        venta = Ventas.objects.get(factura=factura)
+        saldo = Saldos.objects.get(factura=venta)
+        console.log(venta)
+        # metodoPago = MediosDePago.objects.get(id=metodoPago)
+    
 
         serializer = AbonoSerializer(data=request.data)
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if serializer.is_valid():
             console.log("vamos bien")
+            # console.log(serializer.data)
             #console.log(serializer.data)
             serializer.save()
 
-            return JsonResponse({'accion': 'ok'}, status=200)
+            total_Abono = Abonos.objects.filter(
+                factura=venta
+            ).aggregate(total=Sum('precio'))#['total']
+            
+            venta.totalAbono = total_Abono.get('total')
+            saldo.saldo = venta.precio - total_Abono.get('total')
+            # venta.save()
+            saldo.save()
+
+            if saldo.saldo  == 0:
+                # cambiar el estado de la venta a pagada
+                venta.estado_id = 3
+            venta.save()
+
+            # return JsonResponse({'accion': 'ok'}{'accion': 'ok'}, status=201)
+            return Response({'accion': 'ok'}, status=status.HTTP_201_CREATED)
+        
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)

@@ -9,6 +9,7 @@ import "datatables.net";
 import 'datatables.net-dt';
 // import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import AbonosForm from "./abonos/AbonosForm";
 
 
 
@@ -18,6 +19,7 @@ const DataTables = (props) => {
 
     // const headers = ['Nombre', 'telefono', 'vinilla']  
     useEffect(() => {
+        console.log(data)
 
     // Inicializar DataTables
         const table = $("#myTable").DataTable({
@@ -78,12 +80,15 @@ const DataTables = (props) => {
         <table id="myTable" className="table  table-striped table-bordered">
         <thead>
             <tr>
-                    {!header 
-                        ? Object.keys(data[0]).map((key, index) => (
+                    {data.length > 0 
+                        ? ( !header   ? Object.keys(data[0]).map((key, index) => (
+                        // ? Object.keys(data).map((key, index) => (
                               <th key={index}>{key}</th>
                           ))
                         : // Si header está definido, usarlo para generar las columnas
-                          header.map((item, index) => <th key={index}>{item}</th>)}
+                          header.map((item, index) => <th key={index}>{item}</th>) )
+                          : null
+                        }
             </tr>
         </thead>
         <tbody>

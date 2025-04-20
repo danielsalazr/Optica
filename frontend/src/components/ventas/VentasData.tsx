@@ -1,28 +1,72 @@
 "use client";
-import React, {useState, } from 'react'
+import React, {useState, useEffect} from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import { Trash2 } from 'lucide-react';
 
 import DataTables from '@/components/Datatables';
 import SideAction from '../SideAction';
+import AbonosForm from '../abonos/AbonosForm';
+import AbonosList from '../abonos/AbonosList';
 
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
 
+
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 function VentasData(props) {
-    let { header, data } = props;
+    let { header, data, generalData } = props;
+    const [templateAbono, setTemplateAbono] = useState(1);
     const [show, setShow] = useState(false);
+    const [show2, setShow2] = useState(false);
+    const [sideTemplate, setSideTemplate] = useState(false);
     const [clientData, setClientData] = useState(false);
-  
+    const [sideBarData, setSideBarData] = useState([]);
+    const [dataTablee, setDataTable] = useState([]);
+
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+
+    // 2. Actualizar el estado interno cuando cambia la prop (opcional)
+  useEffect(() => {
+    setDataTable(data);
+    console.log(dataTablee)
+    console.log("se ejecuto el useEffect")
+  }, );
+
+    
+    
+
+
+    const handleFetchVentas = async () => {
+      //etLoading(true);
+
+      const res = await fetch("http://localhost:8000/venta/", {
+        cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+      });
+      if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+      }
+      const redata =  await res.json();
+
+      console.log(redata)
+      setDataTable(redata)
+      return redata
+
+    };
   
     const toggleState = () => {
       setShow(!show);
     };
+
+    // const loadData = () => {
+    //   setDataTable(data)
+    // }
+
+    // const toggleState2 = () => {
+    //   setShow2(!show2);
+    // };
     
     // console.log(data)
   
@@ -41,7 +85,18 @@ function VentasData(props) {
               // console.log("abonat:", rowData);
               console.log(action)
               setClientData(rowData);
+              setTemplateAbono(1);
               toggleState();
+              // setSideTemplate
+                  break;
+            case "verAbonos":
+              // console.log("abonat:", rowData);
+              // console.log(action)
+              setTemplateAbono(2);
+              setClientData(rowData);
+
+              toggleState();
+              
                   break;
             default:
               console.log("Acción no reconocida:", action);
@@ -95,7 +150,7 @@ function VentasData(props) {
                 </button>
 
                 <button 
-                  class="btn-action btn btn-sm btn-primary" data-action="abonar"
+                  class="btn-action btn btn-sm btn-primary" data-action="verAbonos"
                   data-bs-container="body"
                   data-bs-toggle="popover" 
                   data-bs-placement="top" 
@@ -120,15 +175,25 @@ function VentasData(props) {
     function con(){
       console.log("eliminar")
     }
-  
+
+
+    const componentesPorEstado = {
+      1: <AbonosForm data={clientData} generalData={generalData} fun={handleFetchVentas}/>,
+      2: <AbonosList data={clientData} generalData={generalData}/>,
+      // default: <ComponenteDefault />
+    }
     return (
       <>
           
-        <SideAction key="1" placement="end" name="end" title="Abonar" toggleState={toggleState} show={show} data={clientData}>
-          <form action="" id="crearAbono">
-              <h6>Crear abono</h6>
-          </form>
+        <SideAction key="1" placement="end" name="end" title="Abonar" togglestate={toggleState} show={show} data={clientData} >
+          {/* <form action="" id="crearAbono"> */}
+              {/* <h6>Crear abono</h6> */}
+              {/* <AbonosForm data={clientData} generalData={generalData}/> */}
+
+              {componentesPorEstado[templateAbono]}
         </SideAction>
+
+
   
           <DataTables data={data} columns={columns} order={order} onAction={handleAction} imprimir ={con} /> 
       </>
