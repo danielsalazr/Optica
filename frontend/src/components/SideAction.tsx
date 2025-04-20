@@ -4,13 +4,13 @@ import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
 function SideAction(props) {
-    const {children, title, show, toggleState, data}  = props;
+    const {children, title, show, togglestate, data}  = props;
 
-    console.log(data)
+    // console.log(data)
 
     return (
       <>
-        <Offcanvas show={show} onHide={toggleState} {...props}>
+        <Offcanvas show={show} onHide={togglestate} {...props}>
           <Offcanvas.Header closeButton>
             <Offcanvas.Title>{title}</Offcanvas.Title>
           </Offcanvas.Header>

@@ -9,20 +9,33 @@ import { moneyformat } from '@/utils/js/utils';
 import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
 
-  async function getDataVentas() {
-    const res = await fetch("http://localhost:8000/venta/", {
-      cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
-    });
-    if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-    }
-    const data =  await res.json();
-    return data
+async function getDataVentas() {
+  const res = await fetch("http://localhost:8000/venta/", {
+    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+  });
+  if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`);
   }
+  const data =  await res.json();
+  return data
+}
+
+async function getGeneralData() {
+  const res = await fetch("http://localhost:8000/ventas/", {
+    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+  });
+  if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status}`);
+  }
+  const data =  await res.json();
+  return data
+}
 
 
 async function page() {
     let table = await getDataVentas();
+
+    const generalData = await getGeneralData()
     console.log(table)
 
     // Modificar la propiedad "precio" de cada objeto en la lista
@@ -33,9 +46,6 @@ async function page() {
       item.saldo = moneyformat(item.saldo)
       return item; // Retornar el objeto modificado
     });
-
-
-    
 
     
     
@@ -60,7 +70,7 @@ async function page() {
             <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
           </div>
 
-          <VentasData data={table} />
+          <VentasData data={table} generalData={generalData} />
           
         </div>
         </div>

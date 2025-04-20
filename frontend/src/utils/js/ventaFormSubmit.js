@@ -32,6 +32,23 @@ function transformarArray(array, transformFn) {
     return array.map(transformFn);
 }
 
+export function transformarFormDataValues(formdata, transformFn, values, typeArray){
+    if (typeArray === 'string'){
+
+    const extractedValues = [];
+
+    // for (const key of keyArray) {
+    //     extractedValues.push(formData.get(key));
+    // }
+        const transformedArray = array.map(transformFn);
+        transformedArray.forEach(element => console.log(element));
+        return transformedArray;
+
+    }
+}
+
+const precio_articulos = transformarArrayInFormData(precio_articulo, fromMoneyToText)
+
 function contieneValorVacio(array) {
     return array.some(valor => valor.trim() === "");
 }
@@ -98,8 +115,6 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     formData.set('precio', total)  // total
     formData.set('totalAbono', totalAbono)
     formData.set('empresaCliente', empresaID)
-
-    
 
     
     agregarArrayAFormData(formData, 'descuento', descuentos, true);

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function MedioPago({ data, name, className, labelInput, required }) {
+function MedioPago(props) {
+
+    const { data, name, className, labelInput, required } = props;
     const containerRef = useRef(null);
     const dropdownRef = useRef(null);
     const hiddenInputRef = useRef(null);

@@ -60,8 +60,8 @@ export async function callApi(endPoint, options = {}) {
     console.log(url);
     const response = await fetch(url, options);
     const data = await response.json();
-    console.log(data);
-    console.log(data);
+    // console.log(data);
+    // console.log(data);
     return { res: response, data: data }
 }
 
@@ -69,9 +69,9 @@ export async function callApiForm(endPoint, formData, options = {}){
     options.headers = {
         'X-CSRFToken': csrftoken,
     };
-    console.log(options.method)
+    // console.log(options.method)
     options.method ? options.method : options.method = 'POST';
-    console.log(options.method)
+    // console.log(options.method)
     // options.method = 'POST';
     options.body = formData;
   

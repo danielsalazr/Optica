@@ -310,3 +310,7 @@ class ItemsPEdidoVenta(models.Model):
 
     def __str__(self):
         return f"{self.articulo}"
+    
+
+class Devoluciones(models.Model):
+    pass
