@@ -14,6 +14,7 @@
     "boxicons": "^2.1.4",
     "datatables.net": "^2.2.2",
     "datatables.net-dt": "^2.2.2",
+    "datatables.net-react": "^1.0.0",
     "intl-tel-input": "^25.2.1",
     "jquery": "^3.7.1",
     "lucide-react": "^0.474.0",
