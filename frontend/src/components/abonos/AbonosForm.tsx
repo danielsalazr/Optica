@@ -19,7 +19,7 @@ function AbonosForm(props) {
         console.log(props.ref);
         const formData = new FormData(formRef.current);
 
-        fun()
+        
         
         for (let [key, value] of formData.entries()) {
             console.log('abonos Form:', key, value);
@@ -31,15 +31,17 @@ function AbonosForm(props) {
 
         const newFormData = transformarFormDataValues(formData,fromMoneyToText, ['precio', 'totalventa', 'totalAbono', 'saldo', ], 'string')         // console.log(req.res);
 
-        const saldo = formData.get('saldo');
-        const precio = formData.get('precio');
+        const saldo = parseInt(formData.get('saldo'));
+        const precio = parseInt(formData.get('precio'));
+
+        console.log(precio)
+        console.log(saldo)
 
         if (precio > saldo) {
             await swalErr("Por favor ingrese un valor que no sea mayor que el saldo")
             return
         }
 
-        console.log(precio)
 
         if (precio == '' || precio == null || precio == undefined || precio <= 0) {
             await swalErr("Por favor ingrese un valor para abonar")
@@ -68,6 +70,8 @@ function AbonosForm(props) {
         // console.log(data)
 
         await swalconfirmation("Se creo la empresa correctamente.")
+
+        await fun()
 
     };
     

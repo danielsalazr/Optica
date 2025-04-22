@@ -24,7 +24,7 @@ function AbonosList(props) {
       // setAbonos(req.data)
       setListaAbonos(req.data) 
     }
-    console.log(data)
+    // console.log(data)
     fetchData();
     
   },[])
