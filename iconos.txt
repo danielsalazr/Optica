@@ -3,3 +3,7 @@ import { Icon } from "@iconify/react";
 import { IconArrowLeft } from '@tabler/icons-react';
 import { FaBeer } from 'react-icons/fa';
 boxicons
+https://iconos8.es/icons/set/glasses  /// favorito para .ico
+https://iconos8.es/icon/zfMPWFTUWbzC/gafas
+https://iconos8.es/icon/0DZ8EHzMV2XE/gafas
+https://iconos8.es/icon/x_5BR1QOUvMn/gafas-de-sol

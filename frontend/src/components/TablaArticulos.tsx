@@ -100,7 +100,7 @@ function TablaArticulos({articulos}) {
               precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
               totalArticulo.val(`$ ${data.precio}`);
               cantidadArticulo.prop('disabled', false);
-              imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
+              data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : '' ;
               await calculateTotalArticle()
               calcularTotales()
             } else{

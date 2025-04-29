@@ -86,6 +86,19 @@ const DataTables = (props) => {
         
     }, []);
 
+    const customStyles = {
+      cells: {
+        style: {
+          '&:first-child': {
+            position: 'sticky',
+            left: 0,
+            backgroundColor: 'white',
+            zIndex: 1
+          }
+        }
+      }
+    };
+
   return (
     <div 
     className="container-xl mt-4"
@@ -97,12 +110,17 @@ const DataTables = (props) => {
             data={data} 
             columns={columns} 
             className="display"
+            customStyles={customStyles}
+            fixedHeader
+            scroller
             options={{
                 // columns: columns,
                 // data=data,
-                responsive: true,
+                // responsive: true,
                 select: true,
                 order: order,
+                // fixedHeader: true,
+                
             }}
             slots={slotes}
         // ref={table}

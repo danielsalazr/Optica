@@ -5,7 +5,7 @@ import Modal from 'react-bootstrap/Modal';
 
 export default function BootstrapModal(props) {
     const formRef = useRef(null);
-    const { onHide, title, children, onSubmit } = props;
+    const { onHide, title, children, onSubmit, submitBtn } = props;
   
 
       const handleSubmit = async () => {
@@ -47,7 +47,7 @@ export default function BootstrapModal(props) {
       </Modal.Body>
       <Modal.Footer>
         <button  className="btn btn-primary col-2" id="submitCliente" onClick={handleSubmit}>
-            Crear cliente
+            {submitBtn}
         </button>
         <Button onClick={props.onHide}>Close</Button>
       </Modal.Footer>

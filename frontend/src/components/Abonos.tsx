@@ -74,15 +74,34 @@ function Abonos({data}) {
     <div className="container mw-100 my-4" onLoad={handleLoad}>
           <h2 className="mb-4">Abonos</h2>
 
-          <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
-                    <label htmlFor="password">Fecha de vencimiento</label>
-                    <input type="date" className="form-control" id="fecha_Vencimiento" placeholder="Ingrese su contraseña" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required />
-                </div>
+          <div className='row'>
+
+            <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                <label htmlFor="password">Fecha de vencimiento</label>
+                <input type="date" className="form-control" id="fecha_Vencimiento" placeholder="Ingrese su contraseña" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required />
+            </div>
+
+            <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                <label htmlFor="password">Compromiso de pago</label>
+                <input type="number" className="form-control" id="compromisoPago" placeholder="Cuotas" name="compromisoPago" defaultValue='' required />
+            </div>
+
+            <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                <label htmlFor="password">Tipo de Pago</label>
+                {/* <input type="number" className="form-control" id="fecha_Vencimiento" placeholder="Cuotas" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required /> */}
+                <select className="form-select" name="tipoPago" id="tipoPago">
+                  <option value="1">Personal</option>
+                  <option value="2">Por Empresa</option>
+                  {/* <option value="3">Abono</option> */}
+                </select>
+            </div>
+
+          </div>
           
             <div className="table-responsive mt-4" style={{overflowX: 'visible'}}>
               <table className="table table-bordered">
                 <thead className="table-light">
-                  <tr s>
+                  <tr >
                     <th style={{width: "2%"}}>#</th>
                     <th style={{width: "35%"}}>Medio de Pago</th>
                     <th>Descripcion</th>

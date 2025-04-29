@@ -91,11 +91,18 @@ function ClientesForm(props) {
             {/* <input type="text" className="form-control telefono" id="telefono"  name="telefono" defaultValue="" /> */}
         </div>
 
+        
+
         <div className="form-group col-sm-12 col-md-6 col-xl-3">
             <label htmlFor="email">email</label>
             <input type="email" className="form-control" id="email"  name="email" defaultValue="" />
         </div>
         
+
+        <div className="form-group col-sm-12 col-md-6 col-xl-3">
+            <label htmlFor="nombre">Fecha nacimiento</label>
+            <input type="date" className="form-control" id="FechaNacimiento"  name="FechaNacimiento" defaultValue="" />
+        </div>
         
     </form>
     
