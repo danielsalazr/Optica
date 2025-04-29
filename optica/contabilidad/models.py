@@ -119,6 +119,7 @@ class Ventas(models.Model):
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
     tipo_venta = models.CharField(max_length=10, choices=OPCIONES, null=True, blank=True)
+    detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
 
 
 
@@ -152,7 +153,85 @@ class Ventas(models.Model):
     @property
     def abono_inicial(self):
         return '${:,.0f}'.format(self.totalAbono)
+
+class AcuerdoDePago(models.Model):
+
+    OPCIONES = [
+        ('1', 'personal'),
+        ('2', 'convenio'),
+        # ('opc3', 'Opción 3'),
+    ]
+
+    ESTADOS = [
+        ('1', 'vigente'),
+        ('2', 'completado'),
+        ('3', 'incumplido'),
+    ]
+
+    id = models.AutoField(primary_key=True) # INT PRIMARY KEY,
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='idVentaAcuerdo')
+    fecha_acuerdo = models.DateField(default=timezone.now)   # DATE NOT NULL,
+    tipo_periodicidad = models.CharField(max_length=50, default='', choices=ESTADOS)
+    precio = models.IntegerField(default=1) # ENUM('quincenal', 'mensual', 'personalizado') NOT NULL,
+    numero_cuotas = models.IntegerField(default=1,) #INT NOT NULL,
+    dia_pago = models.DateField(default=None, null=True, blank=True) #INT, -- Para mensual: día del mes (1-28), quincenal: null
+    interes_mora = models.FloatField(default=0.0,) #DECIMAL(5,2) DEFAULT 0,
+    estado = models.CharField(max_length=50, default='', choices=ESTADOS) # ENUM('vigente', 'completado', 'incumplido') DEFAULT 'vigente',
     
+
+class Cuota(models.Model):
+
+    # 'pendiente', 'pagada', 'vencida', 'cancelada') DEFAULT 'pendiente'
+    ESTADOS = [
+        ('1', 'vigente'),
+        ('2', 'completado'),
+        ('3', 'incumplido'),
+    ]
+
+    id = models.AutoField(primary_key=True) # INT PRIMARY KEY,
+    acuerdo = models.ForeignKey(AcuerdoDePago, on_delete=DO_NOTHING ,related_name='idAcuerdo') #INT NOT NULL,
+    numero_cuota = models.IntegerField(default=1) # INT NOT NULL,
+    fecha_vencimiento = models.DateField()# DATE NOT NULL,
+    monto = models.IntegerField(default=0,)  #DECIMAL(12,2) NOT NULL,
+    estado = models.CharField(default='', max_length=20, choices=ESTADOS,)  #ENUM('pendiente', 'pagada', 'vencida', 'cancelada') DEFAULT 'pendiente',
+    fecha_pago = models.DateField(),
+    monto_pagado = models.IntegerField(default=1) # DECIMAL(12,2) DEFAULT 0,
+    # FOREIGN KEY (id_acuerdo) REFERENCES AcuerdoPago(id_acuerdo)
+
+
+
+# CREATE TABLE Venta (
+#     id_venta INT PRIMARY KEY,
+#     fecha_venta DATE NOT NULL,
+#     total DECIMAL(12,2) NOT NULL,
+#     estado ENUM('pendiente', 'pagada', 'cancelada') DEFAULT 'pendiente',
+#     -- otros campos de venta
+# );
+
+# CREATE TABLE AcuerdoPago (
+#     id_acuerdo INT PRIMARY KEY,
+#     id_venta INT NOT NULL,
+#     fecha_acuerdo DATE NOT NULL,
+#     tipo_periodicidad ENUM('quincenal', 'mensual', 'personalizado') NOT NULL,
+#     numero_cuotas INT NOT NULL,
+#     dia_pago INT, -- Para mensual: día del mes (1-28), quincenal: null
+#     interes_mora DECIMAL(5,2) DEFAULT 0,
+#     estado ENUM('vigente', 'completado', 'incumplido') DEFAULT 'vigente',
+#     FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
+# );
+
+# CREATE TABLE Cuota (
+#     id_cuota INT PRIMARY KEY,
+#     id_acuerdo INT NOT NULL,
+#     numero_cuota INT NOT NULL,
+#     fecha_vencimiento DATE NOT NULL,
+#     monto DECIMAL(12,2) NOT NULL,
+#     estado ENUM('pendiente', 'pagada', 'vencida', 'cancelada') DEFAULT 'pendiente',
+#     fecha_pago DATE NULL,
+#     monto_pagado DECIMAL(12,2) DEFAULT 0,
+#     FOREIGN KEY (id_acuerdo) REFERENCES AcuerdoPago(id_acuerdo)
+# );
+
 
 class ItemsVenta(models.Model):
     venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='idVenta')
@@ -225,6 +304,38 @@ class HistoricoSaldos(models.Model):
         verbose_name = "Saldos - historico"
         verbose_name_plural = "Saldos - historico"
 
+
+class Devoluciones(models.Model):
+    id = models.AutoField(primary_key=True)
+    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Factura", blank=True, null=True)
+    #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
+    cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
+    precio = models.IntegerField(default=0, verbose_name="valor")
+    medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de devolucion")
+    fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+    # abono debe mostrar el saldo, osea el valor a pagar
+
+    class Meta:
+        verbose_name = "Devolucion"
+        verbose_name_plural = "Devoluciones"
+        managed = True 
+
+    def __str__(self):
+        return f"{self.id}"
+
+    
+class HistoricoDevoluciones(models.Model):
+    id = models.AutoField(primary_key=True)
+    cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="historicoDevolucionCliente",)
+    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoDevolucionVenta")
+    saldo = models.IntegerField(default=0)
+    fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+
+
+    class Meta:
+        managed = True
+        verbose_name = "Saldos - historico"
+        verbose_name_plural = "Saldos - historico"
 
 
 class FotosArticulos(models.Model):
@@ -312,5 +423,3 @@ class ItemsPEdidoVenta(models.Model):
         return f"{self.articulo}"
     
 
-class Devoluciones(models.Model):
-    pass

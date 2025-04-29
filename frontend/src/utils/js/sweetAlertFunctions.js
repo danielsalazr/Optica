@@ -8,7 +8,7 @@ export async function swalErr(falla) {
     });
 }
 
-async function swalQuestion(title, text) {
+export async function swalQuestion(title, text) {
     const { value: confirmation } = await Swal.fire({
         title: title,
         text: text,

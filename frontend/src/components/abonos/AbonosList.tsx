@@ -84,6 +84,11 @@ function AbonosList(props) {
           </tbody>
           
         </table>
+        <hr />
+        <div style={{display: 'flex', justifyContent: 'space-between', padding: '0 10px'}}>
+          <label htmlFor="">Total:</label>
+          <span>{data.totalAbono}</span>
+        </div>
     </>
   )
 }

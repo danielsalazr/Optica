@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
 import ClientesForm from './usuarios/ClientesForm';
+import AnularVentaForm from './ventas/AnularVentaForm';
 
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
 import { IP_URL, callApiFile } from '@/utils/js/api';
@@ -160,6 +161,7 @@ function VentasForm({data}) {
                     onHide={() => setModalShow(false)}
                     title="Crear cliente"
                     onSubmit={handleNuevoCliente}
+                    submitBtn="Crear cliente"
                     
                 >
                     <ClientesForm/>
@@ -170,9 +172,12 @@ function VentasForm({data}) {
                     onHide={() => setModalEmpresaShow(false)}
                     title="Crear Empresa"
                     onSubmit={handleNuevaEmpresa}
+                    submitBtn="Crear"
                 >
                     <EmpresaForm />
+                    {/* <AnularVentaForm /> */}
                 </BootstrapModal> 
+
         <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
                 
                 
@@ -204,27 +209,6 @@ function VentasForm({data}) {
                     </div>
                 </div>
 
-                {/* <div className="form-group col-sm-12 col-md-6 col-xl-3">
-                    <label htmlFor="nombreCliente">Nombre Cliente:</label>
-                    <input type="text" className="form-control" id="nombreCliente" placeholder="Nombre Cliente"  name="nombreCliente" />
-                </div>
-                <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 d-flex flex-column">
-                    <label htmlFor="telefonocliente">Telefono:</label> */}
-                    {/* <input type="text" className="form-control telefono" id="telefonoCliente" placeholder="xxx-xxx-xxxx"  maxLength={17} name="telefonocliente" value={telefono}
-        onChange={handleTelefonoChange} /> */}
-
-                    {/* <IntlTelInput
-                        ref={telefonoRef}
-                        inputProps={{
-                            className: "form-control  " // Agrega la clase "mi-clase-input" al input de teléfono
-                          }}
-                        id="EmpresaCliente"
-                        onChangeNumber={handleTelefonoChange}
-                        initOptions={{
-                            initialCountry: "co",
-                        }}
-                    /> */}
-                {/* </div> */}
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
@@ -293,10 +277,10 @@ function VentasForm({data}) {
                 
                 </div>
                 <div className="row"> 
-                <div className="form-group col-sm-12 col-md-12 col-xl-6 ">
-                    <label htmlFor="detalleVenta">Detalle</label>
-                    <textarea rows={3} cols={50} className="form-control" id="detalleVenta" name="detalle" placeholder="Detalle" defaultValue="algo"  />
-                </div>
+                    <div className="form-group col-sm-12 col-md-12 col-xl-6 ">
+                        <label htmlFor="detalleVenta">Detalle</label>
+                        <textarea rows={3} cols={50} className="form-control" id="detalleVenta" name="detalle" placeholder="Detalle" defaultValue="algo"  />
+                    </div>
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">
                     <label htmlFor="observacionVenta">Observaciones:</label>
                     <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={""} />

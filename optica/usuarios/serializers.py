@@ -5,13 +5,14 @@ from .models import Clientes, Empresa
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Clientes
-        fields = [ 'cedula', 'nombre', 'telefono', 'email', 'fechaRegistro', ]
+        fields = [ 'cedula', 'nombre', 'telefono', 'email', 'fechaRegistro', 'FechaNacimiento' ]
 
         extra_kwargs = {
             # 'nombre': {'required': False},
             'telefono': {'required': False},
             'email' : {'required': False},
             'fechaRegistro' : {'required': False},
+            'FechaNacimiento' : {'required': False},
         }
 
         

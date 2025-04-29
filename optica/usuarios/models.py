@@ -15,6 +15,7 @@ class Clientes(models.Model):
     telefono = models.CharField(verbose_name="Telefono", max_length=20, default="")
     email = models.EmailField(verbose_name="Email", max_length=60, default="")
     fechaRegistro = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+    FechaNacimiento = models.DateField(verbose_name="Fecha de nacimiento", blank=True, null=True)
     
     class Meta:
         verbose_name = 'cliente'

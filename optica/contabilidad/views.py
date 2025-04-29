@@ -492,6 +492,24 @@ class Venta(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
 
+    
+    def delete(self, request):
+        console.log(request.data)
+        # console.log(id)
+        id = request.data['id']
+        venta = Ventas.objects.get(factura=id)
+        # abono = Abonos.objects.filter(factura=venta.factura).first()
+        # saldo = Saldos.objects.get(factura=venta)
+
+        venta.estado_id = 4
+        venta.detalleAnulacion = request.data['detalleAnulacion']
+        venta.save()
+        # abono.delete()
+        # venta.delete()
+        # saldo.delete()
+
+        return Response({'accion': 'ok'}, status=status.HTTP_200_OK)
+
 
 
 class Abono(APIView):
@@ -605,6 +623,19 @@ class Abono(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
+
+    # def delete(self, request, id=0):
+    #     # console.log(request.data)
+    #     # console.log(id)
+    #     abono = Abonos.objects.get(id=id)
+    #     factura = Ventas.objects.get(factura=abono.factura_id)
+    #     saldo = Saldos.objects.get(factura=factura)
+
+    #     abono.delete()
+
+    #     total_Abono = Abonos.objects.filter(
+    #         factura=factura
+    #     ).aggregate(total=Sum('precio'))
 
 class Pedidos(APIView):
     def get(self, request):

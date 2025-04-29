@@ -36,7 +36,7 @@ async function page() {
     let table = await getDataVentas();
 
     const generalData = await getGeneralData()
-    console.log(table)
+    // console.log(table)
 
     // Modificar la propiedad "precio" de cada objeto en la lista
     table = table.map(item => {
@@ -52,10 +52,7 @@ async function page() {
   return (
     <>
       
-        <div className='container-md'>
-          
-        {/* <link rel="stylesheet" href="{% static " css selectwithimage.css" %}" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" integrity="sha512-Ars0BmSwpsUJnWMw+KoUKGKunT7+T8NGK0ORRKj+HT8naZzLSIQoOSIIM3oyaJljgLxFi0xImI5oZkAWEFARSA==" crossOrigin="anonymous" referrerPolicy="no-referrer" /> */}
+      <div className='container-md'>
         <a className="previous round" href="{% url 'main' %}" 
             style={{position: 'relative !important', top: '20px !important', left: '20px !important', padding: '8px 16px', borderRadius: '50%', backgroundColor: '#f1f1f1'}}>
             <i className="fa-solid fa-arrow-left" />
@@ -73,7 +70,7 @@ async function page() {
           <VentasData data={table} generalData={generalData} />
           
         </div>
-        </div>
+      </div>
 
 
     </>

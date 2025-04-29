@@ -1,9 +1,7 @@
-// "use server"
-
 import React from 'react'
 
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
-import ModuleData from '@/components/ModuleData';
+import AbonosData from '@/components/AbonosData';
 
 
 async function getDataAbonos() {
@@ -24,27 +22,13 @@ async function getDataAbonos() {
 async function page() {
 
     let data = await getDataAbonos();
-    // console.log(data)
 
-    // const formateador = new Intl.DateTimeFormat('es-ES', {
-    //     day: '2-digit',
-    //     month: '2-digit',
-    //     year: 'numeric',
-    //     hour: '2-digit',
-    //     minute: '2-digit',
-    //     second: '2-digit',
-    //     hour12: false, // Usar formato de 24 horas
-    // });
-
-    
-      
-      // "use server";
     // data.forEach(item => console.log(typeof(item.fecha)))
     data = data.map(item => {
       // Eliminar el símbolo "$" y reemplazar "." por ","
       item.precio = moneyformat(item.precio)
       item.fecha = fechaFormat(item.fecha)
-      item.acciones = `<button click="eliminar()"> eliminar</button>`//() => <button onClick={con}> lol </button>
+      // item.acciones = `<button click="eliminar()"> eliminar</button>`//() => <button onClick={con}> lol </button>
         
     //   item.totalAbono = moneyformat(item.totalAbono)
     //   item.saldo = moneyformat(item.saldo)
@@ -55,8 +39,8 @@ async function page() {
 
   return (
     <>
-      Abonos
-      <ModuleData data={data}  />
+      <h2 className='' style={{textAlign: 'center', padding: '24px 0'}}>Abonos</h2>
+      <AbonosData data={data}  />
         
     </>
   )
