@@ -4,6 +4,8 @@ import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import { Trash2 } from 'lucide-react';
 import { swalHtml, swalconfirmation, swalQuestion} from '@/utils/js/sweetAlertFunctions';
 
+import Link from 'next/link'
+
 import DataTables from '@/components/Datatables';
 import SideAction from '../SideAction';
 import AbonosForm from '../abonos/AbonosForm';
@@ -162,7 +164,11 @@ function VentasData(props) {
                   data-bs-trigger="hover"
                   onClick={() => handleAction("editar", row)}
                 >
+                  <Link href={`ventas/${row.factura}`}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4"/></svg>
+                  </Link>
+                  {/* <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4"/></svg> */}
+                
                 </button>
                 <button 
                   className="btn-action btn btn-sm btn-primary" 

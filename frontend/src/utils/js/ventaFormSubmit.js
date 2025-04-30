@@ -156,7 +156,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     }
 
     if (precio == 0) {
-        await swalErr("Ingrese un precio");
+        await swalErr("Ingrese un precio para la venta.");
         return
     }  
 
@@ -165,8 +165,8 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
         return
     }
 
-    if (contieneValorVacio(metodoPago)) {
-        await swalErr("Ingrese un medio de pago.");
+    if (contieneValorVacio(metodoPago) && abono[0].precio > 0) {
+        await swalErr("Ingrese un medio de pago para la venta.");
         return
     }
 

@@ -46,9 +46,11 @@ from .models import (
     )
 from usuarios.models import Clientes, Empresa
 
+from utils.diccionarios import (
+    agrupar_datos,
+)
 
-
-
+from collections import defaultdict
 import json
 import os
 from datetime import datetime
@@ -116,6 +118,8 @@ class VentasP(APIView):
         limit = 20
         mediosPago = MediosDePago.objects.all().values()
         ventas = Ventas.objects.filter().values().order_by('-factura')[:limit]
+
+
         query = f"""
             SELECT 
                 factura, 
@@ -164,6 +168,8 @@ class VentasP(APIView):
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
+
+
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
@@ -318,9 +324,53 @@ def abonar(request, factura = 0):
     return render(request, 'contabilidad/abonar.html', context) 
 
 
+
 class Venta(APIView):
     #permission_classes = (IsAuthenticated, )
-    def get(self, request):
+    def get(self, request, id=0,):
+        if id != 0:
+
+            query = f"""
+                select T0.*, T1.*, T2.id as "empresaId" from contabilidad_ventas T0
+                inner join contabilidad_itemsventa T1 on T1.venta_id = T0.factura 
+                inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente 
+                where factura = {id}
+            """
+
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                # results = cursor.fetchall()
+
+            console.log(results)
+            
+            # Datos de venta
+            clasificacion = [
+                ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'venta_id']),
+                # ('abonos', ['totalArticulo', 'articulo_id', 'venta_id']),
+                # Puedes añadir más clasificaciones según necesites
+            ]
+
+            # lista = agrupar_ventas(results, campos_primer_nivel, campos_venta)
+            lista = agrupar_datos(results, clasificacion)
+            
+
+            query = f"""
+                select * from contabilidad_abonos 
+                where factura_id = {id};
+            """
+
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                # results = cursor.fetchall()
+
+            lista.update({'abonos': results})
+            
+
+            return Response(lista, status=status.HTTP_200_OK)
 
         cliente_nombre_subquery = Clientes.objects.filter(
             cedula=OuterRef('cliente_id')
@@ -373,8 +423,10 @@ class Venta(APIView):
         
         
         console.log(ventas)
-        
+    
         return Response(results, status=status.HTTP_200_OK)
+        
+
         # return render(request, 'contabilidad/ventas.html')
 
     def post(self, request):
@@ -383,6 +435,8 @@ class Venta(APIView):
         venta = json.loads(request.data['venta'])
         abono = json.loads(request.data['abonos'])
         saldo = json.loads(request.data['saldo'])
+        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago']
+        precio = json.loads(request.data['abonos'])[0]['precio']
 
         console.log(json.loads(request.data['venta'])) 
         console.log(json.loads(request.data['abonos']))
@@ -408,7 +462,8 @@ class Venta(APIView):
         console.log(request.data)
         # data_copy['saldo'] = saldo['saldo']
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
-        serializerAbono = AbonoSerializer(data=abono, many=True)
+        if medioDePago != "":
+            serializerAbono = AbonoSerializer(data=abono, many=True)
         serializerPedido = PedidoVentaSerializer(data=data_copy, many=False)
 
         if not serializerPedido.is_valid():
@@ -430,10 +485,11 @@ class Venta(APIView):
             console.log(serializerVenta.errors)
             return Response(serializerVenta.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        if not serializerAbono.is_valid():
-            console.log(serializerAbono.errors)
-            return Response(serializerAbono.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+        if medioDePago != "" and precio > 0:
+            if not serializerAbono.is_valid():
+                console.log(serializerAbono.errors)
+                return Response(serializerAbono.errors, status=status.HTTP_400_BAD_REQUEST)
+            
         
         if not serializerItemsPedidoVenta.is_valid():
             console.log(serializerItemsPedidoVenta.errors)
@@ -442,7 +498,7 @@ class Venta(APIView):
         if not serializerSaldo.is_valid():
             console.log(serializerSaldo.errors)
             return Response(serializerSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+        # if medioDePago != "":
         if not serializerHistoricoSaldo.is_valid():
             console.log(serializerHistoricoSaldo.errors)
             return Response(serializerHistoricoSaldo.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -454,10 +510,12 @@ class Venta(APIView):
         
 
         serializerVenta.save()
-        serializerAbono.save()
+        if medioDePago != "":
+            serializerAbono.save()
         
         serializerItemsPedidoVenta.save()
         
+        # if medioDePago != "":
         serializerSaldo.save()
         serializerHistoricoSaldo.save()
         

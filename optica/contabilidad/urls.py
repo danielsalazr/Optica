@@ -25,6 +25,8 @@ urlpatterns = [
 
     
     path('venta/', views.Venta.as_view(), name="venta"),
+    path('venta/<int:id>', views.Venta.as_view(), name="ventanum"),
+    
     path('abono/', views.Abono.as_view(), name="abono"),
     path('abono/<factura>', views.Abono.as_view(), name="abono"),
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),

@@ -16,7 +16,12 @@ import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumb
 import $ from 'jquery';
 import 'selectize';
 
-function TablaArticulos({articulos}) {
+function TablaArticulos(props) {
+
+  const {articulos, data} = props;
+
+  console.log(articulos)
+  console.log(data)
   const [ventaTotal, setVentaTotal] = useState(0);
   const selectRefs = useRef([]);
     const [rows, setRows] = useState([[{

@@ -86,10 +86,10 @@ ventaForm.addEventListener('submit', async function(e) {
         return
     }
 
-    if (!medioDePago) {
-        swalErr("Ingrese un medio de pago.");
-        return
-    }
+    // if (!medioDePago) {
+    //     swalErr("Ingrese un medio de pago.");
+    //     return
+    // }
 
     if (abono > precio) {
         swalErr("El abono no puede ser mayor al precio.");

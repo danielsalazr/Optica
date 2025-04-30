@@ -48,7 +48,7 @@ submitAbonar.addEventListener('click', async function (e){
     }
 
     if (!medioDePago){
-        swalErr("Ingrese un medio de pago.");
+        swalErr("Ingrese un medio de pago para la venta.");
         return 
     }
 
