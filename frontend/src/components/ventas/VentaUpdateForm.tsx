@@ -1,26 +1,26 @@
 "use client";
 import React, { useRef, useEffect, useState, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
-import ClientesForm from './usuarios/ClientesForm';
-import AnularVentaForm from './ventas/AnularVentaForm';
+import ClientesForm from '../usuarios/ClientesForm';
+import AnularVentaForm from './AnularVentaForm';
 
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
 import { IP_URL, callApiFile } from '@/utils/js/api';
 
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
 import "@/styles/style.css"
-import Abonos from './Abonos';
-import MedioPago from './MedioPago';
-import FormulaLentes from './FormulaLentes';
+import Abonos from '../Abonos';
+import MedioPago from '../MedioPago';
+import FormulaLentes from '../FormulaLentes';
 
 import $ from 'jquery';
 import 'selectize';
 import dynamic from 'next/dynamic';
 
-import BootstrapModal from './BootstrapModal';
+import BootstrapModal from '../BootstrapModal';
 import Button from 'react-bootstrap/Button';
-import clientesForm from './usuarios/ClientesForm';
-import EmpresaForm from './usuarios/EmpresaForm';
+import clientesForm from '../usuarios/ClientesForm';
+import EmpresaForm from '../usuarios/EmpresaForm';
 
 
 // Iconos
@@ -35,7 +35,9 @@ import { FaBeer } from 'react-icons/fa';
 // });
 // import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js")
 
-function VentasForm({data}) {
+function VentaUpdateForm(props) {
+
+    const {data, ventaData} = props;
     const formRef = useRef(null);
     const usuarioRef = useRef(null);
     const empresaRef = useRef(null);
@@ -47,6 +49,7 @@ function VentasForm({data}) {
     const [factura, setFactura] = useState(data.factura);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
+    const [dataVenta, setDataVenta] = useState(ventaData);
     // const [clientes, setClientes] = useState(data.clientes);
 
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
@@ -82,7 +85,7 @@ function VentasForm({data}) {
 
 
             if (usuarioRef.current) {
-                selectizeInstance = $(usuarioRef.current).selectize({
+                    selectizeInstance = $(usuarioRef.current).selectize({
                     create: true,
                     createOnBlur: true,
                     persist: false,
@@ -104,30 +107,19 @@ function VentasForm({data}) {
                     highlight: false,
                     // closeAfterSelect: true,
                     hideSelected: true,
-                    // onBlur: function(value) {
-                    //     this.items(value);
-                    // },
-                    //maxOptions: 10,
-                    // onChange: function(value) {
-                    //     this.refreshOptions();
-                    // },
                     
                 });
     
                 setEmpresa(selectizeInstance2);
             }
-            
+
+            window.addEventListener('load', function() {
+                selectizeInstance.setValue(["1107507044"])
+            })
               
           },[])
 
 
-       
-          
-
-        //   const handleTelefonoChange = () => {
-            
-        //     telefonoRef.current?.getInstance().getNumber(telefono);
-        //   };
 
         const handleNuevoCliente = (nuevoCliente) => {
             setClientes([...clientes, nuevoCliente]); // Agregar el nuevo cliente al estado
@@ -177,7 +169,7 @@ function VentasForm({data}) {
                     submitBtn="Crear cliente"
             >
                 <ClientesForm/>
-            </BootstrapModal> 
+            </BootstrapModal>  
 
             <BootstrapModal
                 show={modalEmpresaShow}
@@ -187,20 +179,16 @@ function VentasForm({data}) {
                 submitBtn="Crear"
             >
                 <EmpresaForm />
-                {/* <AnularVentaForm /> */}
-            </BootstrapModal> 
+               
+            </BootstrapModal>  
 
         <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
-                
-                
-
-                
 
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     
                     <label htmlFor="email"># Factura</label>
-                    <input type="number" className="form-control" id="facturaVenta"  name="factura" value={factura} onChange={(e) => setFactura(Number(e.target.value))} />
+                    <input type="number" className="form-control" id="facturaVenta"  name="factura" value={dataVenta.factura} onChange={(e) => setFactura(Number(e.target.value))} />
                 </div>
 
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">
@@ -209,9 +197,9 @@ function VentasForm({data}) {
                     {/* {'{'}% comment %{'}'} <input type="text" className="form-control" id="cedula" placeholder="Cedula del cliente" name="cliente_id" required /> {'{'}% endcomment %{'}'} */}
                     <div className="input-group mb-3">
                         
-                        <select ref={usuarioRef} className="form-select camposbc " id="cedula" name="cliente_id" required>
-                            <option key="" value="">--</option>
-                            {/* {data.clientes.map(element => ( */}
+                        <select ref={usuarioRef} className="form-select camposbc " id="cedula" name="cliente_id" defaultValue={dataVenta.cliente_id} required>
+                            <option key="" value="" defaultValue="2">--</option>
+                            {/* {data.cliente defs.map(element => ( */}
                             {clientes.map(element => (
                                 <option key={element.cedula} value={element.cedula}  style={{backgroundImage: 'url("https://copu.media/wp-content/uploads/2023/10/Logo-Nequi-1.jpg")'}}> 
                                 {element.cedula} - {element.nombre} - {element.telefono}</option> 
@@ -225,7 +213,7 @@ function VentasForm({data}) {
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
                     <div className="input-group mb-3">
-                    <select ref={empresaRef} className="form-select  " id="EmpresaCliente" name="EmpresaCliente" required>
+                    <select ref={empresaRef} className="form-select  " id="EmpresaCliente" name="EmpresaCliente" defaultValue={dataVenta.empresaId} required>
                         <option key="" value="">--</option>
                         {/* {data.clientes.map(element => ( */}
                         {empresas.map(element => (
@@ -243,59 +231,21 @@ function VentasForm({data}) {
 
                     
                                 </div>
-                {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
-                    <label htmlFor="valor">Precio de venta $</label>
-                    <input type="text" className="form-control precio" id="valor" placeholder="$ 0" defaultValue="$ 0" name="precio" required />
-                </div> */}
-                {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
-                    <label htmlFor="valor">Abono $</label>
-                    <input type="text" className="form-control precio" id="abono" placeholder="$ 0" defaultValue="$ 0" name="abono" />
-                </div> */}
-
-                {/* <MedioPago data={data} name="metodoPago" className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3" labelInput="Metodo de pago:" /> */}
-    
-
-                {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
-                    <label htmlFor="valor">Metodo de Pago</label>
-                    <div className="custom-select">
-                    <div className="selectedPayment form-select">
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s" alt="Default" />
-                        <span id="valorSelect">Seleccione una opción</span>
-                    </div>
-                    <div className="dropdown form-select">
-                        {
-                            data.mediosPago.map(element => (
-                                <div className="optionPayment" data-value={element.id}>
-                                <img src={element.imagen} alt={element.id} />
-                                {element.nombre}
-                                </div>
-                            ))
-                        }
-                    </div>
-                    <input type="hidden" name="metodoPago" id="metodoPago" required />
-                    <div className="error-message" style={{display: 'none'}}>Este campo es obligatorio.</div>
-                    </div>
-                </div> */}
                 
-                {/* {'{'}% comment %{'}'} <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
-                    <label htmlFor="apelidoCliente">Apellido Cliente:</label>
-                    <input type="text" className="form-control" id="apellidoCliente" placeholder="ApellidoCliente" defaultValue name="apellidoCliente" />
-                </div>
-                {'{'}% endcomment %{'}'} */}
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                     <label htmlFor="password">Fecha de venta</label>
-                    <input type="date" className="form-control" id="fechaVenta" placeholder="Ingrese su contraseña" name="fecha" defaultValue={fechaHoy} required />
+                    <input type="date" className="form-control" id="fechaVenta" placeholder="Ingrese su contraseña" name="fecha" defaultValue={dataVenta.fecha} required />
                 </div>
                 
                 </div>
                 <div className="row"> 
                     <div className="form-group col-sm-12 col-md-12 col-xl-6 ">
                         <label htmlFor="detalleVenta">Detalle</label>
-                        <textarea rows={3} cols={50} className="form-control" id="detalleVenta" name="detalle" placeholder="Detalle" defaultValue=""  />
+                        <textarea rows={3} cols={50} className="form-control" id="detalleVenta" name="detalle" placeholder="Detalle" defaultValue={dataVenta.detalle}  />
                     </div>
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">
                     <label htmlFor="observacionVenta">Observaciones:</label>
-                    <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={""} />
+                    <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={dataVenta.observacion} />
                 </div>
                 </div>
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
@@ -309,7 +259,7 @@ function VentasForm({data}) {
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
                 <TablaArticulos articulos={data.articulos || []} />
-                <Abonos data={data} />
+                {/* <Abonos data={data} /> */}
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Crear venta
@@ -320,7 +270,7 @@ function VentasForm({data}) {
                 
             </form>
         </>
-  )
+                )
 }
 
-export default VentasForm
+export default VentaUpdateForm;

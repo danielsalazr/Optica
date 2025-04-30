@@ -9,6 +9,8 @@ import { moneyformat } from '@/utils/js/utils';
 import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
 
+
+
 async function getDataVentas() {
   const res = await fetch("http://localhost:8000/venta/", {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
@@ -36,7 +38,8 @@ async function page() {
     let table = await getDataVentas();
 
     const generalData = await getGeneralData()
-    // console.log(table)
+    console.log(table)
+    console.log(generalData)
 
     // Modificar la propiedad "precio" de cada objeto en la lista
     table = table.map(item => {

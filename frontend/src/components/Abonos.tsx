@@ -15,15 +15,6 @@ function Abonos({data}) {
     // total: '$ 0',
   }]]);
 
-    // useEffect(() => {
-    //     // const loadUtils = async () => {
-    //     //     await import('@/utils/js/utils.js');     
-    //     // }
-    //     // loadUtils()
-        
-    // }, [])
-
-    // const fechaHoy = 
     const hoy = new Date();
 
     // Sumar 2 meses a la fecha actual
@@ -37,7 +28,6 @@ function Abonos({data}) {
       // Añadir una fila vacía al estado
       setRows(prevRows => [...prevRows, { 
         precio: '$ 0',
-        // total: '$ 0', 
       }]);
       
     }
@@ -90,7 +80,7 @@ function Abonos({data}) {
                 <label htmlFor="password">Tipo de Pago</label>
                 {/* <input type="number" className="form-control" id="fecha_Vencimiento" placeholder="Cuotas" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required /> */}
                 <select className="form-select" name="tipoPago" id="tipoPago">
-                  <option value="1">Personal</option>
+                  <option value="1" >Personal</option>
                   <option value="2">Por Empresa</option>
                   {/* <option value="3">Abono</option> */}
                 </select>
@@ -118,7 +108,7 @@ function Abonos({data}) {
                       data={data} 
                       name="metodoPago" 
                       className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 w-100"
-                      required={true}
+                      required={false}
                     />
                   </td>
                   <td width={40}>
