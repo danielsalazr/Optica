@@ -331,10 +331,17 @@ class Venta(APIView):
         if id != 0:
 
             query = f"""
-                select T0.*, T1.*, T2.id as "empresaId" from contabilidad_ventas T0
+                select 
+                    T0.*, T1.*, T2.id as "empresaId", 
+                    #T3.foto
+                    MIN(T3.foto) as foto 
+                from contabilidad_ventas T0
                 inner join contabilidad_itemsventa T1 on T1.venta_id = T0.factura 
-                inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente 
+                inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
+                inner join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
                 where factura = {id}
+                group by factura, id 
+                ;
             """
 
             with connection.cursor() as cursor:
@@ -347,7 +354,7 @@ class Venta(APIView):
             
             # Datos de venta
             clasificacion = [
-                ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'venta_id']),
+                ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'venta_id', 'foto']),
                 # ('abonos', ['totalArticulo', 'articulo_id', 'venta_id']),
                 # Puedes añadir más clasificaciones según necesites
             ]

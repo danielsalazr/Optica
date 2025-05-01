@@ -13,7 +13,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
-import SideAction from './SideAction';
+import SideAction from '@/components/bootstrap/SideAction';
 
 function AbonosData(props) {
 

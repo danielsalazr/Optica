@@ -1,26 +1,26 @@
 "use client";
 import React, { useRef, useEffect, useState, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
-import ClientesForm from './usuarios/ClientesForm';
-import AnularVentaForm from './ventas/AnularVentaForm';
+import ClientesForm from '../usuarios/ClientesForm';
+import AnularVentaForm from './AnularVentaForm';
 
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
 import { IP_URL, callApiFile } from '@/utils/js/api';
 
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
 import "@/styles/style.css"
-import Abonos from './Abonos';
-import MedioPago from './MedioPago';
-import FormulaLentes from './FormulaLentes';
+import Abonos from '@/components/Abonos';
+import MedioPago from '@/components/MedioPago';
+import FormulaLentes from '../FormulaLentes';
 
 import $ from 'jquery';
 import 'selectize';
 import dynamic from 'next/dynamic';
 
-import BootstrapModal from './BootstrapModal';
+import BootstrapModal from '../bootstrap/BootstrapModal';
 import Button from 'react-bootstrap/Button';
-import clientesForm from './usuarios/ClientesForm';
-import EmpresaForm from './usuarios/EmpresaForm';
+import clientesForm from '../usuarios/ClientesForm';
+import EmpresaForm from '../usuarios/EmpresaForm';
 
 
 // Iconos

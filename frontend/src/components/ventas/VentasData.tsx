@@ -7,12 +7,12 @@ import { swalHtml, swalconfirmation, swalQuestion} from '@/utils/js/sweetAlertFu
 import Link from 'next/link'
 
 import DataTables from '@/components/Datatables';
-import SideAction from '../SideAction';
+import SideAction from '../bootstrap/SideAction';
 import AbonosForm from '../abonos/AbonosForm';
 import AbonosList from '../abonos/AbonosList';
 import AnularVentaForm from './AnularVentaForm';
 
-import BootstrapModal from '../BootstrapModal';
+import BootstrapModal from '../bootstrap/BootstrapModal';
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
