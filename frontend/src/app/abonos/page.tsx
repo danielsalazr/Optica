@@ -1,7 +1,7 @@
 import React from 'react'
 
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
-import AbonosData from '@/components/AbonosData';
+import AbonosData from '@/components/abonos/AbonosData';
 
 
 async function getDataAbonos() {

@@ -18,17 +18,39 @@ import 'selectize';
 
 function TablaArticulos(props) {
 
-  const {articulos, data} = props;
+  const {articulos, ventaData} = props;
+
+  
 
   console.log(articulos)
-  console.log(data)
+  console.log(ventaData)
+  const [dataVenta, setDataVenta] =  ventaData != undefined ? useState(ventaData) : useState(null);
   const [ventaTotal, setVentaTotal] = useState(0);
   const selectRefs = useRef([]);
-    const [rows, setRows] = useState([[{
-      precio: '$ 0',
-      total: '$ 0',
-    }]]);
-  // const = 
+  // const [rows, setRows] = useState([[{
+  //   precio: '$ 0',
+  //   total: '$ 0',
+  // }]]);
+
+  const [rows, setRows] = useState(
+    ventaData 
+      ? ventaData.map(item => ({
+          precio: fromNumberToMoney(item.precio_articulo), // `$ ${item.precio_articulo}`,
+          total: fromNumberToMoney(item.totalArticulo), // `$ ${item.totalArticulo}`,
+          // Agrega aquí otros campos que necesites de ventaData
+          articuloId: item.articulo_id,
+          cantidad: item.cantidad,
+          descuento: item.descuento,
+          tipoDescuento: item.tipo_descuento,
+          foto: item.foto,
+        }))
+      : [{
+          precio: '$ 0',
+          total: '$ 0',
+        }]
+  );
+  console.log(rows)
+  
   const [utilsLoaded, setUtilsLoaded] = useState(false);
 
     const datatos = async () => {
@@ -105,7 +127,8 @@ function TablaArticulos(props) {
               precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
               totalArticulo.val(`$ ${data.precio}`);
               cantidadArticulo.prop('disabled', false);
-              data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : '' ;
+              data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
+              console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
               await calculateTotalArticle()
               calcularTotales()
             } else{
@@ -160,28 +183,10 @@ function TablaArticulos(props) {
     
 
     useEffect(()=>{
-        //import( "bootstrap/dist/js/bootstrap.bundle.js");
-        
         const loadUtils = async () => {
-
-          // const getCookie = await import('@/utils/js/getCookie.js');
-          
-          // const utils = await import('@/utils/js/utils.js');
-          // const api = await import('@/utils/js/api.js');
-          // const intl = await import ("@/utils/js/intlInput.js");
-          
-          // await import ("@/utils/js/selectwithImage.js");
-          
-          await import ("@/utils/js/selectizeElements.js");
-          // // const selectize = await import ("selectize/dist/js/standalone/selectize.min.js");
-          // await import ("@/utils/js/imagenesInputs.js");
-          // await import ("@/utils/js/ventas.js");
-         
+          await import ("@/utils/js/selectizeElements.js");    
         };
 
-        
-
-        
         loadUtils();
         executeUtils();
         
@@ -225,6 +230,7 @@ function TablaArticulos(props) {
                     // onChange={obtenerInfoArticulo(this.key)}
                     name="numero_articulo" 
                     // id="articulo"
+                    defaultValue={row.articuloId}
                     id={`articulo-${index}`}
                   >
                     <option key="" value="">Seleccione</option>
@@ -243,7 +249,7 @@ function TablaArticulos(props) {
                   <img 
                   // id="imageArticulo" 
                   id={`imageArticulo-${index}`}
-                  src="" 
+                  src={row.foto ? `${IP_URL()}/media/${row.foto}` : ""}
                   height={35} />
                 </td>
                 <td className="">
@@ -254,10 +260,11 @@ function TablaArticulos(props) {
                     id={`cantidadArticulo-${index}`} 
                     name="cantidad" 
                     placeholder="Cantidad" 
-                    defaultValue={1}
+                    defaultValue={row.cantidad ? row.cantidad : 1}
                     
                     // onInput={calcularTotales}
-                    disabled 
+                    // disabled
+                    disabled={dataVenta ? false : true}
                   />
                 </td>
                 <td className="">
@@ -269,7 +276,7 @@ function TablaArticulos(props) {
                     name="precio_articulo"
                     step={1000}
                     placeholder="Precio"
-                    defaultValue="$ 0" 
+                    defaultValue={row.precio} //"$ 0" 
                   />
                 </td>
                 <td className="">
@@ -278,7 +285,7 @@ function TablaArticulos(props) {
                     // id="tipoDescuentoArticulo"
                     id={`tipoDescuentoArticulo-${index}`}
                     name="tipo_descuento"
-                    defaultValue="precio"
+                    defaultValue={ row.tipo_descuento ? row.tipo_descuento : "precio" }
                   >
                     <option value="">Seleccione</option>
                     <option value="porcentaje">porcentaje %</option>
@@ -292,7 +299,7 @@ function TablaArticulos(props) {
                     id={`descuentoArticulo-${index}`} 
                     name="descuento" 
                     placeholder="% Descuento" 
-                    defaultValue={0}
+                    defaultValue={row.descuento ? row.descuento : 0}
                   />
                 </td>
                 <td className="">
@@ -304,7 +311,7 @@ function TablaArticulos(props) {
                     name="totalArticulo" 
                     placeholder="Total" 
                     readOnly 
-                    defaultValue={0} 
+                    defaultValue={row.total} 
                   />
                 </td>
                 <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell", width: "4.2%"}} color="red" ></box-icon>

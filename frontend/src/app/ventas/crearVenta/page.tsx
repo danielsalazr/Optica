@@ -1,5 +1,5 @@
 import React from 'react'
-import VentasForm from '@/components/VentasForm';
+import VentasForm from '@/components/ventas/VentasForm';
 import '@/styles/selectwithImage.css';
 
 async function getData() {
@@ -31,25 +31,6 @@ async function page() {
                 <h3>Facturas recientes</h3>
             </div>
             <div className="table-responsive container-md">
-                {/* <table className="table table-striped table-hover"><thead>
-                    <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Factura</th>
-                    <th scope="col">Nombre</th>
-                    <th scope="col">Precio venta</th>
-                    <th scope="col">Abono Total</th>
-                    <th scope="col">Saldo</th>
-                    <th scope="col">Estado</th>
-                    </tr>
-                </thead>
-                <tbody><tr>
-                    <td>{'{'}{'{'}venta.numero{'}'}{'}'}</td>
-                    <th scope="row">{'{'}{'{'}venta.factura{'}'}{'}'}</th>
-                    <td>{'{'}{'{'}venta.nombre{'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.precio|floatformat:2|intcomma {'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.abono|floatformat:2|intcomma {'}'}{'}'}</td>
-                    <td>$ {'{'}{'{'}venta.saldo|floatformat:2|intcomma {'}'}{'}'}</td><th scope="col" className="text-success">{'{'}{'{'}venta.estado{'}'}{'}'}</th><th scope="col" className="text-danger">{'{'}{'{'}venta.estado{'}'}{'}'}</th></tr></tbody>
-                </table> */}
             </div>
     </div>
   )

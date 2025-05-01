@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react'
-import MedioPago from './MedioPago'
+import MedioPago from '@/components/MedioPago'
 import { executeUtils } from '@/utils/js/utils.js';
 import { fromMoneyToText, fromNumberToMoney } from '@/utils/js/utils.js';
-import 'boxicons';
+
 import Button from 'react-bootstrap/Button';
+import 'boxicons';
 
 
 
-function Abonos({data}) {
+function Abonos(props) {
+
+  const {data, ventaData} = props
   console.log(data)
   const [abonoTotal, setAbonoTotal] = useState(0)
   const [rows, setRows] = useState([[{

@@ -1,26 +1,34 @@
 "use client";
-import React, { useRef, useEffect, useState, ReactElement } from 'react'
+import React, { useRef, useEffect, useState, ReactElement } from 'react';
+import dynamic from 'next/dynamic';
+
+
+
+
+import FormulaLentes from '@/components/FormulaLentes';
 import TablaArticulos from '@/components/TablaArticulos';
-import ClientesForm from '../usuarios/ClientesForm';
-import AnularVentaForm from './AnularVentaForm';
+import Abonos from '@/components/Abonos';
+import ClientesForm from '@/components/usuarios/ClientesForm';
+import EmpresaForm from '@/components/usuarios/EmpresaForm';
+import AnularVentaForm from '@/components/ventas/AnularVentaForm';
 
+// import { IP_URL, callApiFile } from '@/utils/js/api';
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
-import { IP_URL, callApiFile } from '@/utils/js/api';
-
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
-import "@/styles/style.css"
-import Abonos from '../Abonos';
-import MedioPago from '../MedioPago';
-import FormulaLentes from '../FormulaLentes';
+
+
+import BootstrapModal from '@/components/bootstrap/BootstrapModal';
+
+
 
 import $ from 'jquery';
 import 'selectize';
-import dynamic from 'next/dynamic';
+import "@/styles/style.css"
+import '@/styles/selectwithImage.css';
 
-import BootstrapModal from '../BootstrapModal';
-import Button from 'react-bootstrap/Button';
-import clientesForm from '../usuarios/ClientesForm';
-import EmpresaForm from '../usuarios/EmpresaForm';
+// import Button from 'react-bootstrap/Button';
+
+
 
 
 // Iconos
@@ -112,10 +120,6 @@ function VentaUpdateForm(props) {
     
                 setEmpresa(selectizeInstance2);
             }
-
-            window.addEventListener('load', function() {
-                selectizeInstance.setValue(["1107507044"])
-            })
               
           },[])
 
@@ -258,8 +262,8 @@ function VentaUpdateForm(props) {
                 <div className="row my-1">
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
-                <TablaArticulos articulos={data.articulos || []} />
-                {/* <Abonos data={data} /> */}
+                <TablaArticulos articulos={data.articulos || []} ventaData={dataVenta.ventas} />
+                <Abonos data={data} />
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Crear venta
