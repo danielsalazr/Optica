@@ -251,6 +251,7 @@ class Abonos(models.Model):
     precio = models.IntegerField(default=0, verbose_name="valor")
     medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de Pago")
     fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+    descripcion = models.TextField(max_length=200, default=None, blank=True, null=True)
     # abono debe mostrar el saldo, osea el valor a pagar
 
     class Meta:
