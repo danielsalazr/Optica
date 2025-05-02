@@ -364,7 +364,8 @@ class Venta(APIView):
             
 
             query = f"""
-                select * from contabilidad_abonos 
+                select T0.*, T1.nombre as "medioPago", T1.imagen as "imagenMedioPago" from contabilidad_abonos T0
+                inner join contabilidad_mediosdepago T1 on T1.id = T0.medioDePago_id 
                 where factura_id = {id};
             """
 

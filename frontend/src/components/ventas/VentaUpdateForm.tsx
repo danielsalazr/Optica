@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 
 import FormulaLentes from '@/components/FormulaLentes';
 import TablaArticulos from '@/components/TablaArticulos';
-import Abonos from '@/components/Abonos';
+import Abonos from '@/components/abonos/Abonos';
 import ClientesForm from '@/components/usuarios/ClientesForm';
 import EmpresaForm from '@/components/usuarios/EmpresaForm';
 import AnularVentaForm from '@/components/ventas/AnularVentaForm';
@@ -263,7 +263,7 @@ function VentaUpdateForm(props) {
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
                 <TablaArticulos articulos={data.articulos || []} ventaData={dataVenta.ventas} />
-                <Abonos data={data} />
+                <Abonos data={data} ventaData={dataVenta.abonos} />
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Crear venta

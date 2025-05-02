@@ -108,7 +108,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     agregarArrayAFormData(formData, 'precio_articulo', precio_articulos, true);
     agregarArrayAFormData(formData, 'totalArticulo', totalArticulos, true);
     agregarArrayAFormData(formData, 'precioAbono', precioAbonos, true);
-
+    // agregarArrayAFormData(formData, 'descripcionAbono', descripcionAbono, true);
 
     eliminarElementosFormData(formData, ['descuento', 'precio_articulo', 'totalArticulo', 'tipo_descuento', 'cantidad', 'numero_articulo'])
     eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', ])
@@ -130,7 +130,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
             factura: factura,
             cliente_id: cliente_id,
             medioDePago: metodo_Pago,
-            descripcionAbono: descripcionAbono[index],
+            descripcion: descripcionAbono[index],
             precio: precioAbonos[index],
 
         };

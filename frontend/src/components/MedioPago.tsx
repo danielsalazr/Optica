@@ -2,11 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 
 function MedioPago(props) {
 
-    const { data, name, className, labelInput, required } = props;
+    const { data, name, className, labelInput, required, setData } = props;
+    console.log(setData)
     const containerRef = useRef(null);
     const dropdownRef = useRef(null);
     const hiddenInputRef = useRef(null);
-    const [selectedOption, setSelectedOption] = useState({
+
+    const [selectedOption, setSelectedOption] = useState(
+        setData ? {
+            value: setData.medioDePago_id,
+            text: setData.medioPago,
+            imgSrc: setData.imagenMedioPago,
+        }:  
+        {
+        
         value: '',
         text: 'Seleccione una opción',
         imgSrc: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s',

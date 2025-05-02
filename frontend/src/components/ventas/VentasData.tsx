@@ -127,7 +127,7 @@ function VentasData(props) {
           {  "data": "precio" },
           {  "data": "totalAbono" },
           {  "data": "saldo" },
-          {  "data": "estado" },
+          {  "data": "estado", name: 'estado', className: 'dt-body-center' },
           {
             "data": null, "name": 'Acciones',
           }
@@ -135,6 +135,13 @@ function VentasData(props) {
         ];
 
         const slots = {
+          estado: (data, row) => {
+            return (
+              <span className={`badge ${data === "Pagado" ? 'bg-success' : data === "Con abono" ? 'bg-warning' : 'bg-danger'}`} style={{ fontSize: '16px' }}>
+                {data}
+              </span>
+            );
+          },
           Acciones: (data, row) => (
             <div className='gap-2 d-flex justify-content-center flex-wrap'>
               

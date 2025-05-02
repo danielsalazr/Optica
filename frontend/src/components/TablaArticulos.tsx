@@ -22,8 +22,8 @@ function TablaArticulos(props) {
 
   
 
-  console.log(articulos)
-  console.log(ventaData)
+  // console.log(articulos)
+  // console.log(ventaData)
   const [dataVenta, setDataVenta] =  ventaData != undefined ? useState(ventaData) : useState(null);
   const [ventaTotal, setVentaTotal] = useState(0);
   const selectRefs = useRef([]);
@@ -49,7 +49,6 @@ function TablaArticulos(props) {
           total: '$ 0',
         }]
   );
-  console.log(rows)
   
   const [utilsLoaded, setUtilsLoaded] = useState(false);
 
@@ -57,7 +56,7 @@ function TablaArticulos(props) {
         const req =  await fetch("http://localhost:8000/articuloInfo/1");
         const data = await req.json();
     
-        console.log(data)
+        // console.log(data)
     }
 
     // function calcularTotales2(){
@@ -80,7 +79,7 @@ function TablaArticulos(props) {
 
     function calcularTotales(){
         const totales = document.querySelectorAll('[id^="totalArticulo"]');
-        console.log(totales)
+        // console.log(totales)
     
         let total = 0
         Array.from(totales).forEach(elemento => {
@@ -106,7 +105,7 @@ function TablaArticulos(props) {
 
       
       async function calculateTotalArticle() {
-        console.log(tipoDescuentoArticulo.val())
+        // console.log(tipoDescuentoArticulo.val())
         if (tipoDescuentoArticulo.val() != "porcentaje"){
         totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
         } else {
@@ -128,7 +127,7 @@ function TablaArticulos(props) {
               totalArticulo.val(`$ ${data.precio}`);
               cantidadArticulo.prop('disabled', false);
               data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
-              console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
+              // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
               await calculateTotalArticle()
               calcularTotales()
             } else{

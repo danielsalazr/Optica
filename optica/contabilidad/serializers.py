@@ -120,8 +120,11 @@ class AbonoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Abonos
-        fields = ['factura','cliente_id','precio','medioDePago',]
-
+        fields = ['factura','cliente_id','precio','medioDePago', 'descripcion']
+    
+    extra_kwargs = {
+        'descripcion': {'required': False},
+    }
 
 
 class SaldoSerializer(serializers.ModelSerializer):
@@ -133,6 +136,7 @@ class SaldoSerializer(serializers.ModelSerializer):
         fields = [
             'cliente',
             'factura',
+            
             'saldo',
         ]
 
