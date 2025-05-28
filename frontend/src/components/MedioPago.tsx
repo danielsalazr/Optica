@@ -75,7 +75,13 @@ function MedioPago(props) {
                         </div>
                     ))}
                 </div>
-                <input ref={hiddenInputRef} type="hidden" name={name}  required={required} />
+                <input 
+                    ref={hiddenInputRef}
+                    type="hidden" name={name}
+                    required={required}
+                    // value={}
+                    defaultValue={setData ? setData.medioDePago_id : ''}
+                />
                 <div className="error-message" style={{ display: 'none' }}>
                     Este campo es obligatorio.
                 </div>

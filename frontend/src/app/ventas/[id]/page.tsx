@@ -34,7 +34,7 @@ async function page(props) {
   console.log(data)
   return (
     <div>
-      sisas {2}
+      Si sr {2}
 
       <VentaUpdateForm data={generalData} ventaData={data} />
     </div>

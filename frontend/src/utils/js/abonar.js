@@ -67,7 +67,7 @@ submitAbonar.addEventListener('click', async function (e){
     console.log(req.data);
 
     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-    await swalHtmlCreation(`Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Nombre cilente: ${nombre}<br>Precio Abono: ${moneyformat(precio)}<br>Medio de pago: ${medioDePagoText}`)
+    await swalHtmlCreation('Abono Creado', `Se creo Abono a factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Nombre cilente: ${nombre}<br>Precio Abono: ${moneyformat(precio)}<br>Medio de pago: ${medioDePagoText}`)
     
 });
 

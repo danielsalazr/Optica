@@ -38,8 +38,8 @@ async function page() {
     let table = await getDataVentas();
 
     const generalData = await getGeneralData()
-    console.log(table)
-    console.log(generalData)
+    // console.log(table)
+    // console.log(generalData)
 
     // Modificar la propiedad "precio" de cada objeto en la lista
     table = table.map(item => {

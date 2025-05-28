@@ -95,13 +95,13 @@ function Abonos(props) {
 
             <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                 <label htmlFor="password">Compromiso de pago</label>
-                <input type="number" className="form-control" id="compromisoPago" placeholder="Cuotas" name="compromisoPago" defaultValue='' required />
+                <input type="number" className="form-control" id="compromisoPago" placeholder="Cuotas" name="compromisoPago" defaultValue='1' required />
             </div>
 
             <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                 <label htmlFor="password">Tipo de Pago</label>
                 {/* <input type="number" className="form-control" id="fecha_Vencimiento" placeholder="Cuotas" name="fecha_Vencimiento" defaultValue={hoyMas2Meses} required /> */}
-                <select className="form-select" name="tipoPago" id="tipoPago">
+                <select className="form-select" name="tipo_venta" id="tipo_venta">
                   <option value="1" >Personal</option>
                   <option value="2">Por Empresa</option>
                   {/* <option value="3">Abono</option> */}

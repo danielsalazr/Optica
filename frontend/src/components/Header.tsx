@@ -1,6 +1,6 @@
 'use client';
 // import React, {useEffect} from 'react'
-import DropDown from './DropDown';
+import DropDown from './bootstrap/DropDown';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import dynamic from 'next/dynamic';
 import 'bootstrap/dist/css/bootstrap.min.css';

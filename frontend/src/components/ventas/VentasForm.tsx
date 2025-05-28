@@ -9,7 +9,7 @@ import { IP_URL, callApiFile } from '@/utils/js/api';
 
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
 import "@/styles/style.css"
-import Abonos from '@/components/Abonos';
+import Abonos from '@/components/abonos/Abonos';
 import MedioPago from '@/components/MedioPago';
 import FormulaLentes from '../FormulaLentes';
 
@@ -153,15 +153,19 @@ function VentasForm({data}) {
             const formulario = await handleFormSubmit(e, formRef, usuario, empresa, telefonoRef);
     
             // Incrementar el valor de factura en el estado
-            if (formulario == true) setFactura(parseInt(factura) + 1 );
-
-            formRef.current.reset();
-
-            console.log(setUsuario.selectize)
-            console.log(selectizeInstance)
-
-            usuario[0].selectize.clear();
-            empresa[0].selectize.clear();
+            if (formulario == true) 
+                {    
+                    setFactura(parseInt(factura) + 1 );
+    
+                    formRef.current.reset();
+    
+                    console.log(setUsuario.selectize)
+                    console.log(selectizeInstance)
+    
+                    usuario[0].selectize.clear();
+                    empresa[0].selectize.clear();
+                    
+                }
             
 
 

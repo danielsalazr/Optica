@@ -94,68 +94,68 @@ function TablaArticulos(props) {
       }
 
     const initializeSelectize = (index) => {
-      const precio_articulo = $(`#precio_articulo-${index}`);
-      const cantidadArticulo = $(`#cantidadArticulo-${index}`);
-      const descuentoArticulo = $(`#descuentoArticulo-${index}`);
-      const totalArticulo = $(`#totalArticulo-${index}`);
-      const tipoDescuentoArticulo = $(`#tipoDescuentoArticulo-${index}`);
-      const imageArticulo = $(`#imageArticulo-${index}`);
+        const precio_articulo = $(`#precio_articulo-${index}`);
+        const cantidadArticulo = $(`#cantidadArticulo-${index}`);
+        const descuentoArticulo = $(`#descuentoArticulo-${index}`);
+        const totalArticulo = $(`#totalArticulo-${index}`);
+        const tipoDescuentoArticulo = $(`#tipoDescuentoArticulo-${index}`);
+        const imageArticulo = $(`#imageArticulo-${index}`);
 
-      const selectElement = selectRefs.current[index];
+        const selectElement = selectRefs.current[index];
 
+        
+        async function calculateTotalArticle() {
+          // console.log(tipoDescuentoArticulo.val())
+          if (tipoDescuentoArticulo.val() != "porcentaje"){
+          totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
+          } else {
+            totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+          }
       
-      async function calculateTotalArticle() {
-        // console.log(tipoDescuentoArticulo.val())
-        if (tipoDescuentoArticulo.val() != "porcentaje"){
-        totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - descuentoArticulo.val().replace(/\D/g, "")))
-        } else {
-          totalArticulo.val(moneyformat(precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() - (precio_articulo.val().replace(/\D/g, "") * cantidadArticulo.val() * descuentoArticulo.val().replace(/\D/g, "")/100)))
+          calcularTotales()
         }
     
-        calcularTotales()
-      }
-  
-      if (selectElement) {
+        if (selectElement) {
 
-        $(selectElement).selectize({
-          hideSelected: true,
-          onChange: async function (value) {
-            if (value != 'Seleccione') {
-              const data = await obtenerInfoArticulo(value);
-              // Actualizar directamente los valores en la tabla
-              precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
-              totalArticulo.val(`$ ${data.precio}`);
-              cantidadArticulo.prop('disabled', false);
-              data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
-              // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
-              await calculateTotalArticle()
-              calcularTotales()
-            } else{
-              cantidadArticulo.prop('disabled', true);
-              imageArticulo.attr("src", ``);
-              precio_articulo.val('$ 0');
+          $(selectElement).selectize({
+            hideSelected: true,
+            onChange: async function (value) {
+              if (value != 'Seleccione') {
+                const data = await obtenerInfoArticulo(value);
+                // Actualizar directamente los valores en la tabla
+                precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
+                totalArticulo.val(`$ ${data.precio}`);
+                cantidadArticulo.prop('disabled', false);
+                data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
+                // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
+                await calculateTotalArticle()
+                calcularTotales()
+              } else{
+                cantidadArticulo.prop('disabled', true);
+                imageArticulo.attr("src", ``);
+                precio_articulo.val('$ 0');
+              }
             }
-          }
+          });
+        }
+
+        
+      
+        precio_articulo.on('input', function () {
+          precio_articulo.val(formatMoneyInput(precio_articulo.val())) 
+        })
+
+        descuentoArticulo.on("input", function() {
+          // console.log("ejecutado")
+          descuentoArticulo.val(separadorDeMiles(descuentoArticulo.val()));
         });
-      }
 
-      
-    
-      precio_articulo.on('input', function () {
-        precio_articulo.val(formatMoneyInput(precio_articulo.val())) 
-      })
+        
 
-      descuentoArticulo.on("input", function() {
-        // console.log("ejecutado")
-        descuentoArticulo.val(separadorDeMiles(descuentoArticulo.val()));
-      });
-
-      
-
-      $(`#descuentoArticulo-${index}, #precio_articulo-${index}, #cantidadArticulo-${index}`).on('change',async function() {
-          await calculateTotalArticle()
-          calcularTotales()
-          
+        $(`#descuentoArticulo-${index}, #precio_articulo-${index}, #cantidadArticulo-${index}`).on('change',async function() {
+            await calculateTotalArticle()
+            calcularTotales()
+            
         });
     };
 
@@ -193,7 +193,13 @@ function TablaArticulos(props) {
 
     useEffect(() => {
       if (rows.length > 0) {
-        initializeSelectize(rows.length - 1);
+        console.log("rows: ", rows)
+
+        rows.forEach((_, index) => {
+            console.log("index: ", index)  
+          initializeSelectize(index);
+        })
+
       }
       calcularTotales()
     }, [rows]);

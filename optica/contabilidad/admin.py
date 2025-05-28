@@ -13,6 +13,7 @@ from .models import (
     EstadoPedidoVenta,
     PedidoVenta,
     ItemsPEdidoVenta,
+    TipoVenta,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -111,6 +112,13 @@ class ItemsVentaAdmin(admin.ModelAdmin):
 
     # search_fields = ('factura',)
 
+@admin.register(TipoVenta)
+class TipoVentaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'nombre',
+        
+    )
 
 @admin.register(Ventas)
 class VentasAdmin(admin.ModelAdmin):
