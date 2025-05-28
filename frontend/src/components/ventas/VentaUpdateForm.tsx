@@ -14,7 +14,7 @@ import AnularVentaForm from '@/components/ventas/AnularVentaForm';
 
 // import { IP_URL, callApiFile } from '@/utils/js/api';
 import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
-import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
+import { handleFormSubmitUpdate } from "@/utils/js/ventaFormSubmit.js"
 
 
 import BootstrapModal from '@/components/bootstrap/BootstrapModal';
@@ -145,21 +145,25 @@ function VentaUpdateForm(props) {
             }
         };
 
-        const handleFormSubmitWrapper = async (e, formRef, usuario, empresa, telefonoRef) => {
-            const formulario = await handleFormSubmit(e, formRef, usuario, empresa, telefonoRef);
+        const handleFormSubmitWrapperUpdate = async (e, formRef, usuario, empresa, telefonoRef) => {
+            const formulario = await handleFormSubmitUpdate(e, formRef, usuario, empresa, telefonoRef);
+
+            console.log(formulario)
     
             // Incrementar el valor de factura en el estado
-            if (formulario == true) setFactura(parseInt(factura) + 1 );
+            // if (formulario == true) 
+            // {    
+            //     setFactura(parseInt(factura) + 1 );
 
-            formRef.current.reset();
+            //     formRef.current.reset();
 
-            console.log(setUsuario.selectize)
-            console.log(selectizeInstance)
+            //     console.log(setUsuario.selectize)
+            //     console.log(selectizeInstance)
 
-            usuario[0].selectize.clear();
-            empresa[0].selectize.clear();
-            
-
+            //     usuario[0].selectize.clear();
+            //     empresa[0].selectize.clear();
+                
+            // }
 
         };
 
@@ -186,7 +190,7 @@ function VentaUpdateForm(props) {
                
             </BootstrapModal>  
 
-        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
+        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapperUpdate(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
 
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
@@ -217,7 +221,7 @@ function VentaUpdateForm(props) {
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
                     <div className="input-group mb-3">
-                    <select ref={empresaRef} className="form-select  " id="EmpresaCliente" name="EmpresaCliente" defaultValue={dataVenta.empresaId} required>
+                    <select ref={empresaRef} className="form-select  " id="empresaCliente" name="empresaCliente" defaultValue={dataVenta.empresaId} required>
                         <option key="" value="">--</option>
                         {/* {data.clientes.map(element => ( */}
                         {empresas.map(element => (

@@ -64,9 +64,9 @@ export async function swalInput(titulo) {
 
 }
 
-export async function swalHtmlCreation(text) {
+export async function swalHtmlCreation(title, text) {
     Swal.fire({
-        title: '<strong>Factura Creada!</strong>',
+        title: `<strong>${title}</strong>`,
         icon: 'success',
         html: text,
         showCloseButton: false,

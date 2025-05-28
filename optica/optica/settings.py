@@ -59,7 +59,7 @@ JAZZMIN_SETTINGS = {
     'site_header': '<img src="/images/BIENESTAR OPTICA.png"  height="30">',  # Logo para la barra de navegación
     'site_logo': '/images/BIENESTAR OPTICA.png',
     'site_brand_small': False,
-    'custom_css': 'css/style.css',  # Mantén solo esta línea
+    'custom_css': 'css/jazzmin.css',  # Mantén solo esta línea
     'welcome_sign': 'Dashboard Administrativo',
     'copyright': '2025 Codelium',
     'search_model': 'auth.User',

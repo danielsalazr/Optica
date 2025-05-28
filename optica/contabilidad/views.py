@@ -36,6 +36,7 @@ from .serializers import (
 
 from .models import (
     Ventas,
+    ItemsVenta,
     Abonos,
     MediosDePago,
     Articulos,
@@ -450,13 +451,7 @@ class Venta(APIView):
         console.log(json.loads(request.data['abonos']))
         console.log(json.loads(request.data['saldo']))
 
-        # factura = request.data['factura']
-        cliente_id = request.data['cliente_id']
-
         data_copy = request.data.copy()
-
-        # verificarCliente = Clientes.objects.filter(cedula=cliente_id).values()
-        
 
         serializer = VentaSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
@@ -529,34 +524,97 @@ class Venta(APIView):
         
 
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
-            
-
-            
-
-            # if not verificarCliente:
-            #     Clientes.objects.create(
-            #         id=cliente_id,
-            #         nombre = request.data['nombreCliente'],
-            #         # apellido = request.data['apellidoCliente'],
-            #         )
-                
-            
-            # if metodoPago and abono != 0:
-            #     abonar = Abonos.objects.create(
-            #         factura_id=factura,
-            #         cliente_id=cliente_id,
-            #         precio=abono,
-            #         medioDePago=metodoPago,  
-            #     )
-
-
-            
 
             #return JsonResponse({'accion': 'ok'}, status=200)
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
+
+    def put(self, request, id=0):
+        console.log(request.data)
+
+        factura = request.data['factura']
+        # console.log(factura)
+
+        venta_items = json.loads(request.data.get('venta', '[]'))
+        abonos = json.loads(request.data.get('abonos', '[]'))
+        saldo = json.loads(request.data.get('saldo', '{}'))
+        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago']
+        precio = json.loads(request.data['abonos'])[0]['precio']
+
+        console.log(json.loads(request.data['venta'])) 
+        console.log(json.loads(request.data['abonos']))
+        console.log(json.loads(request.data['saldo']))
+
+        data_copy = request.data.copy()
+
+        venta = Ventas.objects.get(factura=factura)
+
+        # console.log(venta.__dict__)
+
+        # try:
+        #     instancia = MiModelo.objects.get(pk=pk)
+        # except MiModelo.DoesNotExist:
+        #     return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = VentaSerializer(venta, data=request.data)
+        if not serializer.is_valid():
+            console.log(serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # console.log(serializer.data)
+
+        venta_actualizada = serializer.save()
+
+        if venta_items:
+        # Eliminamos los items antiguos
+            ItemsVenta.objects.filter(venta=venta).delete()
+            
+            # Creamos los nuevos items
+            for item in venta_items:
+                console.log(item)
+                # item['venta'] = venta.id
+            items_serializer = ItemsVentaSerializer(data=venta_items, many=True)
+            if items_serializer.is_valid():
+                items_serializer.save()
+            else:
+                console.log(items_serializer.errors)
+        
+        if abonos:
+        # Eliminamos abonos antiguos (o actualizamos según tu lógica de negocio)
+            Abonos.objects.filter(factura=factura).delete()
+            
+            abonos_serializer = AbonoSerializer(data=abonos, many=True)
+            if abonos_serializer.is_valid():
+                abonos_serializer.save()
+            else:
+                console.log(abonos_serializer.errors)
+
+        if saldo:
+            saldo_obj, created = Saldos.objects.update_or_create(
+                factura=venta,
+                defaults={'saldo': saldo.get('saldo', 0)}
+            )
+            
+            # También actualizamos el histórico
+            historico_serializer = HistoricoSaldosSerializer(data=saldo)
+            if historico_serializer.is_valid():
+                historico_serializer.save()
+            else:
+                console.log(historico_serializer.errors)
+
+        try:
+            pedido = PedidoVenta.objects.get(factura=venta)
+            pedido_serializer = PedidoVentaSerializer(pedido, data=data_copy)
+            if pedido_serializer.is_valid():
+                pedido_serializer.save()
+        except PedidoVenta.DoesNotExist:
+            pass
+
+
+        # return Response(serializer.data)
+        
+        return Response({'accion': 'ok'}, status=status.HTTP_200_OK)
 
     
     def delete(self, request):

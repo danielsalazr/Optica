@@ -21,6 +21,7 @@ console = Console()
 
 class VentaSerializer(serializers.ModelSerializer):
     # empresaCliente = serializers.CharField(source='empresaCliente.nombre', read_only=True)
+    # empresaCliente = serializers.CharField(source='empresaCliente.nombre', )
     # empresa_id = serializers.PrimaryKeyRelatedField(
     #     queryset=Empresa.objects.all(),
     #     source='empresaCliente',  # Esto no se usa directamente, pero es para referencia
@@ -39,6 +40,7 @@ class VentaSerializer(serializers.ModelSerializer):
                   'observacion',
                   'estado',
                   'foto']
+        # read_only_fields = ('campo1', 'campo2')
 
         extra_kwargs = {
             'detalle': {'required': False},
@@ -63,7 +65,7 @@ class VentaSerializer(serializers.ModelSerializer):
         console.log(f"El empresa ID es {empresa_id}")
         if empresa_id:
             # Buscamos la empresa en la base de datos
-            empresa = Empresa.objects.get(id=empresa_id)
+            empresa = Empresa.objects.get(id=empresa_id.id)
             console.log(empresa)
             # Asignamos el nombre de la empresa al campo `empresaCliente`
             validated_data['empresaCliente'] = empresa.nombre
@@ -76,15 +78,21 @@ class VentaSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
-        empresa_id = validated_data.pop('empresa_id', None)
+        console.log("se ejecuta el update")
+        empresa_id = validated_data.pop('empresaCliente', None)
         abono = validated_data['totalAbono']
         total = validated_data["precio"]
-        if empresa_id:
+        console.log(empresa_id)
+        if empresa_id is not None:
+            # console.log(empresa_id['nombre'])
             # Buscamos la empresa en la base de datos
-            empresa = Empresa.objects.get(id=empresa_id.id)
+            empresa = Empresa.objects.get(id=empresa_id)
+            console.log(empresa.nombre)
             # Asignamos el nombre de la empresa al campo `empresaCliente`
             validated_data['empresaCliente'] = empresa.nombre
-
+        console.log(validated_data)
+        if abono == 0:
+            validated_data['estado'] = EstadoVenta.objects.get(id=1)
         if abono > 0:
             validated_data['estado'] = EstadoVenta.objects.get(id=2)
         if abono == total:

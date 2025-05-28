@@ -94,6 +94,21 @@ class Articulos(models.Model):
     def __str__(self):
         return self.nombre
 
+class TipoVenta(models.Model):
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=50, default='')
+    # tipo_venta = models.ForeignKey(TipoArticulos, on_delete=DO_NOTHING ,related_name='tipoArticulos')
+    # foto = models.ImageField(upload_to='articulos/', null=True, blank=True)
+
+
+    class Meta:
+        verbose_name = "Tipo de venta"
+        verbose_name_plural = "Tipos de venta"
+        managed = True
+
+    def __str__(self):
+        return self.nombre
+
 
 class Ventas(models.Model):
 
@@ -118,10 +133,10 @@ class Ventas(models.Model):
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
-    tipo_venta = models.CharField(max_length=10, choices=OPCIONES, null=True, blank=True)
+    tipo_venta = models.ForeignKey(TipoVenta, default=1, on_delete=DO_NOTHING, null=True, blank=True)
     detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
-
-
+    cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
+    ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
 
     class Meta:
         verbose_name = "Ventas"
