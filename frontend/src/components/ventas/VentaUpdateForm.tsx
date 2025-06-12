@@ -1,23 +1,19 @@
 "use client";
 import React, { useRef, useEffect, useState, ReactElement } from 'react';
 import dynamic from 'next/dynamic';
-
-
-
-
 import FormulaLentes from '@/components/FormulaLentes';
 import TablaArticulos from '@/components/TablaArticulos';
 import Abonos from '@/components/abonos/Abonos';
 import ClientesForm from '@/components/usuarios/ClientesForm';
 import EmpresaForm from '@/components/usuarios/EmpresaForm';
 import AnularVentaForm from '@/components/ventas/AnularVentaForm';
+import BootstrapModal from '@/components/bootstrap/BootstrapModal';
 
 // import { IP_URL, callApiFile } from '@/utils/js/api';
-import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
+import { obtenerInfoArticulo } from "@/utils/js/selectizeElements"
 import { handleFormSubmitUpdate } from "@/utils/js/ventaFormSubmit.js"
 
 
-import BootstrapModal from '@/components/bootstrap/BootstrapModal';
 
 
 
@@ -73,9 +69,8 @@ function VentaUpdateForm(props) {
               //import( "bootstrap/dist/js/bootstrap.bundle.js");
               
               const loadUtils = async () => {
-                
                 // await import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js")
-                const getCookie = await import('@/utils/js/getCookie.js');
+                // const getCookie = await import('@/utils/js/getCookie.js');
                 
                 await import('@/utils/js/utils.js');
                 await import('@/utils/js/api.js');
@@ -124,7 +119,6 @@ function VentaUpdateForm(props) {
           },[])
 
 
-
         const handleNuevoCliente = (nuevoCliente) => {
             setClientes([...clientes, nuevoCliente]); // Agregar el nuevo cliente al estado
             if (usuario) {
@@ -151,19 +145,19 @@ function VentaUpdateForm(props) {
             console.log(formulario)
     
             // Incrementar el valor de factura en el estado
-            // if (formulario == true) 
-            // {    
-            //     setFactura(parseInt(factura) + 1 );
+            if (formulario == true) 
+            {    
+                // setFactura(parseInt(factura) + 1 );
 
-            //     formRef.current.reset();
+                formRef.current.reset();
 
-            //     console.log(setUsuario.selectize)
-            //     console.log(selectizeInstance)
+                // console.log(setUsuario.selectize)
+                // console.log(selectizeInstance)
 
-            //     usuario[0].selectize.clear();
-            //     empresa[0].selectize.clear();
+                // usuario[0].selectize.clear();
+                // empresa[0].selectize.clear();
                 
-            // }
+            }
 
         };
 
@@ -267,10 +261,10 @@ function VentaUpdateForm(props) {
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
                 <TablaArticulos articulos={data.articulos || []} ventaData={dataVenta.ventas} />
-                <Abonos data={data} ventaData={dataVenta.abonos} />
+                <Abonos data={data} ventaData={dataVenta.abonos} totalAbonoLoad={dataVenta.totalAbono} />
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
-                    Crear venta
+                    Actualizar venta
                     </button>
                 </div>
                 </div>

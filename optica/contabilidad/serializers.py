@@ -65,7 +65,7 @@ class VentaSerializer(serializers.ModelSerializer):
         console.log(f"El empresa ID es {empresa_id}")
         if empresa_id:
             # Buscamos la empresa en la base de datos
-            empresa = Empresa.objects.get(id=empresa_id.id)
+            empresa = Empresa.objects.get(id=empresa_id)
             console.log(empresa)
             # Asignamos el nombre de la empresa al campo `empresaCliente`
             validated_data['empresaCliente'] = empresa.nombre

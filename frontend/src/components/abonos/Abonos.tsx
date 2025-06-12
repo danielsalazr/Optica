@@ -10,12 +10,13 @@ import 'boxicons';
 
 function Abonos(props) {
 
-  const {data, ventaData} = props;
+  const {data, ventaData, totalAbonoLoad, clear, changeClear} = props;
 
 
   console.log(ventaData);
   console.log(data)
-  const [abonoTotal, setAbonoTotal] = useState(0)
+  console.log(totalAbonoLoad)
+
   // const [rows, setRows] = useState([[{
   //   precio: '$ 0',
   //   // total: '$ 0',
@@ -36,6 +37,9 @@ function Abonos(props) {
         // total: '$ 0',
       }]
   );
+
+  const [abonoTotal, setAbonoTotal] = totalAbonoLoad  ? useState(totalAbonoLoad) : useState(0)
+
 
     const hoy = new Date();
 
@@ -65,7 +69,9 @@ function Abonos(props) {
        // Actualizar el estado
       //  executeUtils()
 
-      setAbonoTotal(rows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.total), 0));
+      console.log(rows)
+
+      setAbonoTotal(rows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.precio), 0));
     };
 
     const handleDeleteRow = (index) => {
@@ -74,13 +80,21 @@ function Abonos(props) {
   
       // Actualizar el total después de eliminar la fila
       setAbonoTotal(
-        newRows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.total), 0)
+        newRows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.precio), 0)
       );
     };
 
     const handleLoad = () => {
       executeUtils()
     };
+
+    useEffect(() => {
+      console.log(clear)
+      if (clear) {
+        setRows([]);
+        changeClear();
+      }
+    }, [clear, changeClear]);
 
   return (
     <div className="container mw-100 my-4" onLoad={handleLoad}>
@@ -94,7 +108,7 @@ function Abonos(props) {
             </div>
 
             <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
-                <label htmlFor="password">Compromiso de pago</label>
+                <label htmlFor="password">Compromiso de pago (Cuotas)</label>
                 <input type="number" className="form-control" id="compromisoPago" placeholder="Cuotas" name="compromisoPago" defaultValue='1' required />
             </div>
 

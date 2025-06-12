@@ -45,6 +45,7 @@ function VentasForm({data}) {
     const [empresa, setEmpresa] = useState('');
     const [usuario, setUsuario] = useState(null);
     const [factura, setFactura] = useState(data.factura);
+    const [reiniciarModulos, seRreiniciarModulos] = useState(false);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
     // const [clientes, setClientes] = useState(data.clientes);
@@ -64,7 +65,7 @@ function VentasForm({data}) {
               const loadUtils = async () => {
                 
                 // await import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js")
-                const getCookie = await import('@/utils/js/getCookie.js');
+                // const getCookie = await import('@/utils/js/getCookie.js');
                 
                 await import('@/utils/js/utils.js');
                 await import('@/utils/js/api.js');
@@ -149,6 +150,10 @@ function VentasForm({data}) {
             }
         };
 
+        const toggleReinicioModulos = () => {
+            seRreiniciarModulos(!reiniciarModulos);
+        }
+
         const handleFormSubmitWrapper = async (e, formRef, usuario, empresa, telefonoRef) => {
             const formulario = await handleFormSubmit(e, formRef, usuario, empresa, telefonoRef);
     
@@ -164,6 +169,8 @@ function VentasForm({data}) {
     
                     usuario[0].selectize.clear();
                     empresa[0].selectize.clear();
+                    
+                    toggleReinicioModulos()
                     
                 }
             
@@ -312,8 +319,8 @@ function VentasForm({data}) {
                 <div className="row my-1">
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
-                <TablaArticulos articulos={data.articulos || []} />
-                <Abonos data={data} />
+                <TablaArticulos articulos={data.articulos || []} clear={reiniciarModulos} changeClear={toggleReinicioModulos}/>
+                <Abonos data={data} clear={reiniciarModulos} changeClear={toggleReinicioModulos}/>
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Crear venta

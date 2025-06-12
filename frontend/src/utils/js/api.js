@@ -6,25 +6,25 @@ dificulta la lectura del codigo y por consiguiente el mantenimiento.
 Este modulo se encargara de hacer las solicitudes Http   */
 // import { getCookie } from '@/utils/js/getCookie.js';
 
-function getCookie(name) {
+// function getCookie(name) {
     
-    let cookieValue = null;
+//     let cookieValue = null;
 
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-/* se obtiene csrftoken del modulo getCookie.js */
-const csrftoken = getCookie('csrftoken');
+//     if (document.cookie && document.cookie !== '') {
+//         const cookies = document.cookie.split(';');
+//         for (let i = 0; i < cookies.length; i++) {
+//             const cookie = cookies[i].trim();
+//             // Does this cookie string begin with the name we want?
+//             if (cookie.substring(0, name.length + 1) === (name + '=')) {
+//                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+//                 break;
+//             }
+//         }
+//     }
+//     return cookieValue;
+// }
+// /* se obtiene csrftoken del modulo getCookie.js */
+// const csrftoken = getCookie('csrftoken');
 
 // if (typeof document === "undefined") {
 //     return null; // Si se ejecuta en SSR, no hay cookies disponibles
@@ -50,12 +50,13 @@ export function IP_URL() {
 
 
 export async function callApi(endPoint, options = {}) {
-    options.headers = {
-            'X-CSRFToken': csrftoken,
-            'Content-Type': 'application/json',
-        }
+    // options.headers = {
+    //         'X-CSRFToken': csrftoken,
+    //         'Content-Type': 'application/json',
+    //     }
         //console.log(csrftoken)
-
+    options.credentials = 'include'; // Asegura que las cookies se envíen con la solicitud
+    
     const url = BASE_URL + endPoint;
     console.log(url);
     const response = await fetch(url, options);
@@ -66,9 +67,11 @@ export async function callApi(endPoint, options = {}) {
 }
 
 export async function callApiForm(endPoint, formData, options = {}){
-    options.headers = {
-        'X-CSRFToken': csrftoken,
-    };
+    // options.headers = {
+    //     'X-CSRFToken': csrftoken,
+    // };
+    
+    options.credentials = 'include';
     // console.log(options.method)
     options.method ? options.method : options.method = 'POST';
     // console.log(options.method)
@@ -86,12 +89,12 @@ export async function callApiForm(endPoint, formData, options = {}){
 
 
 export async function callApiFile(endPoint, options = {}) {
-    options.headers = {
-            'X-CSRFToken': csrftoken,
-            //'Content-Type': 'application/json',
-        }
+    // options.headers = {
+    //         'X-CSRFToken': csrftoken,
+    //         //'Content-Type': 'application/json',
+    //     }
         //console.log(csrftoken)
-
+    options.credentials = 'include';
     const url = BASE_URL + endPoint;
     const response = await fetch(url, options);
     const data = await response.json();
@@ -99,12 +102,12 @@ export async function callApiFile(endPoint, options = {}) {
 }
 
 export async function callApiFile2(endPoint, options = {}) {
-    options.headers = {
-            'X-CSRFToken': csrftoken,
-            //'Content-Type': 'application/json',
-        }
+    // options.headers = {
+    //         'X-CSRFToken': csrftoken,
+    //         //'Content-Type': 'application/json',
+    //     }
         //console.log(csrftoken)
-
+    options.credentials = 'include';
     const url = IP_URL() + endPoint;
     const response = await fetch(url, options);
     const data = await response.json();
@@ -154,12 +157,12 @@ console.log(BASE_URL);
 
 
  async function callApi(endPoint, options = {}) {
-    options.headers = {
-            'X-CSRFToken': csrftoken,
-            'Content-Type': 'application/json',
-        }
+    // options.headers = {
+    //         'X-CSRFToken': csrftoken,
+    //         'Content-Type': 'application/json',
+    //     }
         //console.log(csrftoken)
-
+    options.credentials = 'include'; // Asegura que las cookies se envíen con la solicitud
     const url = BASE_URL + endPoint;
     console.log(url);
     const response = await fetch(url, options);
@@ -170,12 +173,12 @@ console.log(BASE_URL);
 
 
 async function callApiFile(endPoint, options = {}) {
-    options.headers = {
-            'X-CSRFToken': csrftoken,
-            //'Content-Type': 'application/json',
-        }
+    // options.headers = {
+    //         'X-CSRFToken': csrftoken,
+    //         //'Content-Type': 'application/json',
+    //     }
         //console.log(csrftoken)
-
+    options.credentials = 'include';
     const url = BASE_URL + endPoint;
     const response = await fetch(url, options);
     const data = await response.json();

@@ -13,7 +13,7 @@ function Article(props: ArticleProps) {
     const { article } = props.params
   return (
     <div>
-      sas sas sas {article} sisas
+      sas sas sas sisas
     </div>
   )
 }

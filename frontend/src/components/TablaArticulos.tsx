@@ -18,7 +18,7 @@ import 'selectize';
 
 function TablaArticulos(props) {
 
-  const {articulos, ventaData} = props;
+  const {articulos, ventaData, clear, changeClear} = props;
 
   
 
@@ -58,22 +58,6 @@ function TablaArticulos(props) {
     
         // console.log(data)
     }
-
-    // function calcularTotales2(){
-    //   const totales = document.querySelectorAll('[id^="totalArticulo"]');
-    //   console.log(totales)
-  
-    //   let total = 0
-    //   Array.from(totales).forEach(elemento => {
-    //       total += Number(Number(elemento.value.replace(/\D/g, "")))
-
-    //   })
-  
-    //   //console.log(total)
-  
-    //   $("#totalVenta").text(`${moneyformat(total)}`)
-    //   // setVentaTotal(moneyformat(total))
-    // }
 
     
 
@@ -189,6 +173,8 @@ function TablaArticulos(props) {
         loadUtils();
         executeUtils();
         
+        
+        
     },[])
 
     useEffect(() => {
@@ -203,6 +189,14 @@ function TablaArticulos(props) {
       }
       calcularTotales()
     }, [rows]);
+
+    useEffect(() => {
+      console.log(clear)
+      if (clear) {
+        setRows([]);
+        changeClear();
+      }
+    }, [clear, changeClear]);
 
     
   return (
