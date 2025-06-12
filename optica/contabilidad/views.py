@@ -444,8 +444,9 @@ class Venta(APIView):
         venta = json.loads(request.data['venta'])
         abono = json.loads(request.data['abonos'])
         saldo = json.loads(request.data['saldo'])
-        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago']
-        precio = json.loads(request.data['abonos'])[0]['precio']
+
+        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago'] if len(json.loads(request.data['abonos'])) > 0 else ""
+        precio = json.loads(request.data['abonos'])[0]['precio'] if len(json.loads(request.data['abonos'])) > 0 else 0
 
         console.log(json.loads(request.data['venta'])) 
         console.log(json.loads(request.data['abonos']))

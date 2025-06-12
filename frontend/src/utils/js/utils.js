@@ -225,6 +225,8 @@ return cantidadFormateada;
 }
 
 export function fromMoneyToText(input){
+    console.log(input)
+    // Elimina todos los caracteres no numéricos y convierte a número
     return Number(input.replace(/\D/g, "").replace(',', '.'))
     
 }
