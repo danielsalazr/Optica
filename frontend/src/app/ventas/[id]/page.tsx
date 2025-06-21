@@ -33,11 +33,11 @@ async function page(props) {
   const generalData = await getGeneralData()
   console.log(data)
   return (
-    <div>
-      Si sr {2}
+    <>
+      <h2 className='text-center'>Editar Venta</h2>
 
       <VentaUpdateForm data={generalData} ventaData={data} />
-    </div>
+    </>
   )
 }
 

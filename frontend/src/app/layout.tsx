@@ -40,7 +40,7 @@ export default function RootLayout({
       
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <Header></Header>
-        <main>
+        <main className="p-4">
         {children}
         </main>
 

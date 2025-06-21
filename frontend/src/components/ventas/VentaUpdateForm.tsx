@@ -149,7 +149,7 @@ function VentaUpdateForm(props) {
             {    
                 // setFactura(parseInt(factura) + 1 );
 
-                formRef.current.reset();
+                // formRef.current.reset();
 
                 // console.log(setUsuario.selectize)
                 // console.log(selectizeInstance)
