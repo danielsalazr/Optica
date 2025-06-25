@@ -35,13 +35,21 @@ function MedioPago(props) {
             imgSrc: element.imagen,
         });
 
-        if (hiddenInputRef.current) {
-            hiddenInputRef.current.value = element.id;
-        }
+        // console.log(hiddenInputRef.current)
+
+        // if (hiddenInputRef.current) {
+        //     hiddenInputRef.current.value = element.id;
+        // }
+        // hiddenInputRef.current.value = element.id;
+
+        // console.log(hiddenInputRef.current.value)
+        // console.log(hiddenInputRef.current)
 
         if (dropdownRef.current) {
             dropdownRef.current.classList.remove('show');
         }
+
+        console.log(hiddenInputRef.current)
     };
 
     useEffect(() => {
@@ -80,7 +88,9 @@ function MedioPago(props) {
                     type="hidden" name={name}
                     required={required}
                     // value={}
-                    defaultValue={setData ? setData.medioDePago_id : ''}
+                    value={selectedOption.value}
+                    // Utilizar defaultValue definitivamente no es una buena practica en next.js
+                    // defaultValue={setData ? setData.medioDePago_id : ''}
                 />
                 <div className="error-message" style={{ display: 'none' }}>
                     Este campo es obligatorio.
