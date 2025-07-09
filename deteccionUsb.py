@@ -99,6 +99,7 @@ import win32api
 
 # Nombre de la impresora (debe coincidir con el nombre en el Administrador de Dispositivos)
 printer_name = "EPSON TM-T20II Receipt"
+printer_name = "EPSON TM-U220 Receipt"
 
 # Crear un string multilínea para la factura usando comillas triples
 factura = """
