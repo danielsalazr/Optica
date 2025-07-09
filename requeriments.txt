@@ -1,6 +1,8 @@
 django==4.2
 djangorestframework
 django-environ==0.8
+django-cors-headers
+django-jazzmin
 django-excel
 mysqlclient
 pillow

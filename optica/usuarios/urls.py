@@ -12,5 +12,8 @@ urlpatterns = [
     path('infoCliente/<int:cedula>', views.infoCliente, name="infoCliente"),
 
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),
+
+    path('Empresas/', views.Empresas.as_view(), name="Empresas"),
+    path('Cliente/', views.Cliente.as_view(), name="Cliente"),
     
 ] 

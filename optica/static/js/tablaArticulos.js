@@ -7,21 +7,19 @@ async function addRow() {
   const articulos = await callApi("articulos/");
   console.log(articulos);
   row.innerHTML = `
-        <td class="bg-secondary-subtle">${table.rows.length + 1}</td>
-        <td class="p-1" style="width: 25%">
+        <td class="bg-secondary-subtle">${numeroFila + 1}</td>
+        <td class="" style="width: 25%">
             <select class="form-select border-0" id="articulo${numeroFila}" name="numero_articulo" id="articulo${numeroFila? numeroFila + 1 : 1}">
                 <option value="">Seleccione</option>
                 ${articulos.data.articulos.map(
-                  (item) => `
-                    
+                  (item) => `         
                     <option value="${item.id}" >${item.nombre}</option>
-
                 `
                 )}
             </select>
         </td>
-        <td id="imageArticulo${numeroFila}"></td>
-        <td class="p-1"><input type="number" class="form-control " id="cantidadArticulo${numeroFila}" name="cantidad" placeholder="Cantidad" value="1" disabled></td>
+        <td ><img id="imageArticulo${numeroFila}" height="35" src="" /> </td>
+        <td class=""><input type="number" class="form-control " id="cantidadArticulo${numeroFila}" name="cantidad" placeholder="Cantidad" value="1" disabled></td>
         <td><input type="text" class="form-control precio" id="precioArticulo${numeroFila}" name="precioArticulo" placeholder="Precio" step="1000"></td>
         <td>
             <select class="form-select" id="tipoDescuentoArticulo${numeroFila}" name="indicador_impuestos">
@@ -30,7 +28,7 @@ async function addRow() {
                 <option value="precio" selected>precio $</option>
             </select>
         </td>
-        <td class="p-1">
+        <td class="">
               <input
                 type="text"
                 class="form-control border-0"
@@ -55,6 +53,7 @@ async function addRow() {
   const descuentoArticuloTable = $(`#descuentoArticulo${numeroFila}`);
   const totalArticuloTable = $(`#totalArticulo${numeroFila}`);
   const tipoDescuentoArticuloTable = $(`#tipoDescuentoArticulo${numeroFila}`);
+  const imageArticuloTable = $(`#imageArticulo${numeroFila}`);
 
 
   precioArticuloTable.on('input', function () {
@@ -85,9 +84,17 @@ async function addRow() {
         precioArticuloTable.val(moneyformat(data.precio))
         cantidadArticuloTable.prop('disabled', false);
         calculateTotalArticleTable()
+        imageArticuloTable.attr("src", `/media/${data.fotos[0].foto}`);
       } else{
         cantidadArticuloTable.prop('disabled', true);
+        imageArticuloTable.attr("src", ``);
       }
+
+      
+
+      // $0.src= '/media/fotos_articulos/D_NQ_NP_944070-MCO53184551951_012023-O.jpg'
+
+      // ${BASE_URL+"/"+ articulos.data.fotos[0].foto}
     }
   })
 
