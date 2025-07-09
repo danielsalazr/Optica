@@ -327,21 +327,21 @@
   <script src="{% static 'js/utils.js' %}"></script>
 
 <!-- Telefono -->
-  <script>
-    const input = document.querySelector("#telefonoCliente");
-    const iti = window.intlTelInput(input, {
-      loadUtils: () => import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/utils.js"),
-      initialCountry: "co",
-    });
+<script>
+  const input = document.querySelector("#telefonoCliente");
+  const iti = window.intlTelInput(input, {
+    loadUtils: () => import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/utils.js"),
+    initialCountry: "co",
+  });
 
-    const parentElement = input.parentElement;
-    parentElement.style.display = "block";
+  const parentElement = input.parentElement;
+  parentElement.style.display = "block";
 
-    // Obtener  numero del campo
-    const number = iti.getNumber();
+  // Obtener  numero del campo
+  const number = iti.getNumber();
 
 
-  </script>
+</script>
 
 
 <!-- Articulos -->
@@ -373,7 +373,7 @@
     const descuentoArticulo = $("#descuentoArticulo");
     const totalArticulo = $("#totalArticulo");
     const tipoDescuentoArticulo = $("#tipoDescuentoArticulo");
-
+    const imageArticulo = $(`#imageArticulo`);
     /*
     tipoDescuentoArticulo.on("change", function(){
       if (tipoDescuentoArticulo.val() != "precio"){
@@ -394,8 +394,10 @@
           precioArticulo.val(moneyformat(data.precio))
           cantidadArticulo.prop('disabled', false);
           calculateTotalArticle()
+          imageArticulo.attr("src", `/media/${data.fotos[0].foto}`);
         } else{
           cantidadArticulo.prop('disabled', true);
+          imageArticulo.attr("src", ``);
         }
 
       }

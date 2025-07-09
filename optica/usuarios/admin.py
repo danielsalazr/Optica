@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Clientes
+from .models import (Clientes, Empresa)
 from django.forms import NumberInput
 # Register your models here.
 
@@ -14,9 +14,9 @@ from django.forms import NumberInput
 
 class CustomClientesAdmin(admin.ModelAdmin):
     list_display = (
-        'id',
+        'cedula',
         'nombre',
-        'apellido',
+        # 'apellido',
         'telefono',
         'email',
         'fechaRegistro',
@@ -30,5 +30,20 @@ class CustomClientesAdmin(admin.ModelAdmin):
 admin.site.register(Clientes, CustomClientesAdmin)
 
     
+class CustomEmpresaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'nombre',
+        'email',
+        'nit',
+        'personas_contacto',
+    )
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        if db_field.name == 'id':
+            kwargs['widget'] = NumberInput(attrs={'style': 'width: 200px;'})
+        return super().formfield_for_dbfield(db_field, **kwargs)
+
+admin.site.register(Empresa, CustomEmpresaAdmin)
 
 # Register your models here.
