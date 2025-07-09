@@ -7,6 +7,7 @@ import os
 # Nombre de la impresora
 printer_name = "EPSON TM-T20II Receipt"  # Asegúrate de colocar el nombre correcto de la impresora
 
+printer_name = "EPSON TM-U220 Receipt"
 # Ruta del archivo PDF
 pdf_path = "./Factura_Termal.pdf"
 
