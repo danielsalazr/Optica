@@ -1,3 +1,8 @@
 .selectize-input.items.required.full.has-options.has-items {
     border-radius: 5px 0 0 5px;
 }
+
+
+.anulado {
+    background: #6b7280
+}
