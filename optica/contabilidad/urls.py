@@ -22,6 +22,8 @@ urlpatterns = [
     path('abonar/<int:factura>', views.abonar, name="abonar"),
     path('admin/', views.AbonosP.as_view(), name="admin"),
     path('reportes/', views.ReportesP.as_view(), name="reportes"),
+    path('informacionGeneral/', views.informacionGeneral, name="informacionGeneral"),
+    # informacionGeneral
 
     
     path('venta/', views.Venta.as_view(), name="venta"),

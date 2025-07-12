@@ -137,6 +137,7 @@ class Ventas(models.Model):
     detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
     cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
     ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
+    anulado = models.BooleanField(default=False, verbose_name="Anulado")
 
     class Meta:
         verbose_name = "Ventas"
@@ -168,6 +169,12 @@ class Ventas(models.Model):
     @property
     def abono_inicial(self):
         return '${:,.0f}'.format(self.totalAbono)
+    
+
+class anulaciones(models.Model):
+    id=models.AutoField(primary_key=True)
+    venta=models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Venta")
+    anuladoPor=models.CharField(max_length=100)
 
 class AcuerdoDePago(models.Model):
 

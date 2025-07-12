@@ -51,6 +51,10 @@ from utils.diccionarios import (
     agrupar_datos,
 )
 
+from db.request import (
+    getGeneralInfo,
+)
+
 from collections import defaultdict
 import json
 import os
@@ -64,6 +68,11 @@ class MainP(APIView):
     def get(self, request):
         
         return render(request, 'contabilidad/index.html')
+    
+@api_view(['GET'])
+def informacionGeneral(request):
+
+    return Response(getGeneralInfo(), status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def articulos(request,):
@@ -628,6 +637,7 @@ class Venta(APIView):
 
         venta.estado_id = 4
         venta.detalleAnulacion = request.data['detalleAnulacion']
+        venta.anulado = 1
         venta.save()
         # abono.delete()
         # venta.delete()
@@ -737,7 +747,10 @@ class Abono(APIView):
             # venta.save()
             saldo.save()
 
-            if saldo.saldo  == 0:
+            if saldo.saldo  != venta.precio and saldo.saldo  != 0:
+                venta.estado_id = 2
+                
+            elif saldo.saldo  == 0:
                 # cambiar el estado de la venta a pagada
                 venta.estado_id = 3
             venta.save()
