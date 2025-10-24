@@ -1,0 +1,39 @@
+
+
+
+$base-color : #c6538c;
+$background-page: #ffffff;
+$color: rgba(black, 0.88);
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    min-height: 100vh;
+    background-color: #fff;
+    background-color:  $background-page;
+    color: $color;
+  }
+
+// body{
+    
+// }
+
+.header{
+    z-index: 2;
+}
+
+
+
+// .carousel-inner{
+//     height: 500px;
+// }
+
+// .carousel_image{
+//     height: 500px;
+// }
+
+

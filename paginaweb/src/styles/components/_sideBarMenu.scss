@@ -1,0 +1,55 @@
+.my-container {
+  transition: 0.4s;
+}
+
+.active-nav {
+  margin-left: 0;
+}
+#sidebar {
+  z-index: 2;
+}
+
+/* for main section */
+.active-cont {
+  // margin-left: 220px;
+}
+
+.menuBtn {
+  position: fixed;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  position: fixed;
+  width: -webkit-fill-available;
+  /* height: 120px; */
+}
+
+#menu-btn {
+  background-color: #100901;
+  color: #fff;
+  margin-left: -18px;
+  margin-top: 10px;
+  z-index: 2;
+  left: 20px;
+  transition: 0.4s ease-in-out;
+}
+
+#menu-btn.buttonShift {
+  left: 218px;
+}
+
+.my-container input {
+  border-radius: 2rem;
+  padding: 2px 20px;
+}
+
+.pageBody {
+  // padding-top: 70px;
+}
+
+li a {
+  text-decoration: none;
+  color: #fff;
+}

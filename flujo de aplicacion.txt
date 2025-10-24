@@ -1,0 +1,16 @@
+Venta:
+[itemsVenta, estadoVenta, tipoVenta, [pedidoVenta, itemsPedidoVenta, estadoPedidoVenta], estadoFactura]
+[abonos, acuerdodePago, mediosDePago, cuota, saldos, historicoSaldos]
+
+Jornada de Venta:
+
+Devoluciones:
+[Historico devoluciones]
+
+Gastos:
+PagosProveedores:
+Proveedores
+
+
+articulos:
+[fotosArticulo]

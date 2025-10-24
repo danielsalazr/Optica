@@ -1,0 +1,97 @@
+
+// @tailwind base;
+// @tailwind components;
+// @tailwind utilities;
+
+@import "bootstrap/scss/bootstrap";
+
+@import 'boxicons/css/boxicons.min.css';
+
+$base-color : #c6538c;
+$background-page: #ffffff;
+$color: rgba(black, 0.88);
+
+@import "./components/global.scss";
+@import "./components/sideBarMenu.scss";
+@import "./components/header.scss";
+@import "./components/carousel.scss";
+@import "./components/mainpage.scss";
+@import "./components/portafolioProductos.scss";
+@import "./components/misionvision.scss";
+@import "./components/contenido.scss";
+@import "./components/quienesSomos.scss";
+@import "./components/brigadas.scss";
+
+// @import "./components/carousel.scss";
+// @import "./componentes/perfiles";
+// @import "./componentes/estadisticas";
+// @import "./componentes/ubicaciones";
+
+
+$Fuente1: 'Lato', sans-serif;
+$Fuente2: 'Oswald', sans-serif;
+
+//colores
+$color-primario: #333333;
+$color-claro: #ffffff;
+$color-secundario: #8841DA;
+$color-variacion:#3f579a;
+
+// @mixin caja {
+// 	color: $color-primario;
+// 	background-color: $color-claro;
+// 	border-radius: 20px;
+// 	box-shadow: 0px 20px 33px 0px rgba(0,0,0,0.50);
+// }
+
+
+
+// .perfil__minibio {
+// 	margin: 0 auto;
+// 	padding-top: 20px;
+
+// 	h2 {
+// 		@extend .perfil__nombre;
+// 	}
+
+// 	h3 {
+// 		@extend .perfil__titulo;
+// 	}
+
+// .ubicacion--perfil{
+// 	width: 50%;
+// 	height: 90px;
+// 	margin: 30px auto;
+// 	padding: 20px 0 0 50px;
+// 	// border-radius: 20px;
+// 	// background-color: $color-claro;
+//     // color: #333333;
+// 	@include caja;
+// }
+
+
+// * {
+//     margin: 0;
+//     padding: 0;
+//     box-sizing: border-box;
+//   }
+  
+//   body {
+//     min-height: 100vh;
+//     background-color: #fff;
+//     background-color:  $background-page;
+//     color: $color;
+//   }
+
+
+
+
+// .carousel-inner{
+//     height: 500px;
+// }
+
+// .carousel_image{
+//     height: 500px;
+// }
+
+
