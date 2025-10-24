@@ -1,26 +1,26 @@
 "use client"; // Asegúrate de marcar el componente como del lado del cliente
+"use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import $ from 'jquery';
+import dynamic from "next/dynamic";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 
-// import "datatables.net";
-// import 'datatables.net-dt';
-// import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import AbonosForm from "./abonos/AbonosForm";
+const DataTable = dynamic(async () => {
+    const DataTableComponentModule = await import("datatables.net-react");
+    const DataTableComponent = DataTableComponentModule.default ?? DataTableComponentModule;
 
-import DataTable from 'datatables.net-react';
-import DT from 'datatables.net-dt';
- 
+    const DataTablesLibModule = await import("datatables.net-dt");
+    const DataTablesLib = DataTablesLibModule.default ?? DataTablesLibModule;
 
+    DataTableComponent.use(DataTablesLib);
+
+    return DataTableComponent;
+}, { ssr: false });
 
 
 
 const DataTables = (props) => {
     // const tableRef = useRef(null);
-    DataTable.use(DT);
     const tableRef = useRef(null);
     const [activeFilter, setActiveFilter] = useState("todos");
     const { header, data, imprimir, columns, onAction, order, slotes } = props;
@@ -31,72 +31,31 @@ const DataTables = (props) => {
 
     // const headers = ['Nombre', 'telefono', 'vinilla']  
     useEffect(() => {
-    //     console.log(data)
+        let cleanup: (() => void) | undefined;
 
-    // // Inicializar DataTables
-    //     const table = $("#myTable").DataTable({
-    //         // if (!$.fn.DataTable.isDataTable("#myTable")) {
+        (async () => {
+            if (typeof window === "undefined") {
+                return;
+            }
 
-    //     // const table = $(tableRef.current).DataTable({
-        
-    //         "data": data,
-    //         "scrollX": true,
-    //         "pageLength": 30,
-    //         "scrollY": 500,
-    //         // "columns": Object.keys(data[0]).map((row) =>  {
-    //         //     return {'data': row} 
-    //         // }),
+            const { Popover } = await import("bootstrap/dist/js/bootstrap.bundle.min.js");
 
-    //         "columns": columns,   
-    //         "order": order,
-    //         // drawCallback: function (settings) {
-                
-    //         // }
-    //         //     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-            
-    //     });
+            const popoverTriggerList = [].slice.call(
+                document.querySelectorAll('[data-bs-toggle="popover"]')
+            );
 
+            const popoverList = popoverTriggerList.map(
+                (popoverTriggerEl) => new Popover(popoverTriggerEl)
+            );
 
-    //     $("#myTable").on("click", ".btn-action", function () {
-    //         const action = $(this).data("action"); // Acción (eliminar, editar, etc.)
-    //         const rowData = table.row($(this).closest("tr")).data(); // Datos de la fila
-    //         onAction(action, rowData); // Llamar a la función onAction
-    //     });
+            cleanup = () => {
+                popoverList.forEach((popoverInstance) => popoverInstance?.dispose?.());
+            };
+        })();
 
-    //     $('#myTable').on('draw.dt', function () {
-
-    //         const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    //         const popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
-    //             return new bootstrap.Popover(popoverTriggerEl)  
-    //         })
-    //     })
-
-    //     // }
-
-        const handlePageLoaded = () => {
-            console.log("Pagina Cargada")
-            const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-            const popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
-                return new bootstrap.Popover(popoverTriggerEl)
-        })};
-      
-          window.onload = handlePageLoaded;
-
-    //     if (table.current) {
-    //     // inicializa DataTable si no está ya
-    //     const dt = table.current.dt();
-    //     // ejemplo: botones manuales
-    //     document.getElementById("btn-activos")?.addEventListener("click", () => {
-    //       dt.column(6).search("Activo").draw();
-    //     });
-    //     document.getElementById("btn-inactivos")?.addEventListener("click", () => {
-    //       dt.column(6).search("Inactivo").draw();
-    //     });
-    //     document.getElementById("btn-todos")?.addEventListener("click", () => {
-    //       dt.column(6).search("").draw();
-    //     });
-    // }
-        
+        return () => {
+            cleanup?.();
+        };
     }, []);
 
 //     const applyFilter = (filter: string) => {

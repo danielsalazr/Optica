@@ -233,6 +233,36 @@ class ItemsVenta(models.Model):
     # tipo_descuento
 
 
+class Remision(models.Model):
+    id = models.AutoField(primary_key=True)
+    venta = models.ForeignKey(Ventas, on_delete=models.CASCADE, related_name="remisiones")
+    cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
+    fecha = models.DateField(verbose_name="Fecha de remision", default=timezone.now)
+    observacion = models.TextField(max_length=255, blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Remision"
+        verbose_name_plural = "Remisiones"
+
+    def __str__(self):
+        return f"Remision {self.id} - Venta {self.venta_id}"
+
+
+class RemisionItem(models.Model):
+    remision = models.ForeignKey(Remision, on_delete=models.CASCADE, related_name="items")
+    item_venta = models.ForeignKey(ItemsVenta, on_delete=models.PROTECT, related_name="remisiones_items")
+    cantidad = models.IntegerField(default=0)
+
+    class Meta:
+        managed = True
+        verbose_name = "Item remision"
+        verbose_name_plural = "Items remision"
+
+    def __str__(self):
+        return f"{self.item_venta.articulo} x {self.cantidad}"
+
 class Abonos(models.Model):
     id = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="pedido de venta", blank=True, null=True)

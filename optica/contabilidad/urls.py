@@ -32,6 +32,9 @@ urlpatterns = [
     path('abono/', views.Abono.as_view(), name="abono"),
     path('abono/<factura>', views.Abono.as_view(), name="abono"),
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),
+
+    path('remisiones/', views.RemisionView.as_view(), name="remisiones"),
+    path('remisiones/venta/<int:venta_id>/', views.RemisionView.as_view(), name="remisiones-venta"),
     
 
     path('articulos/', views.articulos, name="articulos"),

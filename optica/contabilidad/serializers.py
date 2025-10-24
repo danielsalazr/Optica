@@ -10,6 +10,8 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     EstadoPedidoVenta,
+    Remision,
+    RemisionItem,
     # EstadoVenta,
     # MediosDePago,
 )
@@ -17,6 +19,9 @@ from usuarios.models import Clientes, Empresa
 
 from rich.console import Console
 console = Console()
+
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 
 
 class VentaSerializer(serializers.ModelSerializer):
@@ -220,3 +225,145 @@ class ItemsPEdidoVentaSerializer(serializers.ModelSerializer):
             'articulo',
             'cantidad',
         ]
+
+
+class RemisionItemSerializer(serializers.ModelSerializer):
+    itemVenta = serializers.PrimaryKeyRelatedField(source='item_venta', queryset=ItemsVenta.objects.all())
+    articulo = serializers.SerializerMethodField(read_only=True)
+    cantidadFactura = serializers.SerializerMethodField(read_only=True)
+    cantidadDespachada = serializers.SerializerMethodField(read_only=True)
+    restante = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = RemisionItem
+        fields = [
+            'id',
+            'itemVenta',
+            'cantidad',
+            'articulo',
+            'cantidadFactura',
+            'cantidadDespachada',
+            'restante',
+        ]
+        extra_kwargs = {
+            'cantidad': {'min_value': 1}
+        }
+
+    def get_articulo(self, obj):
+        articulo = obj.item_venta.articulo
+        return {
+            'id': articulo.id,
+            'nombre': articulo.nombre,
+        }
+
+    def get_cantidadFactura(self, obj):
+        return obj.item_venta.cantidad
+
+    def _get_totals_map(self):
+        return self.context.get('remision_totals')
+
+    def get_cantidadDespachada(self, obj):
+        totals = self._get_totals_map()
+        if totals is not None:
+            return totals.get(obj.item_venta_id, 0)
+
+        return RemisionItem.objects.filter(
+            item_venta=obj.item_venta
+        ).aggregate(total=Coalesce(Sum('cantidad'), 0))['total']
+
+    def get_restante(self, obj):
+        totals = self._get_totals_map()
+        if totals is not None:
+            despacho = totals.get(obj.item_venta_id, 0)
+        else:
+            despacho = self.get_cantidadDespachada(obj)
+
+        return max(obj.item_venta.cantidad - despacho, 0)
+
+
+class RemisionSerializer(serializers.ModelSerializer):
+    items = RemisionItemSerializer(many=True)
+    cliente = serializers.SerializerMethodField(read_only=True)
+    venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
+
+    class Meta:
+        model = Remision
+        fields = [
+            'id',
+            'venta',
+            'cliente_id',
+            'cliente',
+            'fecha',
+            'observacion',
+            'items',
+            'creado_en',
+        ]
+        read_only_fields = ('cliente_id', 'creado_en')
+
+    def get_cliente(self, obj):
+        try:
+            cliente = Clientes.objects.get(cedula=obj.cliente_id)
+            return {
+                'cedula': cliente.cedula,
+                'nombre': cliente.nombre,
+                'telefono': cliente.telefono,
+            }
+        except Clientes.DoesNotExist:
+            return None
+
+    def validate(self, attrs):
+        venta = attrs['venta']
+        items = attrs.get('items', [])
+
+        if not items:
+            raise serializers.ValidationError({'items': 'Debe incluir al menos un artículo para la remisión.'})
+
+        acumulado_por_item = {}
+        errores = {}
+
+        for elemento in items:
+            item_venta = elemento['item_venta']
+            cantidad = elemento['cantidad']
+
+            if item_venta.venta_id != venta.id:
+                errores[item_venta.id] = 'El artículo seleccionado no pertenece a la venta indicada.'
+                continue
+
+            if cantidad <= 0:
+                errores[item_venta.id] = 'La cantidad debe ser mayor a cero.'
+                continue
+
+            acumulado_por_item.setdefault(item_venta.id, {'cantidad': 0, 'obj': item_venta})
+            acumulado_por_item[item_venta.id]['cantidad'] += cantidad
+
+        if errores:
+            raise serializers.ValidationError({'items': errores})
+
+        for item_id, info in acumulado_por_item.items():
+            item_venta = info['obj']
+            cantidad_solicitada = info['cantidad']
+
+            remisionado = RemisionItem.objects.filter(item_venta=item_venta).aggregate(
+                total=Coalesce(Sum('cantidad'), 0)
+            )['total']
+            disponible = item_venta.cantidad - remisionado
+
+            if cantidad_solicitada > disponible:
+                raise serializers.ValidationError({
+                    'items': {
+                        item_id: f'Cantidad supera lo disponible para remisionar ({disponible}).'
+                    }
+                })
+
+        return attrs
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        venta = validated_data['venta']
+        validated_data['cliente_id'] = venta.cliente_id
+
+        remision = Remision.objects.create(**validated_data)
+        for item in items_data:
+            RemisionItem.objects.create(remision=remision, **item)
+
+        return remision

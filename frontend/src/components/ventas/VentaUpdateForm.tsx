@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState, ReactElement } from 'react';
+import React, { useRef, useEffect, useState, ReactElement, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import FormulaLentes from '@/components/FormulaLentes';
 import TablaArticulos from '@/components/TablaArticulos';
@@ -8,6 +8,7 @@ import ClientesForm from '@/components/usuarios/ClientesForm';
 import EmpresaForm from '@/components/usuarios/EmpresaForm';
 import AnularVentaForm from '@/components/ventas/AnularVentaForm';
 import BootstrapModal from '@/components/bootstrap/BootstrapModal';
+import RemisionesPanel from '@/components/remisiones/RemisionesPanel';
 
 // import { IP_URL, callApiFile } from '@/utils/js/api';
 import { obtenerInfoArticulo } from "@/utils/js/selectizeElements"
@@ -123,6 +124,58 @@ function VentaUpdateForm(props) {
             }
               
           },[])
+
+    const ventaId = dataVenta?.id ?? dataVenta?.pedido ?? ventaData?.id ?? ventaData?.pedido ?? 0;
+
+    const clienteInfo = useMemo(() => {
+        const clienteEncontrado = clientes?.find(
+            (elemento) => Number(elemento.cedula) === Number(dataVenta?.cliente_id)
+        );
+
+        if (clienteEncontrado) {
+            return {
+                cedula: clienteEncontrado.cedula,
+                nombre: clienteEncontrado.nombre,
+                telefono: clienteEncontrado.telefono,
+            };
+        }
+
+        return {
+            cedula: dataVenta?.cliente_id,
+        };
+    }, [clientes, dataVenta?.cliente_id]);
+
+    const handleRemisionCreated = useCallback((remision: any) => {
+        setDataVenta((prev) => {
+            if (!prev) {
+                return prev;
+            }
+
+            const remisionesPrevias = Array.isArray(prev.remisiones) ? prev.remisiones : [];
+            const ventasActualizadas = Array.isArray(prev.ventas)
+                ? prev.ventas.map((item) => {
+                      const detalle = remision.items.find(
+                          (detalleItem: any) => detalleItem.itemVenta === item.id
+                      );
+                      if (!detalle) {
+                          return item;
+                      }
+
+                      return {
+                          ...item,
+                          remisionado: detalle.cantidadDespachada,
+                          pendienteRemision: detalle.restante,
+                      };
+                  })
+                : prev.ventas;
+
+            return {
+                ...prev,
+                remisiones: [remision, ...remisionesPrevias],
+                ventas: ventasActualizadas,
+            };
+        });
+    }, [setDataVenta]);
 
 
         const handleNuevoCliente = (nuevoCliente) => {
@@ -275,9 +328,20 @@ function VentaUpdateForm(props) {
                 </div>
                 </div>
 
-                
-            </form>
-        </>
+            
+        </form>
+
+        <div className="container-md px-0 mt-5">
+            <RemisionesPanel
+                ventaId={Number(ventaId)}
+                items={dataVenta?.ventas ?? []}
+                remisiones={dataVenta?.remisiones ?? []}
+                articulos={data.articulos ?? []}
+                cliente={clienteInfo}
+                onCreated={handleRemisionCreated}
+            />
+        </div>
+    </>
                 )
 }
 
