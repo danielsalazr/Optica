@@ -5,7 +5,7 @@ import {callApiForm} from '@/utils/js/api';
 function AnularVentaForm(props) {
   const formRef = useRef(null);
 
-  const {factura} = props;
+  const {factura, onSuccess } = props;
 
   const handleSubmit = async  () => {
 
@@ -15,25 +15,21 @@ function AnularVentaForm(props) {
               return false;
             }
 
-
             console.log(props.ref);
               const formData = new FormData(formRef.current);
               
-              
-              
               const req = await callApiForm("venta/", formData, {method: "DELETE"})
-      
               console.log(req.res);
       
               if (req.res.status !== 200) {
-              //   await swalErr("No se pudo crear Empresa")
               await swalHtml("Error", req.data)
                 return false;
               }
               
               console.log(req.data);
-              
               await swalconfirmation("Se anulo la factura.")
+
+              if (onSuccess) onSuccess();
   
       
             };

@@ -47,14 +47,20 @@ function VentaUpdateForm(props) {
     const empresaRef = useRef(null);
     const telefonoRef = useRef(null);
 
+    console.log(data)
+
+    
+
     const [telefono, setTelefono] = useState('');
     const [empresa, setEmpresa] = useState('');
     const [usuario, setUsuario] = useState(null);
-    const [factura, setFactura] = useState(data.factura);
+    const [pedido, setPedido] = useState(data.pedido);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
     const [dataVenta, setDataVenta] = useState(ventaData);
     // const [clientes, setClientes] = useState(data.clientes);
+
+    console.log(dataVenta)
 
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
     const [clientes, setClientes] = useState(data.clientes);
@@ -189,8 +195,8 @@ function VentaUpdateForm(props) {
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     
-                    <label htmlFor="email"># Factura</label>
-                    <input type="number" className="form-control" id="facturaVenta"  name="factura" value={dataVenta.factura} onChange={(e) => setFactura(Number(e.target.value))} />
+                    <label htmlFor="email"># Pedido</label>
+                    <input type="number" className="form-control" id="idVenta"  name="id" value={dataVenta.pedido} onChange={(e) => setPedido(Number(e.target.value))} />
                 </div>
 
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">

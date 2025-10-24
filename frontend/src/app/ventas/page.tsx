@@ -57,18 +57,20 @@ async function page() {
       
       <div className='container-md'>
         <a className="previous round" href="{% url 'main' %}" 
-            style={{position: 'relative !important', top: '20px !important', left: '20px !important', padding: '8px 16px', borderRadius: '50%', backgroundColor: '#f1f1f1'}}>
+            style={{position: 'absolute', top: '40px !important', left: '20px !important', padding: '8px 16px', borderRadius: '50%', backgroundColor: '#f1f1f1'}}>
             <i className="fa-solid fa-arrow-left" />
         </a>
         <div className="d-flex w-100 flex-column vh-100 align-items-center mt-4">
 
-          <div className="mx-auto">
-              <h3>Ventas</h3>
+          <div className="d-flex w-100 mb-1" style={{alignItems: 'center', justifyContent: 'space-between'}}>
+            <div></div>
+            <span className='h3'>Ventas</span>
+            {/* <div className='d-flex w-100 justify-content-end'> */}
+            <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
+            {/* </div> */}
           </div>
             
-          <div className='d-flex w-100 justify-content-end'>
-            <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
-          </div>
+          
 
           <VentasData data={table} generalData={generalData} />
           

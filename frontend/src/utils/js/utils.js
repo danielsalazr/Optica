@@ -254,7 +254,7 @@ export function convertirSeparadorMilesANumero(formattedValue) {
 
 // Almacena los valores de todos los inputs excepto el de id="facturaVenta"
 export function almacenarInputs() {
-    const inputs = document.querySelectorAll('input:not(#facturaVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
+    const inputs = document.querySelectorAll('input:not(#idVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
     const valores = {};
 
     inputs.forEach(input => {
@@ -582,7 +582,7 @@ function convertirSeparadorMilesANumero(formattedValue) {
 
 // Almacena los valores de todos los inputs excepto el de id="facturaVenta"
 function almacenarInputs() {
-    const inputs = document.querySelectorAll('input:not(#facturaVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
+    const inputs = document.querySelectorAll('input:not(#idVenta), textarea, select'); // Selecciona todos los inputs excepto facturaVenta
     const valores = {};
 
     inputs.forEach(input => {
