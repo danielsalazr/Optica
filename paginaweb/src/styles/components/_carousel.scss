@@ -1,25 +1,169 @@
-.carousel_container{
-  
-    width: 80%;
-    max-width: 1280px;
-    z-index: 1;
-    /* padding: 0 30px; */
-    margin-bottom: 20px;
-    background: #000000;
-    color: #000000;
-  }
-  
-  .carousel-item img{
-    height: 400px;
-    width: 100%;
-    // max-width: 1280px;
-    margin: 0 auto;
+.carousel-section {
+  background: linear-gradient(135deg, #0f172a 0%, #11294d 55%, #1e3a8a 100%);
+  padding: clamp(1.5rem, 2vw + 1.5rem, 3.5rem) 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.carousel-shell {
+  position: relative;
+  width: min(1200px, 100%);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 28px 60px -30px rgba(8, 15, 35, 0.65);
+  background-color: #0f172a;
+}
+
+.carousel-item-custom {
+  position: relative;
+  min-height: clamp(320px, 45vw, 520px);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.carousel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 12s linear, filter 0.4s ease;
+}
+
+.carousel-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    rgba(12, 17, 32, 0.72) 0%,
+    rgba(12, 17, 32, 0.55) 45%,
+    rgba(12, 17, 32, 0.35) 65%,
+    rgba(12, 17, 32, 0) 100%
+  );
+  z-index: 1;
+}
+
+.carousel-shell .carousel-caption {
+  position: absolute;
+  inset: auto auto clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem);
+  max-width: min(28rem, 85%);
+  padding: clamp(1rem, 2vw, 1.75rem);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #0f172a;
+  box-shadow: 0 20px 35px -25px rgba(15, 23, 42, 0.65);
+  z-index: 2;
+}
+
+.carousel-title {
+  font-size: clamp(1.25rem, 2.5vw, 1.85rem);
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: inherit;
+}
+
+.carousel-text {
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  line-height: 1.6;
+  color: rgba(15, 23, 42, 0.85);
+}
+
+.carousel-section .tracking-wide {
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.7);
+}
+
+.carousel-shell .carousel-indicators {
+  gap: 0.65rem;
+  margin-bottom: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.carousel-shell .carousel-indicators [data-bs-target] {
+  width: 28px;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.45);
+  border: none;
+  transition: width 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
+  opacity: 0.65;
+}
+
+.carousel-shell .carousel-indicators .active {
+  width: 44px;
+  background-color: #ffffff;
+  opacity: 1;
+}
+
+.carousel-shell .carousel-control-prev,
+.carousel-shell .carousel-control-next {
+  width: clamp(50px, 6vw, 68px);
+}
+
+.carousel-shell .carousel-control-prev-icon,
+.carousel-shell .carousel-control-next-icon {
+  filter: invert(1);
+  width: clamp(20px, 3vw, 26px);
+  height: clamp(20px, 3vw, 26px);
+}
+
+.carousel-shell .carousel-control-prev,
+.carousel-shell .carousel-control-next {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.carousel-shell .carousel-control-prev:hover,
+.carousel-shell .carousel-control-next:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.carousel-item-custom::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+      120% 120% at 85% 15%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 55%
+    ),
+    radial-gradient(
+      100% 100% at 10% 90%,
+      rgba(30, 64, 175, 0.18) 0%,
+      rgba(30, 64, 175, 0) 60%
+    );
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .carousel-section {
+    padding-inline: 0;
   }
 
-.carousel 
+  .carousel-shell {
+    border-radius: 0;
+  }
 
-{
-    max-width: $desktopSize; 
-    margin: 0 auto;
-    margin-bottom: 1rem;
+  .carousel-shell .carousel-caption {
+    position: static;
+    margin: clamp(1rem, 4vw, 1.5rem);
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .carousel-gradient {
+    background: linear-gradient(
+      160deg,
+      rgba(12, 17, 32, 0.75) 0%,
+      rgba(12, 17, 32, 0.35) 55%,
+      rgba(12, 17, 32, 0) 100%
+    );
+  }
+}
+
+@supports not (aspect-ratio: 16/9) {
+  .carousel-item-custom {
+    min-height: clamp(320px, 45vw, 520px);
+  }
 }
