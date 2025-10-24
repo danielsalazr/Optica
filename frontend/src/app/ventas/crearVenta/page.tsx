@@ -28,7 +28,7 @@ async function page() {
             
             
             <div className="mx-auto">
-                <h3>Facturas recientes</h3>
+                <h3>Pedidos recientes</h3>
             </div>
             <div className="table-responsive container-md">
             </div>

@@ -127,12 +127,12 @@ class VentasP(APIView):
 
         limit = 20
         mediosPago = MediosDePago.objects.all().values()
-        ventas = Ventas.objects.filter().values().order_by('-factura')[:limit]
+        ventas = Ventas.objects.filter().values().order_by('-id')[:limit]
 
 
         query = f"""
             SELECT 
-                factura, 
+                T0.id as pedidoVenta, 
                 # CONCAT(T1.nombre, ' ', T1.apellido), 
                 T1.nombre, 
                 T0.precio as preciov, 
@@ -142,19 +142,19 @@ class VentasP(APIView):
                 T0.cliente_id 
             FROM contabilidad_ventas T0
             left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
-            left join contabilidad_abonos T2 on T0.factura = T2.factura_id
+            left join contabilidad_abonos T2 on T0.id = T2.venta_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             group by 
                 #T0.cliente_id,
-                T0.factura
-            order by factura desc;
+                T0.id
+            order by T0.id desc;
         """
         with connection.cursor() as cursor:
             cursor.execute(query)
             ventas = cursor.fetchall()
             console.log(ventas)
 
-        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1 if (Ventas.objects.aggregate(Max('factura'))['factura__max']) != None else 1
+        maxFactura = (Ventas.objects.aggregate(Max('id'))['id__max']) +1 if (Ventas.objects.aggregate(Max('id'))['id__max']) != None else 1
         console.log(maxFactura)
 
             
@@ -165,7 +165,7 @@ class VentasP(APIView):
         for i, venta in enumerate(ventas):
             listVentas.append({
                 'numero': i+1,
-                'factura': venta[0],
+                'id': venta[0],
                 'nombre': venta[1],
                 'precio': venta[2],
                 'abono': venta[3],
@@ -183,7 +183,7 @@ class VentasP(APIView):
         context = {
             'mediosPago': mediosPago,
             'ventas': listVentas,
-            'factura': maxFactura,
+            'pedido': maxFactura,
             'clientes': clientes,
             'articulos': articulos,
             'empresas': empresa,
@@ -196,79 +196,79 @@ class VentasP(APIView):
         #return render(request, 'contabilidad/ventas.html', context)
 
 
-class AbonosP(APIView):
-    #permission_classes = (IsAuthenticated, )
-    def get(self, request, factura=0):
+# class AbonosP(APIView):
+    # #permission_classes = (IsAuthenticated, )
+    # def get(self, request, factura=0):
 
 
-        numeroFactura = request.GET.get('factura');
+    #     numeroFactura = request.GET.get('factura');
         
-        if numeroFactura:
-            return redirect(f"/abonos/{numeroFactura}")
+    #     if numeroFactura:
+    #         return redirect(f"/abonos/{numeroFactura}")
 
-        limit = 20
-        mediosPago = MediosDePago.objects.all().values()
-        ventas = Ventas.objects.filter().values().order_by('-factura')[:limit]
-        query = f"""
-            SELECT 
-                factura,
-                #CONCAT(T1.nombre, ' ', T1.apellido),
-                T1.nombre,
-                T0.precio as preciov, sum(T2.precio) as abono,
-                T0.precio - sum(T2.precio) as saldo,
-                T3.nombre,
-                T0.cliente_id,
-                T0.detalle
-            FROM contabilidad_ventas T0
-                left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
-                left join contabilidad_abonos T2 on T0.factura = T2.factura_id
-                inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-            {('where factura = '+factura) if factura != 0 else ''}
-            group by 
-                #T0.cliente_id,
-                T0.factura
-            order by factura desc;
-        """
-        with connection.cursor() as cursor:
-            cursor.execute(query)
-            ventas = cursor.fetchall()
-            console.log(ventas)
+    #     limit = 20
+    #     mediosPago = MediosDePago.objects.all().values()
+    #     ventas = Ventas.objects.filter().values().order_by('-factura')[:limit]
+    #     query = f"""
+    #         SELECT 
+    #             factura,
+    #             #CONCAT(T1.nombre, ' ', T1.apellido),
+    #             T1.nombre,
+    #             T0.precio as preciov, sum(T2.precio) as abono,
+    #             T0.precio - sum(T2.precio) as saldo,
+    #             T3.nombre,
+    #             T0.cliente_id,
+    #             T0.detalle
+    #         FROM contabilidad_ventas T0
+    #             left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
+    #             left join contabilidad_abonos T2 on T0.factura = T2.factura_id
+    #             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
+    #         {('where factura = '+factura) if factura != 0 else ''}
+    #         group by 
+    #             #T0.cliente_id,
+    #             T0.factura
+    #         order by factura desc;
+    #     """
+    #     with connection.cursor() as cursor:
+    #         cursor.execute(query)
+    #         ventas = cursor.fetchall()
+    #         console.log(ventas)
 
-        maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1 if (Ventas.objects.aggregate(Max('factura'))['factura__max'])!= None else 1
-        console.log(maxFactura)
+    #     maxFactura = (Ventas.objects.aggregate(Max('factura'))['factura__max']) +1 if (Ventas.objects.aggregate(Max('factura'))['factura__max'])!= None else 1
+    #     console.log(maxFactura)
 
             
             
 
-        listVentas = []
+    #     listVentas = []
 
-        for i, venta in enumerate(ventas):
-            listVentas.append({
-                'numero': i+1,
-                'factura': venta[0],
-                'nombre': venta[1],
-                'precio': venta[2],
-                'abono': venta[3],
-                'saldo': venta[4],
-                'estado': venta[5],
-                'detalle': venta[7],
-            })
+    #     for i, venta in enumerate(ventas):
+    #         listVentas.append({
+    #             'numero': i+1,
+    #             'factura': venta[0],
+    #             'nombre': venta[1],
+    #             'precio': venta[2],
+    #             'abono': venta[3],
+    #             'saldo': venta[4],
+    #             'estado': venta[5],
+    #             'detalle': venta[7],
+    #         })
 
-        console.log(listVentas)
+    #     console.log(listVentas)
 
         
-        context = {
-            'mediosPago': mediosPago,
-            'ventas': listVentas,
-            'factura': maxFactura,
+    #     context = {
+    #         'mediosPago': mediosPago,
+    #         'ventas': listVentas,
+    #         'factura': maxFactura,
             
-        }
+    #     }
 
-        # return Response(context, status=status.HTTP_200_OK)
+    #     # return Response(context, status=status.HTTP_200_OK)
 
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    #     # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        return render(request, 'contabilidad/abonos.html', context)       
+    #     return render(request, 'contabilidad/abonos.html', context)       
 
 # Create your views here.
 
@@ -338,19 +338,21 @@ def abonar(request, factura = 0):
 class Venta(APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request, id=0,):
+
+        console.log(id)
         if id != 0:
 
             query = f"""
                 select 
-                    T0.*, T1.*, T2.id as "empresaId", 
+                    T0.id as pedido, T0.*, T1.*, T2.id as "empresaId", 
                     #T3.foto
                     MIN(T3.foto) as foto 
                 from contabilidad_ventas T0
-                inner join contabilidad_itemsventa T1 on T1.venta_id = T0.factura 
+                inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
                 inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
                 inner join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
-                where factura = {id}
-                group by factura, id 
+                where T0.id = {id}
+                group by T0.id, T1.id 
                 ;
             """
 
@@ -374,9 +376,10 @@ class Venta(APIView):
             
 
             query = f"""
-                select T0.*, T1.nombre as "medioPago", T1.imagen as "imagenMedioPago" from contabilidad_abonos T0
+                select T0.*, T1.nombre as "medioPago", T1.imagen as "imagenMedioPago" 
+                from contabilidad_abonos T0
                 inner join contabilidad_mediosdepago T1 on T1.id = T0.medioDePago_id 
-                where factura_id = {id};
+                where venta_id = {id};
             """
 
             with connection.cursor() as cursor:
@@ -397,7 +400,7 @@ class Venta(APIView):
         ventas = Ventas.objects.all().annotate(
             cliente=Subquery(cliente_nombre_subquery)
         ).values(
-            'factura',
+            'id',
             'cliente_id',
             'cliente',
             'empresaCliente',
@@ -408,11 +411,11 @@ class Venta(APIView):
             'estado_id',
             'fecha',
             # 'cliente_nombre',  # Incluir el nombre del cliente
-        ).order_by('factura')
+        ).order_by('id')
 
         query = """
             SELECT 
-                T0.factura,
+                T0.id as id,
                 T0.cliente_id as cedula,
                 T1.nombre as cliente,
                 #CONCAT(T1.nombre, ' ', T1.apellido),
@@ -427,12 +430,12 @@ class Venta(APIView):
                 T0.detalle
             FROM contabilidad_ventas T0
             left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
-            #left join contabilidad_abonos T2 on T0.factura = T2.factura_id
+            #left join contabilidad_abonos T2 on T0.id = T2.venta_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-            LEFT join contabilidad_saldos T4 on T4.factura_id  = T0.factura
-            #where factura = {factura}
+            LEFT join contabilidad_saldos T4 on T4.venta_id  = T0.id
+            #where id = {venta}
             
-            #order by factura desc;
+            #order by T0.id desc;
         """
         with connection.cursor() as cursor:
             cursor.execute(query)
@@ -559,7 +562,7 @@ class Venta(APIView):
 
         data_copy = request.data.copy()
 
-        venta = Ventas.objects.get(factura=factura)
+        venta = Ventas.objects.get(id=factura)
 
         # console.log(venta.__dict__)
 
@@ -637,6 +640,7 @@ class Venta(APIView):
 
         venta.estado_id = 4
         venta.detalleAnulacion = request.data['detalleAnulacion']
+        venta.usuarioAnulacion = request.user.id
         venta.anulado = 1
         venta.save()
         # abono.delete()

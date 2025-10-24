@@ -30,16 +30,18 @@ class VentaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ventas
-        fields = [ 'factura',
-                  'precio',
-                  'cliente_id',
-                  'empresaCliente',
-                  "totalAbono",
-                  'fecha',
-                  'detalle',
-                  'observacion',
-                  'estado',
-                  'foto']
+        fields = [ 
+                'id',
+                'precio',
+                'cliente_id',
+                'empresaCliente',
+                "totalAbono",
+                'fecha',
+                'detalle',
+                'observacion',
+                'estado',
+                'foto'
+        ]
         # read_only_fields = ('campo1', 'campo2')
 
         extra_kwargs = {

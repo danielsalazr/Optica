@@ -44,7 +44,7 @@ function VentasForm({data}) {
     const [telefono, setTelefono] = useState('');
     const [empresa, setEmpresa] = useState('');
     const [usuario, setUsuario] = useState(null);
-    const [factura, setFactura] = useState(data.factura);
+    const [pedido, setPedido] = useState(data.pedido); // data.factura
     const [reiniciarModulos, seRreiniciarModulos] = useState(false);
     const [iti,setIti] = useState(null);
     const [modalShow, setModalShow] = React.useState(false);
@@ -160,7 +160,7 @@ function VentasForm({data}) {
             // Incrementar el valor de factura en el estado
             if (formulario == true) 
                 {    
-                    setFactura(parseInt(factura) + 1 );
+                    setPedido(parseInt(pedido) + 1 );
     
                     formRef.current.reset();
     
@@ -210,8 +210,8 @@ function VentasForm({data}) {
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
                     
-                    <label htmlFor="email"># Factura</label>
-                    <input type="number" className="form-control" id="facturaVenta"  name="factura" value={factura} onChange={(e) => setFactura(Number(e.target.value))} />
+                    <label htmlFor="email"># Pedido</label>
+                    <input type="number" className="form-control" id="idVenta"  name="id" value={pedido} onChange={(e) => setPedido(Number(e.target.value))} />
                 </div>
 
                 <div className="form-group col-sm-12 col-md-12 col-xl-6">

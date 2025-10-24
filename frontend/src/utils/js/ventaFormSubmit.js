@@ -57,7 +57,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     let cliente_id = usuario[0].selectize.getValue()
     let empresaID = empresa[0].selectize.getValue() 
     console.log(cliente_id) //formData.get('cliente_id');
-    let factura = formData.get('factura');
+    let id = formData.get('id');
     let precio = formData.get('precio');
     // let abono = formData.get('abono');
     // let metodoPago = formData.get('metodoPago');
@@ -115,7 +115,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     const articulos = numero_articulo.map((numeroArticulo, index) => {
         return {
-            venta: factura,
+            venta: id,
             articulo: numeroArticulo,
             cantidad: cantidad[index],
             precio_articulo: precio_articulos[index],
@@ -127,7 +127,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     const abono = metodoPago.map((metodo_Pago, index) => {
         return {
-            factura: factura,
+            factura: id,
             cliente_id: cliente_id,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
@@ -215,7 +215,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     let cliente_id = usuario[0].selectize.getValue()
     let empresaID = empresa[0].selectize.getValue() 
     console.log(cliente_id) //formData.get('cliente_id');
-    let factura = formData.get('factura');
+    let id = formData.get('id');
     let precio = formData.get('precio');
     // let abono = formData.get('abono');
     // let metodoPago = formData.get('metodoPago');
@@ -264,7 +264,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
 
     const articulos = numero_articulo.map((numeroArticulo, index) => {
         return {
-            venta: factura,
+            venta: id,
             articulo: numeroArticulo,
             cantidad: cantidad[index],
             precio_articulo: precio_articulos[index],
@@ -353,145 +353,3 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     
     return true
 }
-//);
-
-
-
-
-// export const oldhandleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
-
-
-//     const hiddenInput = document.querySelector('#metodoPago');
-//     const errorMessage = document.querySelector('.error-message');
-
-//     e.preventDefault();
-//     console.log(usuario);
-
-//     console.log(usuario[0].selectize.getValue())
-
-//     formRef
-
-//     const formData = new FormData(formRef.current);
-
-//     // if (!hiddenInput.value) {
-//     //     e.preventDefault();
-//     //     errorMessage.style.display = 'block';
-//     // }
-
-//     let cliente_id = usuario[0].selectize.getValue()
-//     let empresaID = empresa[0].selectize.getValue() 
-//     console.log(cliente_id) //formData.get('cliente_id');
-//     let factura = formData.get('factura');
-//     let precio = formData.get('precio');
-//     // let abono = formData.get('abono');
-//     // let metodoPago = formData.get('metodoPago');
-
-    
-
-//     // extraer el texto del selector del medio de pago
-//     // let medioDePago = document.querySelector('#valorSelect');
-//     // var index = medioDePago.value //selectedIndex;
-
-//     // var medioDePagoText = document.querySelector('#valorSelect').innerHTML
-//         // var medioDePagoText = medioDePago.options[index].text;
-
-
-//     const precio_articulo = formData.getAll('precio_articulo');
-//     const totalArticulo =  formData.getAll('totalArticulo');
-    
-//     const arrayPrueba = transformarArray(precio_articulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
-//     console.log(arrayPrueba)
-
-//     const precio_articulos = transformarArray(precio_articulo, fromMoneyToText)
-//     const totalArticulos = transformarArray(totalArticulo, fromMoneyToText)
-    
-
-// // Convierte los valores a números sin formato
-//     // const precio_articulos = precio_articulo.map(valor => {
-//     //     return fromMoneyToText(valor);
-//     // });
-//     // console.log(precio_articulos)
-//     // const totalArticulos = totalArticulo.map(valor => {
-//     //     return fromMoneyToText(valor);
-//     // });
-
-//     //console.log(preciosArticulos)
-
-//     // precio = fromMoneyToText(precio)
-//     // abono = fromMoneyToText(abono)
-//     const total = fromMoneyToText($("#totalVenta").text());
-
-//     const indicativo = document.querySelector('.iti__a11y-text')
-    
-//     // console.log(iti.current?.getInstance().getNumber())
-//     // formData.set('telefonocliente', iti.current?.getInstance().getNumber().slice(1))
-//     // formData.set('precio', precio)
-//     // formData.set('abono', abono)
-//     formData.set('total', total)
-//     formData.set('EmpresaCliente', empresaID)
-
-//     formData.delete('precio_articulo');
-//     formData.delete('totalArticulo');
-    
-//     precio_articulos.forEach(valor => {
-//         console.log(valor)
-//         formData.append('precio_articulo', valor); // Reasigna los valores limpios
-//     });
-
-//     totalArticulos.forEach(valor => {
-//         console.log(valor)
-//         formData.append('totalArticulo', valor); // Reasigna los valores limpios
-//     });
-
-//     // precioAbono
-
-//     agregarArrayAFormData(formData, 'prueba', formData.getAll('precioAbono'), true);
-
-
-//     if (!cliente_id) {
-//         swalErr("Ingrese la cedula del cliente");
-//         return
-//     }
-
-//     if (precio == 0) {
-//         swalErr("Ingrese un precio");
-//         return
-//     }
-
-//     // if (!medioDePago) {
-//     //     swalErr("Ingrese un medio de pago.");
-//     //     return
-//     // }
-
-//     // if (abono > precio) {
-//     //     swalErr("El abono no puede ser mayor al precio.");
-//     //     return
-//     // }
-
-//     for (let [key, value] of formData.entries()) {
-//         console.log(`${key}:`, value);
-//     }
-
-//     const req = await callApiFile('venta/', {
-//         method: 'POST',
-//         body: formData, //JSON.stringify(Object.fromEntries(formData)),
-//     });
-
-//     console.log(req.res);
-//     console.log(req.data);
-
-//     if (req.res.status != 200) {
-//         await swalHtml('Error', req.data)
-//         return
-//     }
-
-//     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-//     await swalHtmlCreation(`Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>
-        
-//         `)
-//         // Medio de pago: ${medioDePagoText}
-
-//     almacenarInputs()
-    
-// }
-//);

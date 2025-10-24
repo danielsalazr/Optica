@@ -57,12 +57,12 @@ class PagosProveedores(models.Model):
     nombre = models.CharField(max_length=50, default='')
     Estado = models.CharField(max_length=50, default='')
 
-class EstadoFactura(models.Model):
-    id = models.AutoField(primary_key=True)
-    nombre = models.CharField(max_length=50, default='')
-    pass
-    #pagado
-    #pendiente
+# class EstadoFactura(models.Model):
+#     id = models.AutoField(primary_key=True)
+#     nombre = models.CharField(max_length=50, default='')
+#     pass
+#     #pagado
+#     #pendiente
 
 
 # Dee haber una pabtalla que me cruce los dos
@@ -118,7 +118,7 @@ class Ventas(models.Model):
         # ('opc3', 'Opción 3'),
     ]
     #id es el numero de factura de la venta, hay que asegurarse que empiece a partir de un nuemero de factura
-    factura = models.IntegerField(primary_key=True)
+    id = models.IntegerField(primary_key=True, verbose_name="orden de pedido")
     #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     cliente_id = models.BigIntegerField(default=0, verbose_name="Id de cliente", blank=True, null=True)
     empresaCliente = models.CharField(max_length=60,)
@@ -134,10 +134,12 @@ class Ventas(models.Model):
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
     tipo_venta = models.ForeignKey(TipoVenta, default=1, on_delete=DO_NOTHING, null=True, blank=True)
+    anulado = models.BooleanField(default=False, verbose_name="Anulado")
     detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
+    usuarioAnulacion = models.IntegerField(default=None, blank=True, null=True)
     cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
     ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
-    anulado = models.BooleanField(default=False, verbose_name="Anulado")
+    
 
     class Meta:
         verbose_name = "Ventas"
@@ -146,16 +148,16 @@ class Ventas(models.Model):
 
 
     def __str__(self):
-        return str(self.factura)
+        return str(self.id)
 
 
     def resumen(self):
-        return self.factura[:50] + '...' 
+        return self.id[:50] + '...' 
 
     
     
     def __int__(self):
-        return str(self.factura)
+        return str(self.id)
 
     def nombre(self):
         nombre = Clientes.objects.get(cedula=self.cliente_id)
@@ -172,9 +174,9 @@ class Ventas(models.Model):
     
 
 class anulaciones(models.Model):
-    id=models.AutoField(primary_key=True)
-    venta=models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Venta")
-    anuladoPor=models.CharField(max_length=100)
+    id = models.AutoField(primary_key=True)
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Venta")
+    anuladoPor = models.CharField(max_length=100)
 
 class AcuerdoDePago(models.Model):
 
@@ -221,40 +223,6 @@ class Cuota(models.Model):
     # FOREIGN KEY (id_acuerdo) REFERENCES AcuerdoPago(id_acuerdo)
 
 
-
-# CREATE TABLE Venta (
-#     id_venta INT PRIMARY KEY,
-#     fecha_venta DATE NOT NULL,
-#     total DECIMAL(12,2) NOT NULL,
-#     estado ENUM('pendiente', 'pagada', 'cancelada') DEFAULT 'pendiente',
-#     -- otros campos de venta
-# );
-
-# CREATE TABLE AcuerdoPago (
-#     id_acuerdo INT PRIMARY KEY,
-#     id_venta INT NOT NULL,
-#     fecha_acuerdo DATE NOT NULL,
-#     tipo_periodicidad ENUM('quincenal', 'mensual', 'personalizado') NOT NULL,
-#     numero_cuotas INT NOT NULL,
-#     dia_pago INT, -- Para mensual: día del mes (1-28), quincenal: null
-#     interes_mora DECIMAL(5,2) DEFAULT 0,
-#     estado ENUM('vigente', 'completado', 'incumplido') DEFAULT 'vigente',
-#     FOREIGN KEY (id_venta) REFERENCES Venta(id_venta)
-# );
-
-# CREATE TABLE Cuota (
-#     id_cuota INT PRIMARY KEY,
-#     id_acuerdo INT NOT NULL,
-#     numero_cuota INT NOT NULL,
-#     fecha_vencimiento DATE NOT NULL,
-#     monto DECIMAL(12,2) NOT NULL,
-#     estado ENUM('pendiente', 'pagada', 'vencida', 'cancelada') DEFAULT 'pendiente',
-#     fecha_pago DATE NULL,
-#     monto_pagado DECIMAL(12,2) DEFAULT 0,
-#     FOREIGN KEY (id_acuerdo) REFERENCES AcuerdoPago(id_acuerdo)
-# );
-
-
 class ItemsVenta(models.Model):
     venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='idVenta')
     articulo = models.ForeignKey(Articulos, on_delete=DO_NOTHING ,related_name='articuloVenta')
@@ -267,7 +235,7 @@ class ItemsVenta(models.Model):
 
 class Abonos(models.Model):
     id = models.AutoField(primary_key=True)
-    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Factura", blank=True, null=True)
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="pedido de venta", blank=True, null=True)
     #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
     precio = models.IntegerField(default=0, verbose_name="valor")
@@ -281,8 +249,8 @@ class Abonos(models.Model):
         verbose_name_plural = "Abonos"
         managed = True
 
-    def n_Factura(self):
-        return self.factura.factura
+    def n_pedidoVenta(self):
+        return self.venta.id
     
     def nombre(self):
         nombre = Clientes.objects.get(cedula=self.cliente_id)
@@ -303,7 +271,7 @@ class Abonos(models.Model):
 class Saldos(models.Model):
     id = models.AutoField(primary_key=True)
     cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="saldosCliente",)
-    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="saldoVenta")
+    venta = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="saldoVenta")
     saldo = models.IntegerField(default=0)
     fecha_Vencimiento = models.DateField(verbose_name="fecha vencimiento", blank=True, null=True,)
 
@@ -317,7 +285,7 @@ class Saldos(models.Model):
 class HistoricoSaldos(models.Model):
     id = models.AutoField(primary_key=True)
     cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="historicoSaldoCliente",)
-    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoSaldoVenta")
+    venta = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoSaldoVenta")
     saldo = models.IntegerField(default=0)
     fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
 
@@ -330,7 +298,7 @@ class HistoricoSaldos(models.Model):
 
 class Devoluciones(models.Model):
     id = models.AutoField(primary_key=True)
-    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="Factura", blank=True, null=True)
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="pedido de venta", blank=True, null=True)
     #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
     precio = models.IntegerField(default=0, verbose_name="valor")
@@ -350,7 +318,7 @@ class Devoluciones(models.Model):
 class HistoricoDevoluciones(models.Model):
     id = models.AutoField(primary_key=True)
     cliente = models.ForeignKey(Clientes, on_delete=models.DO_NOTHING, related_name="historicoDevolucionCliente",)
-    factura = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoDevolucionVenta")
+    venta = models.ForeignKey(Ventas, on_delete=models.DO_NOTHING, related_name="historicoDevolucionVenta")
     saldo = models.IntegerField(default=0)
     fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
 
@@ -419,7 +387,7 @@ class PedidoVenta(models.Model):
     id = models.AutoField(primary_key=True)
     estado = models.ForeignKey(EstadoPedidoVenta, on_delete=DO_NOTHING ,related_name='estadosPEdidoVenta')
     fecha = models.DateTimeField(auto_now_add=timezone.now)
-    factura = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
+    venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING ,related_name='pedidoVenta')
     fecha_aprobacion = models.DateTimeField(default=None, blank=True, null=True,)
     fecha_entrega = models.DateField(default=None, blank=True, null=True,)
 

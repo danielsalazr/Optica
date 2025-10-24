@@ -58,7 +58,7 @@ custom_admin_site = CustomAdminSite(name='custom_admin')
 class AbonosAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'n_Factura',
+        'n_pedidoVenta',
         'cliente_id',
         'nombre',
         # 'precio',
@@ -67,8 +67,8 @@ class AbonosAdmin(admin.ModelAdmin):
         'fecha',
     )
 
-    list_display_links = ('id', 'n_Factura',)
-    search_fields = ('id', 'n_Factura',)
+    list_display_links = ('id', 'n_pedidoVenta',)
+    search_fields = ('id', 'n_pedidoVenta',)
 
 # CustomAdminSite.register(Abonos, AbonosAdmin)
 
@@ -78,25 +78,25 @@ class AbonosAdmin(admin.ModelAdmin):
 class SaldosAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'factura',
+        'venta',
         'cliente',
         'saldo',
     )
-    list_display_links = ('id', 'factura', 'cliente',)
-    search_fields = ('factura', 'cliente',)
+    list_display_links = ('id', 'venta', 'cliente',)
+    search_fields = ('venta', 'cliente',)
 
 
 @admin.register(HistoricoSaldos)
 class HistoricoSaldosAdmin(admin.ModelAdmin):
     list_display = (
         'id',
-        'factura',
+        'venta',
         'cliente',
         'saldo',
         'fecha',
     )
-    list_display_links = ('id', 'factura', 'cliente',)
-    search_fields = ('factura', 'cliente',)
+    list_display_links = ('id', 'venta', 'cliente',)
+    search_fields = ('venta', 'cliente',)
 
 
 @admin.register(ItemsVenta)
@@ -123,7 +123,7 @@ class TipoVentaAdmin(admin.ModelAdmin):
 @admin.register(Ventas)
 class VentasAdmin(admin.ModelAdmin):
     list_display = (
-        'factura',
+        'id',
         'cliente_id',
         'nombre',
         'precio_venta',
@@ -134,7 +134,7 @@ class VentasAdmin(admin.ModelAdmin):
         'foto',
     )
 
-    search_fields = ('factura',)
+    search_fields = ('id',)
 
 @admin.register(MediosDePago)
 class MediosDePagoAdmin(admin.ModelAdmin):
@@ -225,7 +225,7 @@ class EstadoPedidoVentaAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         #'cliente',
-        'factura',
+        'venta',
         'estado',
         'fecha',
     )

@@ -23,6 +23,7 @@ import '@/styles/style.css';
 
 
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { title } from 'process';
 
 function VentasData(props) {
   let { header, data, generalData } = props;
@@ -75,7 +76,7 @@ function VentasData(props) {
       case "eliminar":
         console.log(action)
         console.log("Eliminar:", rowData);
-        setOverrideData(rowData.factura)
+        setOverrideData(rowData.id)
         setModalAnularShow(!modalAnularShow)
 
         // const question = await swalQuestion("¿Esta seguro de eliminar el abono?")
@@ -121,13 +122,32 @@ function VentasData(props) {
   };
 
   const columns = [
-    { "data": "factura" },
+    { title: "Pedido", data: "id"},
     { "data": "cedula" },
     { "data": "cliente" },
     { "data": "precio" },
     { "data": "totalAbono" },
     { "data": "saldo" },
-    { "data": "estado", name: 'estado', className: 'dt-body-center' },
+    { title: "Estado", data: "estado", name: 'estado', className: 'dt-body-center',
+      render: (data, type, row) => {
+        const value = (data ?? '').toString().trim(); // "Con abono", "Sin Pago", etc.
+
+        if (type === 'display') {
+          const v = value.toLowerCase();
+          const color =
+            v === 'anulado'   ? 'danger'  :
+            v === 'pagado'    ? 'success' :
+            v === 'con abono' ? 'info'    :
+                                'warning'; // Sin Pago u otros
+          return `<span class="badge bg-${color}" style="font-size: 16px;">${value}</span>`;
+        }
+
+        // 🔴 ¡Esto es lo clave!
+        // Para 'filter', 'sort', 'type', 'export' devuelve SIEMPRE texto plano
+        return value;
+      }
+
+     },
     {
       "data": null, "name": 'Acciones',
     }
@@ -135,15 +155,15 @@ function VentasData(props) {
   ];
 
   const slots = {
-    estado: (data, row) => {
-      return (
-        <span className={`badge ${data === "Pagado" ? 'bg-success' : data === "Con abono" ? 'bg-warning' : data == "Sin Pago" ? 'bg-danger' : "anulado"}`}
+    // estado: (data, row) => {
+    //   return (
+    //     <span className={`badge ${data === "Pagado" ? 'bg-success' : data === "Con abono" ? 'bg-warning' : data == "Sin Pago" ? 'bg-danger' : "anulado"}`}
 
-          style={{ fontSize: '16px', }}>
-          {data}
-        </span >
-      );
-    },
+    //       style={{ fontSize: '16px', }}>
+    //       {data}
+    //     </span >
+    //   );
+    // },
     Acciones: (data, row) => (
       <div className='gap-2 d-flex justify-content-center flex-wrap'>
 
@@ -173,7 +193,7 @@ function VentasData(props) {
           data-bs-trigger="hover"
           onClick={() => handleAction("editar", row)}
         >
-          <Link href={`ventas/${row.factura}`}>
+          <Link href={`ventas/${row.id}`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
           </Link>
           {/* <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4"/></svg> */}
@@ -250,7 +270,10 @@ function VentasData(props) {
         submitBtn="Anular"
 
       >
-        <AnularVentaForm factura={overrideData} />
+        <AnularVentaForm factura={overrideData} onSuccess={() => {
+          handleFetchVentas();   // 🔥 refresca la tabla
+          setModalAnularShow(false); // 🔥 cierra el modal
+        }} />
         {/* <AnularVentaForm /> */}
       </BootstrapModal>
 

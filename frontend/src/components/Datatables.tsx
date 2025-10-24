@@ -14,15 +14,19 @@ import AbonosForm from "./abonos/AbonosForm";
 import DataTable from 'datatables.net-react';
 import DT from 'datatables.net-dt';
  
-DataTable.use(DT);
+
 
 
 
 const DataTables = (props) => {
     // const tableRef = useRef(null);
-    const table = useRef(null);
+    DataTable.use(DT);
+    const tableRef = useRef(null);
+    const [activeFilter, setActiveFilter] = useState("todos");
     const { header, data, imprimir, columns, onAction, order, slotes } = props;
+    
 
+    console.log("columns", columns);
 
 
     // const headers = ['Nombre', 'telefono', 'vinilla']  
@@ -78,13 +82,80 @@ const DataTables = (props) => {
       
           window.onload = handlePageLoaded;
 
-        // return () => {
-            
-                
-        //     table.destroy();
-        //   };
+    //     if (table.current) {
+    //     // inicializa DataTable si no está ya
+    //     const dt = table.current.dt();
+    //     // ejemplo: botones manuales
+    //     document.getElementById("btn-activos")?.addEventListener("click", () => {
+    //       dt.column(6).search("Activo").draw();
+    //     });
+    //     document.getElementById("btn-inactivos")?.addEventListener("click", () => {
+    //       dt.column(6).search("Inactivo").draw();
+    //     });
+    //     document.getElementById("btn-todos")?.addEventListener("click", () => {
+    //       dt.column(6).search("").draw();
+    //     });
+    // }
         
     }, []);
+
+//     const applyFilter = (filter: string) => {
+//   if (!table.current) return;
+//   const dt = table.current.dt();
+
+//   console.log(dt)
+
+//   switch (filter) {
+//     case "todos":
+//       dt.column("estado:name").search("").draw();
+//       break;
+//     case "con abono":
+//       dt.column("estado:name").search("Con abono", false, false).draw();
+//       break;
+//     case "sin pago":
+//       dt.column("estado:name").search("^Sin Pago$", true, false).draw();
+//       break;
+//     case "pagado":
+//       dt.column("estado:name").search("^Pagado$", true, false).draw();
+//       break;
+//     case "anulado":
+//       dt.column(6).search("^Anulado$", true, false).draw();
+//       break;
+//     case "no anulado":
+//       // todo excepto "Anulado"
+//       dt.column("estado:name").search("^(?!Anulado$).*", true, false).draw();
+//       break;
+//   }
+//   setActiveFilter(filter);
+// };
+
+const debugEstado = () => {
+  const dt = tableRef.current?.dt();
+  if (!dt) return;
+
+  // 1) Datos crudos de la columna (procedentes de tu 'data')
+  console.log('RAW data:', dt.column('estado:name').data().toArray());
+
+  // 2) Texto visible en celdas (lo que queda en el DOM, sin HTML)
+  const displayText = dt
+    .cells(null, 'estado:name')
+    .nodes()
+    .to$()
+    .map((i, td) => td.textContent?.trim())
+    .get();
+  console.log('DISPLAY text:', displayText);
+
+  // 3) Valor usado para filtrar si usas render ortogonal (filter)
+  //    Si no has definido render('filter'), esto devolverá lo mismo que display/raw
+  const filterValues = dt.cells(null, 'estado:name').render('filter').toArray();
+  console.log('FILTER values:', filterValues);
+};
+
+const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
+    const dt = tableRef.current?.dt();
+    if (!dt) return;
+    dt.column("estado:name").search(expr, regex, smart, ci).draw();
+  };
 
     const customStyles = {
       cells: {
@@ -99,10 +170,91 @@ const DataTables = (props) => {
       }
     };
 
+  const btn = (variant: string, key: string) =>
+    `btn ${activeFilter === key ? `btn-${variant}` : `btn-outline-${variant}`}`;
+
   return (
     <div 
     className="container-xl mt-4"
     >
+
+      {/* <button className="btn btn-outline-secondary mb-2" onClick={debugEstado}>
+  Debug columna estado
+</button> */}
+
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <button
+        type="button"
+        className={btn("secondary", "todos")}
+        aria-pressed={activeFilter === "todos"}
+        onClick={() => {
+          setEstado("", false);
+          setActiveFilter("todos");
+        }}
+      >
+        Todos
+      </button>
+
+      <button
+        type="button"
+        className={btn("info", "conAbono")}
+        aria-pressed={activeFilter === "conAbono"}
+        onClick={() => {
+          setEstado("^Con abono$", true, false, true);
+          setActiveFilter("conAbono");
+        }}
+      >
+        Con abono
+      </button>
+
+      <button
+        type="button"
+        className={btn("warning", "sinPago")}
+        aria-pressed={activeFilter === "sinPago"}
+        onClick={() => {
+          setEstado("^Sin Pago$", true, false, true);
+          setActiveFilter("sinPago");
+        }}
+      >
+        Sin pago
+      </button>
+
+      <button
+        type="button"
+        className={btn("success", "pagado")}
+        aria-pressed={activeFilter === "pagado"}
+        onClick={() => {
+          setEstado("^Pagado$", true, false, true);
+          setActiveFilter("pagado");
+        }}
+      >
+        Pagado
+      </button>
+
+      <button
+        type="button"
+        className={btn("danger", "anulado")}
+        aria-pressed={activeFilter === "anulado"}
+        onClick={() => {
+          setEstado("^Anulado$", true, false, true);
+          setActiveFilter("anulado");
+        }}
+      >
+        Anulado
+      </button>
+
+      <button
+        type="button"
+        className={btn("primary", "noAnulados")}
+        aria-pressed={activeFilter === "noAnulados"}
+        onClick={() => {
+          setEstado("^(?!Anulado$).*", true, false, true);
+          setActiveFilter("noAnulados");
+        }}
+      >
+        No anulados
+      </button>
+      </div>
         {/* <button onClick={imprimir}>eliminar</button> */}
         {/* <table id="myTable" ref={tableRef} className="table  table-striped table-bordered"> */}
        { data.length > 0 && <DataTable 
@@ -113,18 +265,22 @@ const DataTables = (props) => {
             customStyles={customStyles}
             fixedHeader
             scroller
-            options={{
-                // columns: columns,
-                // data=data,
-                // responsive: true,
-                select: true,
-                order: order,
-                // fixedHeader: true,
+            ref={tableRef}
+            
+            // options={{
+            //     // columns: columns,
+            //     // data=data,
+            //     // responsive: true,
+            //     select: true,
+            //     order: order,
+            //     // fixedHeader: true,
                 
-            }}
+            // }}
             slots={slotes}
         // ref={table}
         >
+
+          
         <thead>
             <tr>
                     {
