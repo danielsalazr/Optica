@@ -3,7 +3,7 @@ import foto1 from "@logos/bienestar_optica.jpg";
 import foto2 from "@logos/banner.jpg";
 import foto3 from "@logos/gafas-lentes.png";
 
-const slides = [
+const STATIC_SLIDES = [
   {
     id: "bienestar",
     image: foto1,
@@ -28,9 +28,65 @@ const slides = [
       "Colecciones cuidadosamente seleccionadas para que encuentres la montura perfecta para tu día a día.",
     alt: "Variedad de monturas ópticas exhibidas sobre una mesa",
   },
+  // },
 ];
 
+const APPOINTMENTS_ENDPOINT = "/api/citas/proximas/";
+
 const Carousel = () => {
+  const [appointmentSlides, setAppointmentSlides] = React.useState([]);
+  const [hasTriedFetching, setHasTriedFetching] = React.useState(false);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const loadAppointments = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000${APPOINTMENTS_ENDPOINT}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error("No fue posible cargar las próximas citas");
+        }
+        const data = await response.json();
+        const mapped = data.map((item) => ({
+          id: `cita-${item.id}`,
+          image: item.image_url,
+          title: item.title || "Próxima jornada",
+          description: `${item.display_date} · ${item.time_range}`,
+          alt: item.title || "Próxima cita programada",
+          badge: "Próximas citas",
+        }));
+        if (isMounted) {
+          setAppointmentSlides(mapped);
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.warn(error.message);
+        }
+      } finally {
+        if (isMounted) {
+          setHasTriedFetching(true);
+        }
+      }
+    };
+
+    loadAppointments();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, []);
+
+  const slides = React.useMemo(() => {
+    if (!appointmentSlides.length) {
+      return STATIC_SLIDES;
+    }
+    return [...appointmentSlides, ...STATIC_SLIDES];
+  }, [appointmentSlides]);
+
   return (
     <section className="carousel-section">
       <div
@@ -46,7 +102,7 @@ const Carousel = () => {
               data-bs-target="#carouselExampleCaptions"
               data-bs-slide-to={index}
               className={index === 0 ? "active" : ""}
-              aria-current={index === 0}
+              aria-current={index === 0 ? "true" : "false"}
               aria-label={`Slide ${index + 1}`}></button>
           ))}
         </div>
@@ -59,15 +115,15 @@ const Carousel = () => {
                 index === 0 ? "active" : ""
               }`}>
               <img
-                src={slide.image}
+                src={slide.image || foto1}
                 className="carousel-img d-block w-100"
-                alt={slide.alt}
+                alt={slide.alt || slide.title}
                 loading="lazy"
               />
               <div className="carousel-gradient" aria-hidden="true" />
               <div className="carousel-caption d-flex flex-column align-items-start gap-2">
                 <span className="badge rounded-pill text-bg-light text-uppercase fw-semibold tracking-wide">
-                  Óptica integral
+                  {slide.badge || "Óptica integral"}
                 </span>
                 <h5 className="carousel-title">{slide.title}</h5>
                 <p className="carousel-text mb-0">{slide.description}</p>
@@ -93,6 +149,11 @@ const Carousel = () => {
           <span className="carousel-control-next-icon" aria-hidden="true"></span>
         </button>
       </div>
+      {hasTriedFetching && !appointmentSlides.length && (
+        <div className="visually-hidden" aria-live="polite">
+          No se encontraron citas próximas.
+        </div>
+      )}
     </section>
   );
 };
