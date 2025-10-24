@@ -22,8 +22,6 @@ from rest_framework.permissions import IsAuthenticated
 
 # from .serializers import InventorySerializer
 
-
-
 from .serializers import (
     VentaSerializer,
     AbonoSerializer,
@@ -32,6 +30,7 @@ from .serializers import (
     HistoricoSaldosSerializer,
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
+    RemisionSerializer,
  )
 
 from .models import (
@@ -44,6 +43,8 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     Saldos,
+    Remision,
+    RemisionItem,
     )
 from usuarios.models import Clientes, Empresa
 
@@ -389,7 +390,40 @@ class Venta(APIView):
                 # results = cursor.fetchall()
 
             lista.update({'abonos': results})
-            
+
+            remisiones_qs = Remision.objects.filter(
+                venta_id=id
+            ).prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+
+            remisiones_totales = RemisionItem.objects.filter(
+                item_venta__venta_id=id
+            ).values('item_venta_id').annotate(
+                total=Coalesce(Sum('cantidad'), 0)
+            )
+
+            totales_map = {item['item_venta_id']: item['total'] for item in remisiones_totales}
+
+            remisiones_serializadas = RemisionSerializer(
+                remisiones_qs,
+                many=True,
+                context={'remision_totals': totales_map}
+            ).data
+
+            lista.update({'remisiones': remisiones_serializadas})
+
+            for item in lista.get('ventas', []):
+                item_id = item.get('id')
+                remisionado = totales_map.get(item_id, 0)
+                cantidad = item.get('cantidad') or 0
+                try:
+                    cantidad = int(cantidad)
+                except (ValueError, TypeError):
+                    cantidad = 0
+
+                item['remisionado'] = remisionado
+                item['pendienteRemision'] = max(cantidad - remisionado, 0)
 
             return Response(lista, status=status.HTTP_200_OK)
 
@@ -775,9 +809,57 @@ class Abono(APIView):
 
     #     abono.delete()
 
-    #     total_Abono = Abonos.objects.filter(
-    #         factura=factura
-    #     ).aggregate(total=Sum('precio'))
+        #     total_Abono = Abonos.objects.filter(
+        #         factura=factura
+        #     ).aggregate(total=Sum('precio'))
+
+class RemisionView(APIView):
+    def _build_totals_map(self, venta_id=None):
+        filtros = {}
+        if venta_id is not None:
+            filtros['item_venta__venta_id'] = venta_id
+
+        remisiones_totales = RemisionItem.objects.filter(**filtros).values('item_venta_id').annotate(
+            total=Coalesce(Sum('cantidad'), 0)
+        )
+
+        return {item['item_venta_id']: item['total'] for item in remisiones_totales}
+
+    def get(self, request, venta_id=None):
+        if venta_id is not None:
+            remisiones_qs = Remision.objects.filter(
+                venta_id=venta_id
+            ).prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+        else:
+            remisiones_qs = Remision.objects.all().prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+
+        totales_map = self._build_totals_map(venta_id)
+        serializer = RemisionSerializer(
+            remisiones_qs,
+            many=True,
+            context={'remision_totals': totales_map}
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = RemisionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            remision = serializer.save()
+            totales_map = self._build_totals_map(remision.venta_id)
+            remision_data = RemisionSerializer(
+                remision,
+                context={'remision_totals': totales_map}
+            ).data
+
+            return Response(remision_data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class Pedidos(APIView):
     def get(self, request):

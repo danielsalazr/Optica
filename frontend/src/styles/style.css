@@ -1,8 +1,235 @@
-.selectize-input.items.required.full.has-options.has-items {
-    border-radius: 5px 0 0 5px;
+:root {
+  --app-font: "Inter", "Segoe UI", Tahoma, sans-serif;
+  --app-bg: #f5f7fb;
+  --app-surface: #ffffff;
+  --app-border: #d8dde7;
+  --app-primary: #4f46e5;
+  --app-heading: #111827;
+  --app-text: #1f2937;
+  --app-muted: #6b7280;
+  --app-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
 }
 
+body {
+  font-family: var(--app-font);
+  background: var(--app-bg);
+  color: var(--app-text);
+  line-height: 1.55;
+}
+
+.selectize-input.items.required.full.has-options.has-items {
+  border-radius: 5px 0 0 5px;
+}
 
 .anulado {
-    background: #6b7280
+  background: #6b7280;
+}
+
+.page-shell {
+  width: min(1160px, 100%);
+  margin: 2.5rem auto;
+  padding: 0 1.5rem 3rem;
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    margin-top: 1.5rem;
+    padding: 0 1rem 2.5rem;
+  }
+}
+
+.ventas-page-title {
+  font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem);
+  font-weight: 700;
+  color: var(--app-heading);
+  margin-bottom: 1.5rem;
+}
+
+.ventas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.floating-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--app-heading);
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.floating-back-button:hover {
+  background: rgba(79, 70, 229, 0.12);
+  transform: translateY(-2px);
+  color: var(--app-heading);
+}
+
+.ventas-card {
+  background: var(--app-surface);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
+  padding: 2rem;
+  border: 1px solid #eef1f6;
+}
+
+.ventas-summary {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.02));
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ventas-summary strong {
+  font-size: 1.6rem;
+  color: var(--app-primary);
+}
+
+.ventas-summary span {
+  color: var(--app-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+.table-modern {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #ebeff5;
+  background: var(--app-surface);
+}
+
+.table-modern.table-responsive {
+  overflow: visible;
+}
+
+.table-modern table {
+  margin-bottom: 0;
+  color: var(--app-text);
+}
+
+.table-modern thead tr {
+  background: #f8faff;
+  color: var(--app-heading);
+}
+
+.table-modern th {
+  border-bottom: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.85rem 1rem;
+}
+
+.table-modern td {
+  vertical-align: middle;
+  padding: 0.85rem 1rem;
+  border-color: #eef1f5;
+}
+
+.table-modern tbody tr:hover {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.ventas-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.ventas-actions .btn {
+  padding-inline: 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.btn-action {
+  border-radius: 999px;
+  padding-inline: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.btn-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 992px) {
+  .ventas-card {
+    padding: 1.5rem;
+  }
+
+  .ventas-actions {
+    justify-content: stretch;
+  }
+
+  .ventas-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .floating-back-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .ventas-card {
+    padding: 1.25rem;
+  }
+
+.ventas-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  }
+
+  .ventas-toolbar .btn {
+    width: 100%;
+  }
+}
+
+.remision-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.remision-card {
+  border-radius: 18px;
+}
+
+.remision-client-info strong {
+  color: var(--app-heading);
+}
+
+.remision-list .ventas-card {
+  box-shadow: var(--app-shadow);
+}
+
+.remisiones-module {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }

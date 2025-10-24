@@ -3,9 +3,8 @@
 {% load static %}
 {% load humanize %}
 
-<body>
-  <link rel="stylesheet" href="{% static "css/selectwithImage.css" %}"  />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" integrity="sha512-Ars0BmSwpsUJnWMw+KoUKGKunT7+T8NGK0ORRKj+HT8naZzLSIQoOSIIM3oyaJljgLxFi0xImI5oZkAWEFARSA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="{% static "css/selectwithImage.css" %}"  />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" integrity="sha512-Ars0BmSwpsUJnWMw+KoUKGKunT7+T8NGK0ORRKj+HT8naZzLSIQoOSIIM3oyaJljgLxFi0xImI5oZkAWEFARSA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"
@@ -14,30 +13,18 @@
     referrerpolicy="no-referrer"
   ></script>
 
-  <a class="previous round" 
-    href="{% url 'main' %}"
-    style="
-      position: relative !important; 
-      top: 20px !important;
-      left: 20px !important;
-      padding: 8px 16px;
-      border-radius: 50%;
-      background-color: #f1f1f1;
-    "
-  >
+<div class="page-shell venta-page">
+  <a class="floating-back-button" href="{% url 'main' %}">
     <i class="fa-solid fa-arrow-left"></i>
   </a>
 
-  <div class="d-flex w-100 flex-column vh-100 align-items-center mt-4">
-    {% comment %}
-    <div class="row w-100">
-      {% endcomment %}
-      <div class="mx-auto">
-        <h3>Crear Venta</h3>
-      </div>
+  <div class="venta-card">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <h3 class="venta-page-title mb-0">Crear Venta</h3>
+    </div>
 
-      <form class="container-md" id="ventaForm" enctype="multipart/form-data">
-        <div class="row"> 
+    <form class="venta-sections" id="ventaForm" enctype="multipart/form-data">
+      <div class="row g-4"> 
         <div class="form-group col-sm-12 col-md-6 col-xl-3">
           {% comment %} Este campo de factura debe llevar {% endcomment %}
           <label for="email"># Factura</label>
@@ -260,29 +247,19 @@
       {% include 'components/tablaArticulos.html' %}
 
 
+      <hr class="my-4" >
+      <div class="venta-actions w-100">
+        <button type="submit" class="btn btn-primary" id="submitVenta">
+          Crear venta
+        </button>
+      </div>
       
-
-        <hr class="my-3" >
-        <div class="row my-1">
-          <div class="form-group">
-            <button type="submit" class="btn btn-primary col-12" id="submitVenta">
-              Crear venta
-            </button>
-          </div>
-        </div>
-
-        
       </form>
 
-      
-
-      <hr class="my-3" />
-      <div class="mx-auto">
-        <h3>Facturas recientes</h3>
-      </div>
-      <div class="table-responsive container-md">
-        
-        <table class="table table-striped table-hover" >
+      <hr class="my-4" />
+      <h3 class="venta-section-title mt-4">Facturas recientes</h3>
+      <div class="table-modern table-responsive mt-3">
+        <table class="table table-hover align-middle">
           {% comment %} style="width: 90%" table-bordered {% endcomment %}
           <thead>
             <tr>
@@ -481,30 +458,12 @@
         archivosSeleccionados.forEach((archivo, index) => {
             const reader = new FileReader();
             const previsualizador = document.createElement('div');
-            previsualizador.style.position = 'relative';
-            previsualizador.style.width = '120px';
-            previsualizador.style.height = '120px';
-            previsualizador.style.border = '1px solid #ddd';
-            previsualizador.style.padding = '5px';
-            previsualizador.style.display = 'inline-block';
-            previsualizador.style.margin = '5px';
+            previsualizador.classList.add('preview-card');
 
             const botonEliminar = document.createElement('button');
+            botonEliminar.type = 'button';
+            botonEliminar.classList.add('preview-remove');
             botonEliminar.textContent = 'X';
-            botonEliminar.style.position = 'absolute';
-            botonEliminar.style.top = '5px';
-            botonEliminar.style.right = '5px';
-            botonEliminar.style.background = 'red';
-            botonEliminar.style.color = 'white';
-            botonEliminar.style.border = 'none';
-            botonEliminar.style.borderRadius = '50%';
-            botonEliminar.style.cursor = 'pointer';
-            botonEliminar.style.width = '20px';
-            botonEliminar.style.height = '20px';
-            botonEliminar.style.display = 'flex';
-            botonEliminar.style.alignItems = 'center';
-            botonEliminar.style.justifyContent = 'center';
-            botonEliminar.style.fontSize = '12px';
 
             botonEliminar.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -515,9 +474,6 @@
                 const imagen = e.target.result;
                 const imgElement = document.createElement('img');
                 imgElement.src = imagen;
-                imgElement.style.width = '100%';
-                imgElement.style.height = '100%';
-                imgElement.style.objectFit = 'cover';
                 previsualizador.appendChild(imgElement);
                 previsualizador.appendChild(botonEliminar);
                 previsualizadores.appendChild(previsualizador);
@@ -565,7 +521,5 @@
   
   <script src="{% static 'js/ventas.js' %}"></script>
   <script src="{% static 'js/tablaArticulos.js' %}"></script>
-
-</body>
 
 {% endblock container %}
