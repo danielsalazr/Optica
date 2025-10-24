@@ -32,7 +32,8 @@ from .serializers import (
     HistoricoSaldosSerializer,
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
- )
+    CitaAgendaSerializer,
+)
 
 from .models import (
     Ventas,
@@ -44,7 +45,8 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     Saldos,
-    )
+    CitaAgenda,
+)
 from usuarios.models import Clientes, Empresa
 
 from utils.diccionarios import (
@@ -58,7 +60,9 @@ from db.request import (
 from collections import defaultdict
 import json
 import os
-from datetime import datetime
+from datetime import datetime, date
+from django.utils import timezone
+from django.conf import settings
 from rich.console import Console
 console = Console()
 
@@ -649,6 +653,26 @@ class Venta(APIView):
 
         return Response({'accion': 'ok'}, status=status.HTTP_200_OK)
 
+
+
+class UpcomingAppointmentsView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        if getattr(settings, "USE_TZ", False):
+            today = timezone.localdate()
+        else:
+            today = date.today()
+        citas = CitaAgenda.objects.filter(
+            fecha__gte=today,
+            is_active=True,
+        ).order_by('fecha', 'hora_inicio')
+        serializer = CitaAgendaSerializer(
+            citas,
+            many=True,
+            context={'request': request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class Abono(APIView):

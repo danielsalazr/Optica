@@ -10,6 +10,7 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     EstadoPedidoVenta,
+    CitaAgenda,
     # EstadoVenta,
     # MediosDePago,
 )
@@ -220,3 +221,39 @@ class ItemsPEdidoVentaSerializer(serializers.ModelSerializer):
             'articulo',
             'cantidad',
         ]
+
+
+class CitaAgendaSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    display_date = serializers.SerializerMethodField()
+    time_range = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CitaAgenda
+        fields = [
+            'id',
+            'title',
+            'fecha',
+            'hora_inicio',
+            'hora_fin',
+            'nota',
+            'display_date',
+            'time_range',
+            'image_url',
+        ]
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        hero = obj.ensure_overlay_image()
+        if hero:
+            url = hero.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
+
+    def get_display_date(self, obj):
+        return obj.display_date
+
+    def get_time_range(self, obj):
+        return obj.time_range
