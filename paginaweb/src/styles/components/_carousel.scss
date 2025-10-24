@@ -1,6 +1,7 @@
 .carousel-section {
-  background: linear-gradient(135deg, #0f172a 0%, #11294d 55%, #1e3a8a 100%);
-  padding: clamp(1.5rem, 2vw + 1.5rem, 3.5rem) 1rem;
+  background: linear-gradient(135deg, #0f172a 0%, #11294d 42%, #1e3a8a 100%);
+  padding: clamp(1rem, 1.5vw + 0.75rem, 2.5rem) 0.65rem
+    clamp(1.5rem, 2.2vw + 0.85rem, 3rem);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -8,16 +9,16 @@
 
 .carousel-shell {
   position: relative;
-  width: min(1200px, 100%);
-  border-radius: 24px;
+  width: min(1100px, 100%);
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 28px 60px -30px rgba(8, 15, 35, 0.65);
+  box-shadow: 0 24px 52px -30px rgba(8, 15, 35, 0.6);
   background-color: #0f172a;
 }
 
 .carousel-item-custom {
   position: relative;
-  min-height: clamp(320px, 45vw, 520px);
+  min-height: clamp(180px, 28vw, 320px);
   aspect-ratio: 16 / 9;
   overflow: hidden;
 }
@@ -34,10 +35,10 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    110deg,
+    112deg,
     rgba(12, 17, 32, 0.72) 0%,
-    rgba(12, 17, 32, 0.55) 45%,
-    rgba(12, 17, 32, 0.35) 65%,
+    rgba(12, 17, 32, 0.5) 45%,
+    rgba(12, 17, 32, 0.32) 65%,
     rgba(12, 17, 32, 0) 100%
   );
   z-index: 1;
@@ -45,71 +46,68 @@
 
 .carousel-shell .carousel-caption {
   position: absolute;
-  inset: auto auto clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem);
-  max-width: min(28rem, 85%);
-  padding: clamp(1rem, 2vw, 1.75rem);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.85);
+  inset: auto auto clamp(0.85rem, 2.4vw, 1.85rem) clamp(0.85rem, 2.4vw, 1.85rem);
+  max-width: min(22rem, 72%);
+  padding: clamp(0.65rem, 1.3vw, 1.05rem);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.92);
   color: #0f172a;
-  box-shadow: 0 20px 35px -25px rgba(15, 23, 42, 0.65);
+  gap: clamp(0.3rem, 0.85vw, 0.6rem);
+  box-shadow: 0 14px 26px -24px rgba(15, 23, 42, 0.58);
   z-index: 2;
 }
 
 .carousel-title {
-  font-size: clamp(1.25rem, 2.5vw, 1.85rem);
+  font-size: clamp(0.98rem, 1.6vw, 1.35rem);
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
   color: inherit;
 }
 
 .carousel-text {
-  font-size: clamp(0.9rem, 1.5vw, 1rem);
-  line-height: 1.6;
-  color: rgba(15, 23, 42, 0.85);
+  font-size: clamp(0.78rem, 1.1vw, 0.88rem);
+  line-height: 1.5;
+  color: rgba(15, 23, 42, 0.82);
 }
 
 .carousel-section .tracking-wide {
   letter-spacing: 0.14em;
-  font-size: 0.75rem;
-  color: rgba(15, 23, 42, 0.7);
+  font-size: 0.68rem;
+  color: rgba(15, 23, 42, 0.68);
 }
 
 .carousel-shell .carousel-indicators {
-  gap: 0.65rem;
-  margin-bottom: clamp(0.75rem, 2vw, 1.5rem);
+  gap: 0.55rem;
+  margin-bottom: clamp(0.4rem, 1.2vw, 0.9rem);
 }
 
 .carousel-shell .carousel-indicators [data-bs-target] {
-  width: 28px;
+  width: 26px;
   height: 4px;
   border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.45);
+  background-color: rgba(255, 255, 255, 0.4);
   border: none;
   transition: width 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
   opacity: 0.65;
 }
 
 .carousel-shell .carousel-indicators .active {
-  width: 44px;
+  width: 40px;
   background-color: #ffffff;
   opacity: 1;
 }
 
 .carousel-shell .carousel-control-prev,
 .carousel-shell .carousel-control-next {
-  width: clamp(50px, 6vw, 68px);
+  width: clamp(48px, 5.5vw, 62px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
 .carousel-shell .carousel-control-prev-icon,
 .carousel-shell .carousel-control-next-icon {
   filter: invert(1);
-  width: clamp(20px, 3vw, 26px);
-  height: clamp(20px, 3vw, 26px);
-}
-
-.carousel-shell .carousel-control-prev,
-.carousel-shell .carousel-control-next {
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  width: clamp(18px, 2.6vw, 24px);
+  height: clamp(18px, 2.6vw, 24px);
 }
 
 .carousel-shell .carousel-control-prev:hover,
@@ -125,16 +123,16 @@
   pointer-events: none;
   background: radial-gradient(
       120% 120% at 85% 15%,
-      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.2) 0%,
       rgba(255, 255, 255, 0) 55%
     ),
     radial-gradient(
       100% 100% at 10% 90%,
-      rgba(30, 64, 175, 0.18) 0%,
+      rgba(30, 64, 175, 0.16) 0%,
       rgba(30, 64, 175, 0) 60%
     );
   mix-blend-mode: screen;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 @media (max-width: 768px) {
@@ -148,22 +146,22 @@
 
   .carousel-shell .carousel-caption {
     position: static;
-    margin: clamp(1rem, 4vw, 1.5rem);
+    margin: clamp(0.85rem, 3.6vw, 1.35rem);
     background: rgba(255, 255, 255, 0.92);
   }
 
   .carousel-gradient {
     background: linear-gradient(
       160deg,
-      rgba(12, 17, 32, 0.75) 0%,
-      rgba(12, 17, 32, 0.35) 55%,
+      rgba(12, 17, 32, 0.7) 0%,
+      rgba(12, 17, 32, 0.3) 55%,
       rgba(12, 17, 32, 0) 100%
     );
   }
 }
 
-@supports not (aspect-ratio: 16/9) {
+@supports not (aspect-ratio: 16 / 9) {
   .carousel-item-custom {
-    min-height: clamp(320px, 45vw, 520px);
+    min-height: clamp(180px, 28vw, 320px);
   }
 }
