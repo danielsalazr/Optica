@@ -66,23 +66,23 @@ const DataTables = (props) => {
 
 //   switch (filter) {
 //     case "todos":
-//       dt.column("estado:name").search("").draw();
+//       dt.column("estado_pago:name").search("").draw();
 //       break;
 //     case "con abono":
-//       dt.column("estado:name").search("Con abono", false, false).draw();
+//       dt.column("estado_pago:name").search("Con abono", false, false).draw();
 //       break;
 //     case "sin pago":
-//       dt.column("estado:name").search("^Sin Pago$", true, false).draw();
+//       dt.column("estado_pago:name").search("^Sin Pago$", true, false).draw();
 //       break;
 //     case "pagado":
-//       dt.column("estado:name").search("^Pagado$", true, false).draw();
+//       dt.column("estado_pago:name").search("^Pagado$", true, false).draw();
 //       break;
 //     case "anulado":
 //       dt.column(6).search("^Anulado$", true, false).draw();
 //       break;
 //     case "no anulado":
 //       // todo excepto "Anulado"
-//       dt.column("estado:name").search("^(?!Anulado$).*", true, false).draw();
+//       dt.column("estado_pago:name").search("^(?!Anulado$).*", true, false).draw();
 //       break;
 //   }
 //   setActiveFilter(filter);
@@ -93,11 +93,11 @@ const debugEstado = () => {
   if (!dt) return;
 
   // 1) Datos crudos de la columna (procedentes de tu 'data')
-  console.log('RAW data:', dt.column('estado:name').data().toArray());
+  console.log('RAW data:', dt.column('estado_pago:name').data().toArray());
 
   // 2) Texto visible en celdas (lo que queda en el DOM, sin HTML)
   const displayText = dt
-    .cells(null, 'estado:name')
+    .cells(null, 'estado_pago:name')
     .nodes()
     .to$()
     .map((i, td) => td.textContent?.trim())
@@ -106,14 +106,14 @@ const debugEstado = () => {
 
   // 3) Valor usado para filtrar si usas render ortogonal (filter)
   //    Si no has definido render('filter'), esto devolverá lo mismo que display/raw
-  const filterValues = dt.cells(null, 'estado:name').render('filter').toArray();
+  const filterValues = dt.cells(null, 'estado_pago:name').render('filter').toArray();
   console.log('FILTER values:', filterValues);
 };
 
 const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
     const dt = tableRef.current?.dt();
     if (!dt) return;
-    dt.column("estado:name").search(expr, regex, smart, ci).draw();
+    dt.column("estado_pago:name").search(expr, regex, smart, ci).draw();
   };
 
     const customStyles = {
@@ -132,9 +132,25 @@ const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
   const btn = (variant: string, key: string) =>
     `btn ${activeFilter === key ? `btn-${variant}` : `btn-outline-${variant}`}`;
 
+  const headerLabels =
+    header ??
+    (columns
+      ? columns.map((col, index) => {
+          if (col?.title) {
+            return col.title;
+          }
+          if (typeof col?.data === 'string') {
+            return col.data;
+          }
+          return `Columna ${index + 1}`;
+        })
+      : data.length > 0
+      ? Object.keys(data[0])
+      : []);
+
   return (
     <div 
-    className="container-xl mt-4"
+    className="data-table-shell"
     >
 
       {/* <button className="btn btn-outline-secondary mb-2" onClick={debugEstado}>
@@ -242,18 +258,9 @@ const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
           
         <thead>
             <tr>
-                    {
-                    data.length > 0 
-                      ? ( !header   ? Object.keys(data[0]).map((key, index) => (
-                      // ? Object.keys(data).map((key, index) => (
-                            <th key={index}>{key}</th>
-                        ))
-                      : // Si header está definido, usarlo para generar las columnas
-                        header.map((item, index) => <th key={index}>{item}</th>) )
-                        : null
-                    }
-
-                    
+              {headerLabels.map((label, index) => (
+                <th key={`${label}-${index}`}>{label}</th>
+              ))}
             </tr>
         </thead>
         {/* <tbody>

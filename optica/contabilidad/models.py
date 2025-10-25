@@ -130,6 +130,16 @@ class Ventas(models.Model):
     # total_venta = models.IntegerField(default=0)
     #estado = models.CharField(max_length=50, default='')
     estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Estado venta", blank=True, null=True)
+    estado_pedido = models.ForeignKey(
+        'EstadoPedidoVenta',
+        on_delete=DO_NOTHING,
+        related_name='ventas_estado_pedido',
+        verbose_name="Estado pedido",
+        blank=True,
+        null=True,
+    )
+    estado_pedido_detalle = models.TextField(max_length=500, blank=True, null=True)
+    estado_pedido_actualizado = models.DateTimeField(blank=True, null=True)
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)

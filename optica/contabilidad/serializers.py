@@ -1,4 +1,10 @@
+import math
+
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework import serializers
+
 from .models import (
     Ventas,
     Abonos,
@@ -12,16 +18,17 @@ from .models import (
     EstadoPedidoVenta,
     Remision,
     RemisionItem,
-    # EstadoVenta,
-    # MediosDePago,
+)
+from .utils_estado_pedido import (
+    get_estado_pedido_by_slug,
+    identify_estado_pedido_slug,
+    maybe_mark_para_fabricacion,
 )
 from usuarios.models import Clientes, Empresa
 
 from rich.console import Console
-console = Console()
 
-from django.db.models import Sum
-from django.db.models.functions import Coalesce
+console = Console()
 
 
 class VentaSerializer(serializers.ModelSerializer):
@@ -67,8 +74,8 @@ class VentaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
     # Obtenemos el ID de la empresa enviado en la solicitud
         empresa_id = validated_data.pop('empresaCliente', None)
-        abono = validated_data['totalAbono']
-        total = validated_data["precio"]
+        abono = int(validated_data.get('totalAbono', 0) or 0)
+        total = int(validated_data.get("precio", 0) or 0)
         console.log(f"El empresa ID es {empresa_id}")
         if empresa_id:
             # Buscamos la empresa en la base de datos
@@ -81,6 +88,14 @@ class VentaSerializer(serializers.ModelSerializer):
             validated_data['estado'] = EstadoVenta.objects.get(id=2)
         if abono == total:
             validated_data['estado'] = EstadoVenta.objects.get(id=3)
+
+        estado_slug = 'creado'
+        if total > 0 and abono >= math.ceil(total / 2):
+            estado_slug = 'para_fabricacion'
+
+        validated_data['estado_pedido'] = get_estado_pedido_by_slug(estado_slug)
+        validated_data['estado_pedido_actualizado'] = timezone.now()
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
@@ -104,8 +119,10 @@ class VentaSerializer(serializers.ModelSerializer):
             validated_data['estado'] = EstadoVenta.objects.get(id=2)
         if abono == total:
             validated_data['estado'] = EstadoVenta.objects.get(id=3)
-        
-        return super().update(instance, validated_data)
+
+        instance = super().update(instance, validated_data)
+        maybe_mark_para_fabricacion(instance)
+        return instance
 
 class ItemsVentaSerializer(serializers.ModelSerializer):
     venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
