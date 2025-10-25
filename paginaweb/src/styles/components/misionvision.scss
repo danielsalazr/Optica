@@ -1,43 +1,82 @@
 .misionVision {
   margin-top: 1rem;
+  padding: 3rem 1rem;
+  background: linear-gradient(145deg, #f8fbff 0%, #eef5ff 100%);
 
   &__container {
-    display: flex;
-    text-align: justify;
-    justify-content: space-around;
+    margin: 0 auto;
+    max-width: 1100px;
+  }
 
-    &--mision {
-      > img {
-        width: 100%;
-        height: 300px;
-        margin-bottom: 1rem;
-      }
+  &__card {
+    background: #fff;
+    border: 1px solid rgba(32, 56, 100, 0.08);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    text-align: left;
+    flex: 1;
+    min-width: 280px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 
-      :nth-child(1) {
-        text-align: center;
-        font-size: 1.75rem;
-      }
-
-      flex: 1;
-      padding: 1rem;
-      max-width: 400px;
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 35px rgba(21, 35, 52, 0.08);
     }
 
-    &--vision {
-      > img {
-        width: 100%;
-        height: 300px;
-        margin-bottom: 1rem;
-      }
+    h3 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: #10375c;
+    }
 
-      :nth-child(1) {
-        text-align: center;
-        font-size: 1.75rem;
-      }
+    p {
+      color: #4a4a4a;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
 
-      flex: 1;
-      padding: 1rem;
-      max-width: 400px;
+    ul {
+      padding-left: 1.2rem;
+      margin: 0;
+      list-style-type: "• ";
+
+      li {
+        color: #1c4b82;
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+      }
+    }
+  }
+
+  &__label {
+    display: inline-block;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(16, 55, 92, 0.1);
+    color: #10375c;
+    margin-bottom: 0.75rem;
+  }
+
+  &__photo {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 12px 20px rgba(16, 55, 92, 0.12);
+  }
+
+  @media (max-width: 992px) {
+    &__card {
+      width: 100%;
+    }
+
+    &__photo {
+      height: 200px;
     }
   }
 }
