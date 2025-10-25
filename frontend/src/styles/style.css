@@ -26,7 +26,7 @@ body {
 }
 
 .page-shell {
-  width: min(1160px, 100%);
+  width: min(1360px, 100%);
   margin: 2.5rem auto;
   padding: 0 1.5rem 3rem;
 }
@@ -232,4 +232,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.data-table-shell {
+  width: 100%;
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+
+.data-table-shell .dataTables_wrapper {
+  width: 100%;
+}
+
+.data-table-shell table {
+  width: 100% !important;
 }

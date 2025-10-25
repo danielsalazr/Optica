@@ -33,6 +33,8 @@ from .serializers import (
     RemisionSerializer,
  )
 
+import math
+
 from .models import (
     Ventas,
     ItemsVenta,
@@ -45,7 +47,8 @@ from .models import (
     Saldos,
     Remision,
     RemisionItem,
-    )
+    EstadoPedidoVenta,
+)
 from usuarios.models import Clientes, Empresa
 
 from utils.diccionarios import (
@@ -61,6 +64,15 @@ import json
 import os
 from datetime import datetime
 from rich.console import Console
+
+from .utils_estado_pedido import (
+    ESTADO_PEDIDO_ORDER,
+    identify_estado_pedido_slug,
+    mark_entregado_si_corresponde,
+    mark_estado_pedido,
+    maybe_mark_para_fabricacion,
+)
+
 console = Console()
 
 # Create your views here.
@@ -179,6 +191,7 @@ class VentasP(APIView):
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
+        estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
 
 
         context = {
@@ -188,6 +201,7 @@ class VentasP(APIView):
             'clientes': clientes,
             'articulos': articulos,
             'empresas': empresa,
+            'estadosPedido': list(estados_pedido),
         }
 
         console.log(context)
@@ -460,6 +474,10 @@ class Venta(APIView):
                 T4.saldo,
                 #T0.precio - sum(T2.precio) as saldo, 
                 T3.nombre as estado,
+                T5.id as estado_pedido_id,
+                T5.nombre as estado_pedido_nombre,
+                T0.estado_pedido_detalle,
+                T0.estado_pedido_actualizado,
                 
                 T0.detalle
             FROM contabilidad_ventas T0
@@ -467,6 +485,7 @@ class Venta(APIView):
             #left join contabilidad_abonos T2 on T0.id = T2.venta_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             LEFT join contabilidad_saldos T4 on T4.venta_id  = T0.id
+            LEFT join contabilidad_estadopedidoventa T5 on T5.id = T0.estado_pedido_id
             #where id = {venta}
             
             #order by T0.id desc;
@@ -792,6 +811,7 @@ class Abono(APIView):
                 # cambiar el estado de la venta a pagada
                 venta.estado_id = 3
             venta.save()
+            maybe_mark_para_fabricacion(venta)
 
             # return JsonResponse({'accion': 'ok'}{'accion': 'ok'}, status=201)
             return Response({'accion': 'ok'}, status=status.HTTP_201_CREATED)
@@ -800,18 +820,52 @@ class Abono(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
 
-    # def delete(self, request, id=0):
-    #     # console.log(request.data)
-    #     # console.log(id)
-    #     abono = Abonos.objects.get(id=id)
-    #     factura = Ventas.objects.get(factura=abono.factura_id)
-    #     saldo = Saldos.objects.get(factura=factura)
+class VentaEstadoPedidoView(APIView):
+    def post(self, request, venta_id):
+        venta = get_object_or_404(Ventas, pk=venta_id)
+        estado_slug = (request.data.get('estado') or '').strip()
+        detalle = (request.data.get('detalle') or '').strip()
 
-    #     abono.delete()
+        if estado_slug not in ESTADO_PEDIDO_ORDER:
+            return Response({'detail': 'Estado solicitado no es valido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        #     total_Abono = Abonos.objects.filter(
-        #         factura=factura
-        #     ).aggregate(total=Sum('precio'))
+        if estado_slug == 'entregado':
+            return Response({'detail': 'El estado Entregado se actualiza automaticamente luego de la remision completa.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+        if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
+            return Response({'detail': 'No es posible retroceder el estado del pedido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if estado_slug == 'para_fabricacion':
+            minimo = math.ceil((venta.precio or 0) / 2) if (venta.precio or 0) > 0 else 0
+            if minimo > 0 and (venta.totalAbono or 0) < minimo:
+                return Response(
+                    {'detail': f'Para enviar a fabricacion se requiere un abono minimo de {minimo}.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        elif estado_slug == 'en_fabricacion':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not detalle:
+                return Response({'detail': 'Indique el motivo del envio a fabricacion.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, detalle=detalle)
+        elif estado_slug == 'listo_entrega':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido En fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        else:
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+
+        data = {
+            'estado': venta.estado_pedido.nombre if venta.estado_pedido else None,
+            'estado_slug': identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)),
+            'detalle': venta.estado_pedido_detalle,
+            'actualizado': venta.estado_pedido_actualizado,
+            'updated': updated,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
 
 class RemisionView(APIView):
     def _build_totals_map(self, venta_id=None):
@@ -852,6 +906,7 @@ class RemisionView(APIView):
         if serializer.is_valid():
             remision = serializer.save()
             totales_map = self._build_totals_map(remision.venta_id)
+            mark_entregado_si_corresponde(remision.venta)
             remision_data = RemisionSerializer(
                 remision,
                 context={'remision_totals': totales_map}

@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
-import { Trash2 } from 'lucide-react';
-import { swalHtml, swalconfirmation, swalQuestion } from '@/utils/js/sweetAlertFunctions';
+import { swalErr, swalHtml, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
 import Link from 'next/link'
 
@@ -16,6 +15,7 @@ import BootstrapModal from '../bootstrap/BootstrapModal';
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import '@/styles/style.css';
+import { callApi } from '@/utils/js/api';
 
 
 
@@ -24,6 +24,45 @@ import '@/styles/style.css';
 
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { title } from 'process';
+
+const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
+
+const identifyEstadoPedidoKey = (nombre?: string): string => {
+  const value = (nombre || '').toLowerCase();
+  if (value.includes('pendiente') || value.includes('pedido tomado') || value.includes('creado')) {
+    return 'creado';
+  }
+  if (value.includes('enviar a fabric')) {
+    return 'para_fabricacion';
+  }
+  if (value.includes('en fabric')) {
+    return 'en_fabricacion';
+  }
+  if (value.includes('listo')) {
+    return 'listo_entrega';
+  }
+  if (value.includes('garantia') || value.includes('entregado')) {
+    return 'entregado';
+  }
+  return 'creado';
+};
+
+const estadoPedidoBadgeClass = (key: string): string => {
+  switch (key) {
+    case 'creado':
+      return 'bg-secondary';
+    case 'para_fabricacion':
+      return 'bg-info text-dark';
+    case 'en_fabricacion':
+      return 'bg-warning text-dark';
+    case 'listo_entrega':
+      return 'bg-primary';
+    case 'entregado':
+      return 'bg-success';
+    default:
+      return 'bg-secondary';
+  }
+};
 
 function VentasData(props) {
   let { header, data, generalData } = props;
@@ -36,6 +75,7 @@ function VentasData(props) {
   const [sideBarData, setSideBarData] = useState([]);
   const [dataTablee, setDataTable] = useState(data);
   const [overrideData, setOverrideData] = useState(0);
+  const [estadoLoading, setEstadoLoading] = useState<number | null>(null);
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -44,9 +84,46 @@ function VentasData(props) {
     setShow(!show);
   };
 
+  const getPrecioRaw = (row) => Number(row?.precioRaw ?? 0);
+  const getAbonoRaw = (row) => Number(row?.totalAbonoRaw ?? 0);
+
+  const cumpleMitadPago = (row) => {
+    const precio = getPrecioRaw(row);
+    const abono = getAbonoRaw(row);
+    if (precio <= 0) {
+      return false;
+    }
+    return abono >= Math.ceil(precio / 2);
+  };
+
+  const buildEstadoAction = (row) => {
+    const key = identifyEstadoPedidoKey(row?.estadoPedidoNombre);
+    if (key === 'creado') {
+      return {
+        slug: 'para_fabricacion',
+        label: 'Marcar para enviar a fabricación',
+        needsHalfPayment: true,
+      };
+    }
+    if (key === 'para_fabricacion') {
+      return {
+        slug: 'en_fabricacion',
+        label: 'Enviar a fabricación',
+        requiresDetail: true,
+      };
+    }
+    if (key === 'en_fabricacion') {
+      return {
+        slug: 'listo_entrega',
+        label: 'Marcar listo para entrega',
+      };
+    }
+    return null;
+  };
 
 
-  const handleFetchVentas = async () => {
+
+  const handleFetchVentas = async (withToggle = true) => {
     //etLoading(true);
 
     const res = await fetch("http://localhost:8000/venta/", {
@@ -67,7 +144,9 @@ function VentasData(props) {
     });
     setDataTable(redata)
     console.log(dataTablee)
-    toggleState()
+    if (withToggle) {
+      toggleState()
+    }
     return redata
   };
 
@@ -121,6 +200,58 @@ function VentasData(props) {
     }
   };
 
+  const handleEstadoPedidoAction = async (rowData) => {
+    const config = buildEstadoAction(rowData);
+    if (!config) {
+      await swalErr('Este pedido ya completó todos los estados configurados.');
+      return;
+    }
+
+    if (config.needsHalfPayment && !cumpleMitadPago(rowData)) {
+      await swalErr('Debe registrarse al menos el 50% del valor de la venta para enviar a fabricación.');
+      return;
+    }
+
+    let detalle = null;
+    if (config.requiresDetail) {
+      detalle = await swalInput('¿Cuál es el motivo para enviar a fabricación?');
+      if (detalle === null) {
+        return;
+      }
+      if (!detalle.trim()) {
+        await swalErr('Debe ingresar un motivo válido.');
+        return;
+      }
+    }
+
+    setEstadoLoading(rowData.id);
+    try {
+      const req = await callApi(`venta/${rowData.id}/estado-pedido/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: config.slug,
+          ...(detalle ? { detalle } : {}),
+        }),
+      });
+
+      if (!req.res.ok) {
+        await swalErr(req.data?.detail || 'No fue posible actualizar el estado.');
+        return;
+      }
+
+      await swalconfirmation(`Estado actualizado: ${req.data?.estado || config.label}.`);
+      await handleFetchVentas(false);
+    } catch (error) {
+      console.error(error);
+      await swalErr('Ocurrió un error al actualizar el estado.');
+    } finally {
+      setEstadoLoading(null);
+    }
+  };
+
   const columns = [
     { title: "Pedido", data: "id"},
     { "data": "cedula" },
@@ -128,26 +259,34 @@ function VentasData(props) {
     { "data": "precio" },
     { "data": "totalAbono" },
     { "data": "saldo" },
-    { title: "Estado", data: "estado", name: 'estado', className: 'dt-body-center',
+    { title: "Estado", data: "estadoPedidoNombre", name: 'estado_pedido', className: 'dt-body-center',
       render: (data, type, row) => {
-        const value = (data ?? '').toString().trim(); // "Con abono", "Sin Pago", etc.
-
+        const value = (data ?? '').toString().trim() || 'Creado / Pendiente de pago (Pedido tomado)';
+        if (type === 'display') {
+          const key = identifyEstadoPedidoKey(value);
+          const badge = estadoPedidoBadgeClass(key);
+          const detail = row?.estadoPedidoDetalle ? row.estadoPedidoDetalle.replace(/"/g, '&quot;') : '';
+          const titleAttr = detail ? `title="${detail}"` : '';
+          return `<span class="badge ${badge}" style="font-size: 16px;" ${titleAttr}>${value}</span>`;
+        }
+        return value;
+      }
+    },
+    { title: "Estado pago", data: "estado", name: 'estado_pago', className: 'dt-body-center',
+      render: (data, type) => {
+        const value = (data ?? '').toString().trim();
         if (type === 'display') {
           const v = value.toLowerCase();
           const color =
             v === 'anulado'   ? 'danger'  :
             v === 'pagado'    ? 'success' :
             v === 'con abono' ? 'info'    :
-                                'warning'; // Sin Pago u otros
+                                'warning';
           return `<span class="badge bg-${color}" style="font-size: 16px;">${value}</span>`;
         }
-
-        // 🔴 ¡Esto es lo clave!
-        // Para 'filter', 'sort', 'type', 'export' devuelve SIEMPRE texto plano
         return value;
       }
-
-     },
+    },
     {
       "data": null, "name": 'Acciones',
     }
@@ -166,6 +305,23 @@ function VentasData(props) {
     // },
     Acciones: (data, row) => (
       <div className='gap-2 d-flex justify-content-center flex-wrap'>
+        <button
+          className="btn-action btn btn-sm btn-outline-secondary"
+          data-bs-container="body"
+          data-bs-toggle="popover"
+          data-bs-placement="top"
+          data-bs-content="Actualizar estado del pedido"
+          data-bs-delay='{"show":500,"hide":150}'
+          data-bs-trigger="hover"
+          onClick={() => handleEstadoPedidoAction(row)}
+          disabled={estadoLoading === row.id}
+        >
+          {estadoLoading === row.id ? (
+            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M12 6V3m-6.364 4.636L3.514 6.514m14.95 1.122l2.122-2.122M6 12H3m18 0h-3m-9 6v3m11.314-5.314l-2.122 2.122M5.05 17.95l-2.122 2.122"/><circle cx="12" cy="12" r="3"/></g></svg>
+          )}
+        </button>
 
         <button
           className="btn-action btn btn-sm btn-danger"

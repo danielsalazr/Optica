@@ -43,11 +43,22 @@ async function page() {
 
     // Modificar la propiedad "precio" de cada objeto en la lista
     table = table.map(item => {
-      // Eliminar el símbolo "$" y reemplazar "." por ","
-      item.precio = moneyformat(item.precio)
-      item.totalAbono = moneyformat(item.totalAbono)
-      item.saldo = moneyformat(item.saldo)
-      return item; // Retornar el objeto modificado
+      const precioRaw = item.precio ?? 0;
+      const totalAbonoRaw = item.totalAbono ?? 0;
+      const saldoRaw = item.saldo ?? 0;
+      return {
+        ...item,
+        precioRaw,
+        totalAbonoRaw,
+        saldoRaw,
+        precio: moneyformat(precioRaw),
+        totalAbono: moneyformat(totalAbonoRaw),
+        saldo: moneyformat(saldoRaw),
+        estadoPedidoId: item.estado_pedido_id ?? null,
+        estadoPedidoNombre: item.estado_pedido_nombre ?? '',
+        estadoPedidoDetalle: item.estado_pedido_detalle ?? '',
+        estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
+      };
     });
 
     
