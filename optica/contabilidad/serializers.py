@@ -11,6 +11,7 @@ from .models import (
     ItemsPEdidoVenta,
     EstadoPedidoVenta,
     CitaAgenda,
+    CitaAgendaRegistro,
     # EstadoVenta,
     # MediosDePago,
 )
@@ -257,3 +258,22 @@ class CitaAgendaSerializer(serializers.ModelSerializer):
 
     def get_time_range(self, obj):
         return obj.time_range
+
+
+class CitaAgendaRegistroSerializer(serializers.ModelSerializer):
+    cita = serializers.PrimaryKeyRelatedField(
+        queryset=CitaAgenda.objects.filter(is_active=True)
+    )
+
+    class Meta:
+        model = CitaAgendaRegistro
+        fields = [
+            "id",
+            "cita",
+            "identificacion",
+            "nombre_completo",
+            "celular",
+            "hora_confirmada",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]

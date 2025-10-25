@@ -15,6 +15,7 @@ from .models import (
     ItemsPEdidoVenta,
     TipoVenta,
     CitaAgenda,
+    CitaAgendaRegistro,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -285,6 +286,20 @@ class CitaAgendaAdmin(admin.ModelAdmin):
         return "Se generará automáticamente al guardar."
 
     hero_preview.short_description = "Vista previa"
+
+
+@admin.register(CitaAgendaRegistro)
+class CitaAgendaRegistroAdmin(admin.ModelAdmin):
+    list_display = (
+        "nombre_completo",
+        "identificacion",
+        "celular",
+        "cita",
+        "hora_confirmada",
+        "created_at",
+    )
+    list_filter = ("cita", "created_at")
+    search_fields = ("nombre_completo", "identificacion", "celular")
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):
 #     list_display = (

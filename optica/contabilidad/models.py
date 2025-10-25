@@ -602,3 +602,24 @@ class CitaAgenda(models.Model):
             except (IOError, OSError):
                 continue
         return ImageFont.load_default()
+
+
+class CitaAgendaRegistro(models.Model):
+    cita = models.ForeignKey(
+        CitaAgenda,
+        on_delete=models.CASCADE,
+        related_name="registros",
+    )
+    identificacion = models.CharField(max_length=50)
+    nombre_completo = models.CharField(max_length=150)
+    celular = models.CharField(max_length=50)
+    hora_confirmada = models.CharField(max_length=40, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Registro de cita"
+        verbose_name_plural = "Registros de citas"
+
+    def __str__(self):
+        return f"{self.nombre_completo} - {self.cita.display_date}"

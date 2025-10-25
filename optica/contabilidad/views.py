@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 # from .serializers import InventorySerializer
 
@@ -33,6 +33,7 @@ from .serializers import (
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
     CitaAgendaSerializer,
+    CitaAgendaRegistroSerializer,
 )
 
 from .models import (
@@ -46,6 +47,7 @@ from .models import (
     ItemsPEdidoVenta,
     Saldos,
     CitaAgenda,
+    CitaAgendaRegistro,
 )
 from usuarios.models import Clientes, Empresa
 
@@ -673,6 +675,24 @@ class UpcomingAppointmentsView(APIView):
             context={'request': request},
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentRegistrationView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = CitaAgendaRegistroSerializer(data=request.data)
+        if serializer.is_valid():
+            registro = serializer.save()
+            return Response(
+                {
+                    "message": "Registro recibido",
+                    "registro_id": registro.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class Abono(APIView):

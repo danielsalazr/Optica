@@ -66,7 +66,7 @@ function SideBar({ children }) {
   menuData.push({
     title: "Agendar Cita",
     icon: "bx bx-edit-alt",
-    pathRoute: "/f",
+    pathRoute: "/agendar_cita",
   });
 
   // menuData.push({

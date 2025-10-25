@@ -37,6 +37,7 @@ urlpatterns = [
     path('articulos/', views.articulos, name="articulos"),
     path('articuloInfo/<int:id>', views.articuloInfo, name="articuloInfo"),
     path('api/citas/proximas/', views.UpcomingAppointmentsView.as_view(), name="citas-proximas"),
+    path('api/citas/registrar/', views.AppointmentRegistrationView.as_view(), name="citas-registrar"),
     
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

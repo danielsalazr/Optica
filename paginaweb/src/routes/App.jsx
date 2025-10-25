@@ -8,6 +8,7 @@ import {AuthProvider} from '../components/Auth';
 import MisionVision from '../container/MisionVision';
 import Brigadas from '../components/Brigadas';
 import Tutoriales from '../container/Tutoriales';
+import AgendarCita from '../components/AgendarCita';
 
 
 import { HashRouter, Routes, Route } from 'react-router-dom';
@@ -32,6 +33,7 @@ function App() {
               <Route path='/mision_vision' element={<MisionVision />} />
               <Route path='/brigadas_empresariales' element={<Brigadas />} />
               <Route path='/tutoriales' element={<Tutoriales />} />
+              <Route path='/agendar_cita' element={<AgendarCita />} />
               <Route path='*' element={<h2>Not found</h2>} />
             </Routes>
           </Layout>
