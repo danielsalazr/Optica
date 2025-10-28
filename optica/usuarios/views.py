@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Clientes
+from .models import Clientes, Empresa
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, response, JsonResponse
@@ -40,7 +40,14 @@ class Empresas(APIView):
     permission_classes = [AllowAny]
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
-        return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
+        empresas = Empresa.objects.order_by('nombre').values(
+            'id',
+            'nombre',
+            'nit',
+            'email',
+            'personas_contacto',
+        )
+        return Response({'empresas': list(empresas)}, status=status.HTTP_200_OK)
     
     # @csrf_exempt
     def post(self, request,):

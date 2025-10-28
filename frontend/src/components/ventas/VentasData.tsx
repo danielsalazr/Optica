@@ -10,10 +10,13 @@ import SideAction from '../bootstrap/SideAction';
 import AbonosForm from '../abonos/AbonosForm';
 import AbonosList from '../abonos/AbonosList';
 import AnularVentaForm from './AnularVentaForm';
+import RemisionesPanel from '@/components/remisiones/RemisionesPanel';
 
 import BootstrapModal from '../bootstrap/BootstrapModal';
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
+import Modal from 'react-bootstrap/Modal';
+import Spinner from 'react-bootstrap/Spinner';
 import '@/styles/style.css';
 import { callApi } from '@/utils/js/api';
 
@@ -76,12 +79,48 @@ function VentasData(props) {
   const [dataTablee, setDataTable] = useState(data);
   const [overrideData, setOverrideData] = useState(0);
   const [estadoLoading, setEstadoLoading] = useState<number | null>(null);
+  const [remisionModalOpen, setRemisionModalOpen] = useState(false);
+  const [remisionLoading, setRemisionLoading] = useState(false);
+  const [remisionError, setRemisionError] = useState<string | null>(null);
+  const [remisionContext, setRemisionContext] = useState(null);
+  const [remisionRowContext, setRemisionRowContext] = useState(null);
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
   const toggleState = () => {
     setShow(!show);
+  };
+
+  const fetchRemisionData = async (ventaId: number) => {
+    setRemisionLoading(true);
+    setRemisionError(null);
+    try {
+      const req = await callApi(`venta/${ventaId}`);
+      if (!req.res.ok) {
+        throw new Error(req.data?.detail || 'No fue posible obtener la información de remisiones.');
+      }
+      setRemisionContext(req.data);
+    } catch (error) {
+      console.error(error);
+      setRemisionContext(null);
+      setRemisionError(error instanceof Error ? error.message : 'Error desconocido al cargar remisiones.');
+    } finally {
+      setRemisionLoading(false);
+    }
+  };
+
+  const handleRemisionModal = async (rowData) => {
+    setRemisionRowContext(rowData);
+    setRemisionModalOpen(true);
+    await fetchRemisionData(rowData.id);
+  };
+
+  const handleRemisionCreated = async () => {
+    if (remisionRowContext) {
+      await fetchRemisionData(remisionRowContext.id);
+    }
+    await handleFetchVentas(false);
   };
 
   const getPrecioRaw = (row) => Number(row?.precioRaw ?? 0);
@@ -214,7 +253,7 @@ function VentasData(props) {
 
     let detalle = null;
     if (config.requiresDetail) {
-      detalle = await swalInput('¿Cuál es el motivo para enviar a fabricación?');
+      detalle = await swalInput('Estás enviando a fabricar sin cumplir con la mitad del pago. ¿Cuál es el motivo?');
       if (detalle === null) {
         return;
       }
@@ -259,20 +298,20 @@ function VentasData(props) {
     { "data": "precio" },
     { "data": "totalAbono" },
     { "data": "saldo" },
-    { title: "Estado", data: "estadoPedidoNombre", name: 'estado_pedido', className: 'dt-body-center',
+    { title: "Estado", data: "estadoPedidoNombre", name: 'estado_pedido', className: 'dt-body-center estado-pedido-col',
       render: (data, type, row) => {
         const value = (data ?? '').toString().trim() || 'Creado / Pendiente de pago (Pedido tomado)';
         if (type === 'display') {
-          const key = identifyEstadoPedidoKey(value);
-          const badge = estadoPedidoBadgeClass(key);
+            const key = identifyEstadoPedidoKey(value);
+            const badge = estadoPedidoBadgeClass(key);
           const detail = row?.estadoPedidoDetalle ? row.estadoPedidoDetalle.replace(/"/g, '&quot;') : '';
           const titleAttr = detail ? `title="${detail}"` : '';
-          return `<span class="badge ${badge}" style="font-size: 16px;" ${titleAttr}>${value}</span>`;
+          return `<span class="badge ${badge} badge-estado-pedido" ${titleAttr}>${value}</span>`;
         }
         return value;
       }
     },
-    { title: "Estado pago", data: "estado", name: 'estado_pago', className: 'dt-body-center',
+    { title: "Estado pago", data: "estado", name: 'estado_pago', className: 'dt-body-center estado-pago-col',
       render: (data, type) => {
         const value = (data ?? '').toString().trim();
         if (type === 'display') {
@@ -282,7 +321,7 @@ function VentasData(props) {
             v === 'pagado'    ? 'success' :
             v === 'con abono' ? 'info'    :
                                 'warning';
-          return `<span class="badge bg-${color}" style="font-size: 16px;">${value}</span>`;
+          return `<span class="badge bg-${color} badge-estado-pedido">${value}</span>`;
         }
         return value;
       }
@@ -337,6 +376,18 @@ function VentasData(props) {
         >
 
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
+        </button>
+        <button
+          className="btn-action btn btn-sm btn-outline-primary"
+          data-bs-container="body"
+          data-bs-toggle="popover"
+          data-bs-placement="top"
+          data-bs-content="Remisiones"
+          data-bs-delay='{"show":500,"hide":150}'
+          data-bs-trigger="hover"
+          onClick={() => handleRemisionModal(row)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M4 5h16M4 19h16M9 5v8a2 2 0 0 0 2 2h2"></path><path d="M15 19v-8a2 2 0 0 0-2-2h-2"></path></g></svg>
         </button>
         <button
           className="btn-action btn btn-sm btn-primary"
@@ -439,6 +490,48 @@ function VentasData(props) {
 
         {componentesPorEstado[templateAbono]}
       </SideAction>
+
+      <Modal
+        size="xl"
+        show={remisionModalOpen}
+        onHide={() => setRemisionModalOpen(false)}
+        scrollable
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Remisiones · Venta #{remisionRowContext?.id ?? '--'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {remisionLoading && (
+            <div className="py-5 text-center">
+              <Spinner animation="border" role="status" />
+              <p className="text-muted mt-3 mb-0">Cargando información de remisiones…</p>
+            </div>
+          )}
+
+          {remisionError && (
+            <div className="alert alert-danger" role="alert">
+              {remisionError}
+            </div>
+          )}
+
+          {!remisionLoading && !remisionError && remisionContext && (
+            <RemisionesPanel
+              ventaId={remisionRowContext?.id ?? 0}
+              items={remisionContext?.ventas ?? []}
+              remisiones={remisionContext?.remisiones ?? []}
+              articulos={generalData?.articulos ?? []}
+              cliente={{
+                cedula: remisionRowContext?.cedula,
+                nombre: remisionRowContext?.cliente,
+              }}
+              onCreated={handleRemisionCreated}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
 
 
 

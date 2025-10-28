@@ -36,6 +36,8 @@ urlpatterns = [
 
     path('remisiones/', views.RemisionView.as_view(), name="remisiones"),
     path('remisiones/venta/<int:venta_id>/', views.RemisionView.as_view(), name="remisiones-venta"),
+    path('jornadas/', views.JornadaView.as_view(), name="jornadas"),
+    path('jornadas/<int:jornada_id>/', views.JornadaDetailView.as_view(), name="jornadas-detail"),
     
 
     path('articulos/', views.articulos, name="articulos"),

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
-from usuarios.models import Clientes
+from usuarios.models import Clientes, Empresa
+from django.conf import settings
 from django.db.models.deletion import DO_NOTHING
 from PIL import Image
 
@@ -110,6 +111,48 @@ class TipoVenta(models.Model):
         return self.nombre
 
 
+class Jornada(models.Model):
+
+    ESTADOS = [
+        ('planned', 'Planificada'),
+        ('in_progress', 'En progreso'),
+        ('closed', 'Cerrada'),
+    ]
+
+    empresa = models.ForeignKey(Empresa, on_delete=DO_NOTHING, related_name='jornadas')
+    sucursal = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text="Sucursal o punto de atención donde se realiza la jornada.",
+    )
+    fecha = models.DateField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='planned')
+    responsable = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=DO_NOTHING,
+        related_name='jornadas',
+        blank=True,
+        null=True,
+    )
+    observaciones = models.TextField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Jornada"
+        verbose_name_plural = "Jornadas"
+        constraints = [
+            models.UniqueConstraint(fields=['empresa', 'fecha', 'sucursal'], name='unique_jornada_empresa_fecha'),
+        ]
+
+    def __str__(self):
+        etiqueta = f"{self.empresa}"
+        if self.sucursal:
+            etiqueta = f"{etiqueta} · {self.sucursal}"
+        return f"{etiqueta} · {self.fecha}"
+
+
 class Ventas(models.Model):
 
     OPCIONES = [
@@ -149,6 +192,7 @@ class Ventas(models.Model):
     usuarioAnulacion = models.IntegerField(default=None, blank=True, null=True)
     cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
     ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
+    jornada = models.ForeignKey(Jornada, on_delete=DO_NOTHING, related_name='ventas', blank=True, null=True)
     
 
     class Meta:

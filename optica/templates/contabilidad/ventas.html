@@ -110,6 +110,31 @@
   
         </div>
 
+        <div class="form-group col-sm-12 col-md-6 col-xl-3">
+          <label for="jornada">Jornada</label>
+          <select
+            class="form-select"
+            id="jornada"
+            name="jornada"
+          >
+            <option value="">Sin jornada</option>
+            {% for jornada in jornadas %}
+              <option
+                value="{{ jornada.id }}"
+                data-empresa="{{ jornada.empresa_id }}"
+                data-estado="{{ jornada.estado }}"
+              >
+                {{ jornada.empresa__nombre }}
+                {% if jornada.sucursal %} · {{ jornada.sucursal }}{% endif %}
+                · {{ jornada.fecha }} ({{ jornada.estado }})
+              </option>
+            {% endfor %}
+          </select>
+          <small class="form-text text-muted">
+            Solo se listan jornadas planificadas o en progreso.
+          </small>
+        </div>
+
         <div class="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
           <label for="valor">Precio de venta $</label>
           <input

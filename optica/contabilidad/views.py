@@ -6,8 +6,8 @@ from django.views.generic import ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.forms.models import model_to_dict
-from django.db import connection
-from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery
+from django.db import connection, IntegrityError
+from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery, Count
 from django.db.models.functions import Coalesce
 
 from django.contrib.auth.decorators import login_required
@@ -31,6 +31,8 @@ from .serializers import (
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
     RemisionSerializer,
+    RemisionItemSerializer,
+    JornadaSerializer,
  )
 
 import math
@@ -48,6 +50,7 @@ from .models import (
     Remision,
     RemisionItem,
     EstadoPedidoVenta,
+    Jornada,
 )
 from usuarios.models import Clientes, Empresa
 
@@ -192,6 +195,16 @@ class VentasP(APIView):
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
         estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
+        jornadas = Jornada.objects.select_related('empresa').filter(
+            estado__in=['planned', 'in_progress']
+        ).order_by('-fecha', '-id').values(
+            'id',
+            'fecha',
+            'estado',
+            'empresa_id',
+            'empresa__nombre',
+            'sucursal',
+        )
 
 
         context = {
@@ -202,6 +215,7 @@ class VentasP(APIView):
             'articulos': articulos,
             'empresas': empresa,
             'estadosPedido': list(estados_pedido),
+            'jornadas': list(jornadas),
         }
 
         console.log(context)
@@ -439,6 +453,14 @@ class Venta(APIView):
                 item['remisionado'] = remisionado
                 item['pendienteRemision'] = max(cantidad - remisionado, 0)
 
+            venta_instance = Ventas.objects.select_related('jornada__empresa').filter(id=id).first()
+            if venta_instance:
+                lista.update({
+                    'jornada': venta_instance.jornada_id,
+                    'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
+                    'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
+                })
+
             return Response(lista, status=status.HTTP_200_OK)
 
         cliente_nombre_subquery = Clientes.objects.filter(
@@ -478,6 +500,11 @@ class Venta(APIView):
                 T5.nombre as estado_pedido_nombre,
                 T0.estado_pedido_detalle,
                 T0.estado_pedido_actualizado,
+                T6.id as jornada_id,
+                T6.estado as jornada_estado,
+                T6.fecha as jornada_fecha,
+                T6.sucursal as jornada_sucursal,
+                T7.nombre as jornada_empresa,
                 
                 T0.detalle
             FROM contabilidad_ventas T0
@@ -486,6 +513,8 @@ class Venta(APIView):
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             LEFT join contabilidad_saldos T4 on T4.venta_id  = T0.id
             LEFT join contabilidad_estadopedidoventa T5 on T5.id = T0.estado_pedido_id
+            LEFT join contabilidad_jornada T6 on T6.id = T0.jornada_id
+            LEFT join usuarios_empresa T7 on T7.id = T6.empresa_id
             #where id = {venta}
             
             #order by T0.id desc;
@@ -494,7 +523,20 @@ class Venta(APIView):
             cursor.execute(query)
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        
+        for item in results:
+            jornada_empresa = item.get('jornada_empresa')
+            jornada_fecha = item.get('jornada_fecha')
+            jornada_sucursal = item.get('jornada_sucursal')
+            if jornada_empresa and jornada_fecha:
+                partes = [jornada_empresa]
+                if jornada_sucursal:
+                    partes.append(jornada_sucursal)
+                partes.append(str(jornada_fecha))
+                item['jornada_label'] = " · ".join(partes)
+            elif item.get('jornada_id'):
+                item['jornada_label'] = f"Jornada #{item['jornada_id']}"
+            else:
+                item['jornada_label'] = ''
         
         console.log(ventas)
     
@@ -819,6 +861,60 @@ class Abono(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
+
+
+class JornadaView(APIView):
+    def get(self, request):
+        estado = request.GET.get('estado')
+        empresa_id = request.GET.get('empresa')
+        jornadas_qs = Jornada.objects.select_related('empresa', 'responsable')
+
+        if estado:
+            jornadas_qs = jornadas_qs.filter(estado=estado)
+        if empresa_id:
+            jornadas_qs = jornadas_qs.filter(empresa_id=empresa_id)
+
+        jornadas_qs = jornadas_qs.annotate(
+            ventas_count=Count('ventas', distinct=True),
+            total_vendido=Coalesce(Sum('ventas__precio'), 0),
+            total_abonos=Coalesce(Sum('ventas__totalAbono'), 0),
+        ).order_by('-fecha', '-id')
+
+        serializer = JornadaSerializer(jornadas_qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        data = request.data.copy()
+        if not data.get('responsable') and request.user.is_authenticated:
+            data['responsable'] = request.user.id
+
+        serializer = JornadaSerializer(data=data)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response(
+                    {'detail': 'Ya existe una jornada abierta para esa empresa, sucursal y fecha.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class JornadaDetailView(APIView):
+    def patch(self, request, jornada_id):
+        jornada = get_object_or_404(Jornada, pk=jornada_id)
+        serializer = JornadaSerializer(jornada, data=request.data, partial=True)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except IntegrityError:
+                return Response(
+                    {'detail': 'Ya existe una jornada abierta para esa empresa, sucursal y fecha.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VentaEstadoPedidoView(APIView):
     def post(self, request, venta_id):

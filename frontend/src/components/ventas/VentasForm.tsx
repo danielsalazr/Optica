@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, useState, ReactElement } from 'react'
+import React, { useRef, useEffect, useState, useMemo, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
 import ClientesForm from '../usuarios/ClientesForm';
 import AnularVentaForm from './AnularVentaForm';
@@ -53,11 +53,43 @@ function VentasForm({data}) {
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
     const [clientes, setClientes] = useState(data.clientes);
     const [empresas, setEmpresas] = useState(data.empresas);
+    const [jornadas, setJornadas] = useState(data.jornadas || []);
+    const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
 
     let selectizeInstance = null;
 
     const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(fechaHoy)
+
+    const formatFecha = (fecha: string) => {
+      if (!fecha) {
+        return '';
+      }
+      const date = new Date(fecha);
+      if (Number.isNaN(date.getTime())) {
+        return fecha;
+      }
+      return date.toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    };
+
+    const estadoJornadaLabels: Record<string, string> = {
+      planned: 'Planificada',
+      in_progress: 'En progreso',
+      closed: 'Cerrada',
+    };
+
+    const jornadasFiltradas = useMemo(() => {
+      if (!empresaSeleccionada) {
+        return jornadas;
+      }
+      return (jornadas || []).filter(
+        (jornada) => String(jornada.empresa_id) === String(empresaSeleccionada)
+      );
+    }, [jornadas, empresaSeleccionada]);
 
       useEffect(()=>{
               //import( "bootstrap/dist/js/bootstrap.bundle.js");
@@ -116,6 +148,9 @@ function VentasForm({data}) {
                 });
     
                 setEmpresa(selectizeInstance2);
+                selectizeInstance2[0].selectize.on('change', (value: string) => {
+                    setEmpresaSeleccionada(value || '');
+                });
             }
             
               
@@ -169,6 +204,7 @@ function VentasForm({data}) {
     
                     usuario[0].selectize.clear();
                     empresa[0].selectize.clear();
+                    setEmpresaSeleccionada('');
                     
                     toggleReinicioModulos()
                     
@@ -254,6 +290,29 @@ function VentasForm({data}) {
 
                     
                                 </div>
+                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                    <label htmlFor="jornada">Jornada</label>
+                    <select className="form-select" id="jornada" name="jornada" defaultValue="">
+                        <option value="">Sin jornada</option>
+                        {jornadasFiltradas.map((jornada) => {
+                            const fechaLegible = formatFecha(jornada.fecha) || jornada.fecha;
+                            const estadoLegible = estadoJornadaLabels[jornada.estado] ?? jornada.estado;
+                            return (
+                                <option key={jornada.id} value={jornada.id}>
+                                    {jornada.empresa__nombre}
+                                    {jornada.sucursal ? ` · ${jornada.sucursal}` : ''}
+                                    {` · ${fechaLegible} (${estadoLegible})`}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    <small className="form-text text-muted">
+                        Vincula la venta a una jornada activa o&nbsp;
+                        <a href="/jornadas" target="_blank" rel="noreferrer">
+                            crea una nueva
+                        </a>.
+                    </small>
+                </div>
                 {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
                     <label htmlFor="valor">Precio de venta $</label>
                     <input type="text" className="form-control precio" id="valor" placeholder="$ 0" defaultValue="$ 0" name="precio" required />

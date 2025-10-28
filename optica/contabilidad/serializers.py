@@ -18,6 +18,7 @@ from .models import (
     EstadoPedidoVenta,
     Remision,
     RemisionItem,
+    Jornada,
 )
 from .utils_estado_pedido import (
     get_estado_pedido_by_slug,
@@ -29,6 +30,39 @@ from usuarios.models import Clientes, Empresa
 from rich.console import Console
 
 console = Console()
+
+
+class JornadaSerializer(serializers.ModelSerializer):
+    empresa_nombre = serializers.CharField(source='empresa.nombre', read_only=True)
+    responsable_nombre = serializers.SerializerMethodField(read_only=True)
+    ventas_count = serializers.IntegerField(read_only=True)
+    total_vendido = serializers.IntegerField(read_only=True)
+    total_abonos = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Jornada
+        fields = [
+            'id',
+            'empresa',
+            'empresa_nombre',
+            'sucursal',
+            'fecha',
+            'estado',
+            'responsable',
+            'responsable_nombre',
+            'observaciones',
+            'creado_en',
+            'ventas_count',
+            'total_vendido',
+            'total_abonos',
+        ]
+        read_only_fields = ('creado_en', 'ventas_count', 'total_vendido', 'total_abonos')
+
+    def get_responsable_nombre(self, obj):
+        if obj.responsable:
+            full_name = obj.responsable.get_full_name()
+            return full_name or obj.responsable.get_username()
+        return None
 
 
 class VentaSerializer(serializers.ModelSerializer):
@@ -52,7 +86,8 @@ class VentaSerializer(serializers.ModelSerializer):
                 'detalle',
                 'observacion',
                 'estado',
-                'foto'
+                'foto',
+                'jornada',
         ]
         # read_only_fields = ('campo1', 'campo2')
 
@@ -61,6 +96,7 @@ class VentaSerializer(serializers.ModelSerializer):
             'observacion': {'required': False},
             'estado' : {'required': False},
             'foto' : {'required': False},
+            'jornada': {'required': False, 'allow_null': True},
         }
 
         # def to_representation(self, instance):
@@ -71,18 +107,58 @@ class VentaSerializer(serializers.ModelSerializer):
         #     return representation
 
 
+    def _extract_empresa(self, raw_value):
+        if isinstance(raw_value, Empresa):
+            return raw_value
+        if raw_value in (None, '', 0):
+            return None
+        try:
+            return Empresa.objects.get(id=raw_value)
+        except (Empresa.DoesNotExist, ValueError, TypeError):
+            nombre = str(raw_value).strip()
+            if not nombre:
+                return None
+            return Empresa.objects.filter(nombre__iexact=nombre).first()
+
+    def _assign_empresa_nombre(self, validated_data):
+        empresa = getattr(self, '_empresa_obj', None)
+        raw_value = validated_data.get('empresaCliente')
+        if raw_value not in (None, ''):
+            empresa = self._extract_empresa(raw_value)
+        if empresa:
+            validated_data['empresaCliente'] = empresa.nombre
+            self._empresa_obj = empresa
+        return empresa
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        empresa = getattr(self, '_empresa_obj', None)
+        raw_empresa = attrs.get('empresaCliente')
+        if raw_empresa not in (None, ''):
+            empresa = self._extract_empresa(raw_empresa)
+        elif not empresa and self.instance:
+            empresa = self._extract_empresa(self.instance.empresaCliente)
+
+        if empresa:
+            self._empresa_obj = empresa
+
+        jornada = attrs.get('jornada')
+        if jornada:
+            if jornada.estado == 'closed':
+                raise serializers.ValidationError({'jornada': 'La jornada seleccionada ya se encuentra cerrada.'})
+            if not empresa:
+                raise serializers.ValidationError({'empresaCliente': 'Seleccione una empresa válida antes de asociar una jornada.'})
+            if jornada.empresa_id != empresa.id:
+                raise serializers.ValidationError({'jornada': 'La jornada pertenece a otra empresa.'})
+
+        return attrs
+
     def create(self, validated_data):
-    # Obtenemos el ID de la empresa enviado en la solicitud
-        empresa_id = validated_data.pop('empresaCliente', None)
+        # Obtenemos el ID de la empresa enviado en la solicitud
+        empresa = self._assign_empresa_nombre(validated_data)
         abono = int(validated_data.get('totalAbono', 0) or 0)
         total = int(validated_data.get("precio", 0) or 0)
-        console.log(f"El empresa ID es {empresa_id}")
-        if empresa_id:
-            # Buscamos la empresa en la base de datos
-            empresa = Empresa.objects.get(id=empresa_id)
-            console.log(empresa)
-            # Asignamos el nombre de la empresa al campo `empresaCliente`
-            validated_data['empresaCliente'] = empresa.nombre
+        console.log(f"El empresa ID es {empresa.id if empresa else None}")
         
         if abono > 0:
             validated_data['estado'] = EstadoVenta.objects.get(id=2)
@@ -101,17 +177,10 @@ class VentaSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
         console.log("se ejecuta el update")
-        empresa_id = validated_data.pop('empresaCliente', None)
+        empresa = self._assign_empresa_nombre(validated_data)
         abono = validated_data['totalAbono']
         total = validated_data["precio"]
-        console.log(empresa_id)
-        if empresa_id is not None:
-            # console.log(empresa_id['nombre'])
-            # Buscamos la empresa en la base de datos
-            empresa = Empresa.objects.get(id=empresa_id)
-            console.log(empresa.nombre)
-            # Asignamos el nombre de la empresa al campo `empresaCliente`
-            validated_data['empresaCliente'] = empresa.nombre
+        console.log(empresa.nombre if empresa else None)
         console.log(validated_data)
         if abono == 0:
             validated_data['estado'] = EstadoVenta.objects.get(id=1)
