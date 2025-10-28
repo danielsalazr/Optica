@@ -247,3 +247,65 @@ body {
 .data-table-shell table {
   width: 100% !important;
 }
+
+.estado-pedido-col,
+.estado-pago-col {
+  white-space: normal;
+}
+
+.badge-estado-pedido {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
+  line-height: 1.2;
+  font-size: 0.9rem;
+  text-align: center;
+  white-space: normal;
+  max-width: 220px;
+}
+
+.jornadas-module {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.jornadas-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.jornadas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.jornadas-form form small {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.jornadas-panel .jornadas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.jornadas-panel .jornadas-busqueda {
+  min-width: 220px;
+}
+
+.jornadas-panel table td,
+.jornadas-panel table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .jornadas-panel .jornadas-busqueda {
+    width: 100%;
+  }
+}

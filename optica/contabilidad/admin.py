@@ -16,6 +16,7 @@ from .models import (
     TipoVenta,
     Remision,
     RemisionItem,
+    Jornada,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -276,6 +277,13 @@ class RemisionItemAdmin(admin.ModelAdmin):
         return obj.item_venta.articulo.nombre
 
     articulo_nombre.short_description = "Articulo"
+
+
+@admin.register(Jornada)
+class JornadaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'empresa', 'sucursal', 'fecha', 'estado', 'responsable')
+    list_filter = ('estado', 'fecha', 'empresa', 'sucursal')
+    search_fields = ('empresa__nombre', 'sucursal')
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):
 #     list_display = (
