@@ -42,12 +42,15 @@ const VisionValueSection = () => {
               familias y empresas.
             </p>
 
-            <div className="d-flex flex-column flex-sm-row gap-3 mt-4">
-              <a className="btn btn-primary btn-lg px-4" href="#/agendar_cita">
+            <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 mt-4 text-center text-sm-start">
+              <a className="btn btn-primary btn-lg px-4 py-3 d-flex align-items-center justify-content-center" href="#/agendar_cita">
                 Agenda tu examen visual
               </a>
-              <a className="btn btn-outline-primary btn-lg px-4" href="tel:+573024800367">
-                Llámanos al 302 480 0367
+              <a
+                className="btn btn-outline-primary btn-lg px-4 py-3 d-flex flex-column align-items-center justify-content-center gap-1"
+                href="tel:+573024800367">
+                <span className="text-uppercase small fw-semibold">Línea empresarial</span>
+                <span className="fs-5 fw-bold">302 480 0367</span>
               </a>
             </div>
           </div>
