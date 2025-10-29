@@ -39,11 +39,11 @@ function SideBar({ children }) {
     pathRoute: "/brigadas_empresariales",
   });
 
-  menuData.push({
-    title: "productos",
-    icon: "bx bx-history",
-    pathRoute: "/ventas",
-  });
+  // menuData.push({
+  //   title: "productos",
+  //   icon: "bx bx-history",
+  //   pathRoute: "/ventas",
+  // });
 
   // menuData.push({
   //   title: "Proyectos",
@@ -51,11 +51,11 @@ function SideBar({ children }) {
   //   pathRoute: "/c",
   // });
 
-  menuData.push({
-    title: "Tutoriales",
-    icon: "bx bx-food-menu",
-    pathRoute: "/tutoriales",
-  });
+  // menuData.push({
+  //   title: "Tutoriales",
+  //   icon: "bx bx-food-menu",
+  //   pathRoute: "/tutoriales",
+  // });
 
   // menuData.push({
   //   title: "usuarios",
