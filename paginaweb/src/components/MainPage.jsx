@@ -6,6 +6,7 @@ import Info from "./Info";
 import Servicios from "./Servicios";
 import Monturas from "../container/Monturas";
 import AcercaDeNosotros from "../container/AcercaDeNosotros";
+import VisionValueSection from "./VisionValueSection";
 // import Footer from './Footer';
 
 // import '@styles/global.scss'
@@ -14,6 +15,7 @@ function MainPage() {
   return (
     <div>
       <Info />
+      <VisionValueSection />
       {/* <Carousel /> */}
       <Servicios />
 
