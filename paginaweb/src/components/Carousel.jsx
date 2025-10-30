@@ -2,6 +2,7 @@ import React from "react";
 import foto1 from "@logos/bienestar_optica.jpg";
 import foto2 from "@logos/banner.jpg";
 import foto3 from "@logos/gafas-lentes.png";
+import { BACKEND_BASE_URL } from "../config/api";
 
 const STATIC_SLIDES = [
   {
@@ -32,18 +33,24 @@ const STATIC_SLIDES = [
 ];
 
 const APPOINTMENTS_ENDPOINT = "/api/citas/proximas/";
+const API_BASE = BACKEND_BASE_URL;
 
 const Carousel = () => {
   const [appointmentSlides, setAppointmentSlides] = React.useState([]);
   const [hasTriedFetching, setHasTriedFetching] = React.useState(false);
 
   React.useEffect(() => {
+    if (!API_BASE) {
+      setHasTriedFetching(true);
+      return () => undefined;
+    }
+
     const controller = new AbortController();
     let isMounted = true;
 
     const loadAppointments = async () => {
       try {
-        const response = await fetch(`http://localhost:8000${APPOINTMENTS_ENDPOINT}`, {
+        const response = await fetch(`${API_BASE}${APPOINTMENTS_ENDPOINT}`, {
           signal: controller.signal,
         });
         if (!response.ok) {

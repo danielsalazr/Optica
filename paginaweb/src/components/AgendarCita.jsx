@@ -1,6 +1,7 @@
 import React from "react";
+import { BACKEND_BASE_URL } from "../config/api";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = BACKEND_BASE_URL;
 const APPOINTMENTS_ENDPOINT = `${API_BASE}/api/citas/proximas/`;
 const REGISTRATION_ENDPOINT = `${API_BASE}/api/citas/registrar/`;
 
@@ -50,6 +51,14 @@ function AgendarCita() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
+    if (!API_BASE) {
+      setStatus({
+        type: "error",
+        message: "No se ha configurado la URL del backend. Revisa la variable BACKEND_BASE_URL.",
+      });
+      return () => undefined;
+    }
+
     let isMounted = true;
     const controller = new AbortController();
 
@@ -152,6 +161,13 @@ function AgendarCita() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!API_BASE) {
+      setStatus({
+        type: "error",
+        message: "No se ha configurado la URL del backend. Revisa la variable BACKEND_BASE_URL.",
+      });
+      return;
+    }
     if (!selectedSlot) {
       setStatus({
         type: "error",
