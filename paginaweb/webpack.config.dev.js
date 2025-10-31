@@ -82,6 +82,7 @@ module.exports = {
         port: 3080,
         open: true,
         hot: false, // optional, but you must not set both hot and liveReload to true
-        liveReload: true
+        liveReload: true,
+        historyApiFallback: true,
     }
 }
