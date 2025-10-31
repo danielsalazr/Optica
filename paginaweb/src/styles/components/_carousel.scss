@@ -39,13 +39,16 @@
 .carousel-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    112deg,
-    rgba(12, 17, 32, 0.72) 0%,
-    rgba(12, 17, 32, 0.5) 45%,
-    rgba(12, 17, 32, 0.32) 65%,
-    rgba(12, 17, 32, 0) 100%
-  );
+  // background: linear-gradient(
+  //   112deg,
+  //   rgba(12, 17, 32, 0.72) 0%,
+  //   rgba(12, 17, 32, 0.5) 45%,
+  //   rgba(12, 17, 32, 0.32) 65%,
+  //   rgba(12, 17, 32, 0) 100%
+  // );
+  background: linear-gradient(112deg, rgb(12 17 32 / 25%) 0%
+0%
+, rgb(12 17 32 / 18%) 45%, rgb(12 17 32 / 2%) 65%, rgba(12, 17, 32, 0) 100%);
   z-index: 1;
 }
 
