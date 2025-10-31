@@ -1,5 +1,6 @@
 import React from "react";
 import { BACKEND_BASE_URL } from "../config/api";
+import Seo from "./Seo";
 
 const API_BASE = BACKEND_BASE_URL;
 const APPOINTMENTS_ENDPOINT = `${API_BASE}/api/citas/proximas/`;
@@ -35,6 +36,21 @@ const buildCalendarGrid = (monthDate) => {
 };
 
 function AgendarCita() {
+  const appointmentSchema = {
+    "@context": "https://schema.org",
+    "@type": "MedicalBusiness",
+    name: "Bienestar Óptica",
+    url: "https://www.bienestaroptica.com/agendar_cita",
+    potentialAction: {
+      "@type": "ReserveAction",
+      target: "https://www.bienestaroptica.com/agendar_cita",
+      result: {
+        "@type": "MedicalAppointment",
+        name: "Consulta de optometría en Bienestar Óptica",
+      },
+    },
+    areaServed: "Cali, Colombia",
+  };
   const [appointments, setAppointments] = React.useState([]);
   const [calendarMonth, setCalendarMonth] = React.useState(() => {
     const now = new Date();
@@ -221,6 +237,12 @@ function AgendarCita() {
 
   return (
     <section className="AgendarCita">
+      <Seo
+        title="Agenda tu cita de optometría en Cali"
+        description="Reserva en línea tu cita con nuestros especialistas en Bienestar Óptica. Selecciona fecha, horario y recibe confirmación inmediata."
+        canonical="https://www.bienestaroptica.com/agendar_cita"
+        jsonLd={appointmentSchema}
+      />
       <div className="AgendarCita__header">
         <p className="AgendarCita__eyebrow">Agendamiento rápido</p>
         <h1>Agenda una cita empresarial o individual</h1>

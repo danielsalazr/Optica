@@ -1,10 +1,32 @@
 ﻿import React from "react";
 import lentes from "@brigadas/lentes.jpg";
 import atencion from "@brigadas/brigada.jpg";
+import Seo from "./Seo";
 
 function Brigadas() {
+  const brigadaSchema = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    serviceType: "Brigadas empresariales de salud visual",
+    provider: {
+      "@type": "Optician",
+      name: "Bienestar Óptica",
+      areaServed: "Bogotá, Cali y municipios aledaños",
+      telephone: "+57 302 480 0367",
+    },
+    url: "https://www.bienestaroptica.com/brigadas_empresariales",
+    description:
+      "Brigadas empresariales de optometría con unidad móvil, exámenes visuales y catálogo de monturas para colaboradores.",
+  };
+
   return (
     <section className="Brigadas">
+      <Seo
+        title="Brigadas empresariales de salud visual"
+        description="Llevamos optometría, monturas y lentes ocupacionales a tu empresa. Agenda brigadas empresariales con logística completa y asesores certificados."
+        canonical="https://www.bienestaroptica.com/brigadas_empresariales"
+        jsonLd={brigadaSchema}
+      />
       <div className="Brigadas__container">
         <p className="Brigadas__eyebrow">Programa empresarial</p>
         <h1>Brigadas empresariales</h1>

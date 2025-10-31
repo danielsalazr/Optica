@@ -1,38 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="es">
+  <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="favicon.ico" />
+    <meta name="description" content="Bienestar Óptica ofrece exámenes visuales, monturas, lentes de contacto y brigadas empresariales en Cali. Agenda tu cita con especialistas certificados.">
+    <meta name="keywords" content="óptica en Cali, salud visual, lentes, monturas, exámenes visuales, brigadas empresariales">
+    <meta name="robots" content="index,follow">
+    <meta name="theme-color" content="#0f172a">
+    <meta property="og:title" content="Bienestar Óptica | Cuidamos tu salud visual">
+    <meta property="og:description" content="Agenda tus exámenes visuales, encuentra monturas y participa en brigadas empresariales con Bienestar Óptica.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.bienestaroptica.com/">
+    <meta property="og:image" content="https://www.bienestaroptica.com/og-image.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="https://www.bienestaroptica.com/">
+    <link rel="icon" href="favicon.ico">
     <link
-      href="https://cdn.jsdelivr.net/npm/boxicons@2.0.5/css/boxicons.min.css"
       rel="stylesheet"
-    />
+      href="https://cdn.jsdelivr.net/npm/boxicons@2.0.5/css/boxicons.min.css"
+    >
+    <script src="https://cdn.tailwindcss.com" defer></script>
+    <title>Bienestar Óptica | Cuidamos tu salud visual</title>
+  </head>
+  <body>
+    <div id="app"></div>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <title>Bienestar Optica</title>
-</head>
-<body>
-    <div id="app">
-
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js"
-        integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT"
-        crossorigin="anonymous">
-    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js"
+      integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT"
+      crossorigin="anonymous"
+      defer
+    ></script>
 
     <script>
-        var menu_btn = document.querySelector("#menu-btn");
-        var sidebar = document.querySelector("#sidebar");
-        var containerMenu = document.querySelector(".my-container");
-        menu_btn.addEventListener("click", () => {
-        sidebar.classList.toggle("active-nav");
-        containerMenu.classList.toggle("active-cont");
-        });
+      var menu_btn = document.querySelector("#menu-btn");
+      var sidebar = document.querySelector("#sidebar");
+      var containerMenu = document.querySelector(".my-container");
+      menu_btn?.addEventListener("click", () => {
+        sidebar?.classList.toggle("active-nav");
+        containerMenu?.classList.toggle("active-cont");
+      });
     </script>
-
-</body>
+  </body>
 </html>
