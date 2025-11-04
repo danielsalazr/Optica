@@ -154,7 +154,7 @@ const Carousel = () => {
                   <p className="carousel-text mb-0">{slide.description}</p>
                   {slide.ctaLabel && (
                     <a
-                      className="carousel-cta-btn btn btn-warning text-uppercase fw-semibold shadow-sm"
+                      className="carousel-cta-btn btn text-uppercase fw-semibold shadow-sm"
                       href={slide.ctaHref || "#/agendar_cita"}>
                       {slide.ctaLabel}
                     </a>
