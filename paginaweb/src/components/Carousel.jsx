@@ -8,10 +8,13 @@ const STATIC_SLIDES = [
   {
     id: "bienestar",
     image: foto1,
-    title: "Bienestar Óptica",
+    title: "Bienestar Optica",
     description:
-      "Atención integral, tecnología de vanguardia y especialistas comprometidos con el cuidado de tu visión.",
-    alt: "Especialista de Bienestar Óptica atendiendo a un paciente",
+      "Atencion integral, tecnologia de vanguardia y especialistas comprometidos con el cuidado de tu vision.",
+    alt: "Especialista de Bienestar Optica atendiendo a un paciente",
+    badge: "Optica integral",
+    showGradient: true,
+    showCaption: true,
   },
   {
     id: "promos",
@@ -20,16 +23,21 @@ const STATIC_SLIDES = [
     description:
       "Descubre lentes y monturas con descuentos especiales para que estrenes estilo y confort visual.",
     alt: "Banner publicitario de promociones y descuentos vigentes",
+    badge: "Beneficios",
+    showGradient: true,
+    showCaption: true,
   },
   {
     id: "monturas",
     image: foto3,
     title: "Monturas Para Cada Estilo",
     description:
-      "Colecciones cuidadosamente seleccionadas para que encuentres la montura perfecta para tu día a día.",
-    alt: "Variedad de monturas ópticas exhibidas sobre una mesa",
+      "Colecciones cuidadosamente seleccionadas para que encuentres la montura perfecta para tu dia a dia.",
+    alt: "Variedad de monturas opticas exhibidas sobre una mesa",
+    badge: "Catalogo",
+    showGradient: true,
+    showCaption: true,
   },
-  // },
 ];
 
 const APPOINTMENTS_ENDPOINT = "/api/citas/proximas/";
@@ -54,16 +62,23 @@ const Carousel = () => {
           signal: controller.signal,
         });
         if (!response.ok) {
-          throw new Error("No fue posible cargar las próximas citas");
+          throw new Error("No fue posible cargar las proximas citas");
         }
         const data = await response.json();
         const mapped = data.map((item) => ({
           id: `cita-${item.id}`,
           image: item.image_url,
-          title: item.title || "Próxima jornada",
-          description: `${item.display_date} · ${item.time_range}`,
-          alt: item.title || "Próxima cita programada",
-          badge: "Próximas citas",
+          title: item.title || "Proxima jornada",
+          description:
+            item.display_date && item.time_range
+              ? `${item.display_date} - ${item.time_range}`
+              : item.display_date || item.time_range || "",
+          alt: item.title || "Proxima cita programada",
+          badge: "Proximas citas",
+          ctaLabel: "Agendar cita",
+          ctaHref: "#/agendar_cita",
+          showGradient: false,
+          showCaption: true,
         }));
         if (isMounted) {
           setAppointmentSlides(mapped);
@@ -127,14 +142,25 @@ const Carousel = () => {
                 alt={slide.alt || slide.title}
                 loading="lazy"
               />
-              <div className="carousel-gradient" aria-hidden="true" />
-              <div className="carousel-caption d-flex flex-column align-items-start gap-2">
-                <span className="badge rounded-pill text-bg-light text-uppercase fw-semibold tracking-wide">
-                  {slide.badge || "Óptica integral"}
-                </span>
-                <h5 className="carousel-title">{slide.title}</h5>
-                <p className="carousel-text mb-0">{slide.description}</p>
-              </div>
+              {slide.showGradient && (
+                <div className="carousel-gradient" aria-hidden="true" />
+              )}
+              {slide.showCaption !== false && (
+                <div className="carousel-caption d-flex flex-column align-items-start gap-2">
+                  <span className="badge rounded-pill text-bg-light text-uppercase fw-semibold tracking-wide">
+                    {slide.badge || "Optica integral"}
+                  </span>
+                  <h5 className="carousel-title">{slide.title}</h5>
+                  <p className="carousel-text mb-0">{slide.description}</p>
+                  {slide.ctaLabel && (
+                    <a
+                      className="carousel-cta-btn btn btn-warning text-uppercase fw-semibold shadow-sm"
+                      href={slide.ctaHref || "#/agendar_cita"}>
+                      {slide.ctaLabel}
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -158,7 +184,7 @@ const Carousel = () => {
       </div>
       {hasTriedFetching && !appointmentSlides.length && (
         <div className="visually-hidden" aria-live="polite">
-          No se encontraron citas próximas.
+          No se encontraron citas proximas.
         </div>
       )}
     </section>
