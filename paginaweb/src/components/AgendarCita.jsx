@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { BACKEND_BASE_URL } from "../config/api";
 import Seo from "./Seo";
 
@@ -36,6 +37,9 @@ const buildCalendarGrid = (monthDate) => {
 };
 
 function AgendarCita() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const sectionRef = React.useRef(null);
   const appointmentSchema = {
     "@context": "https://schema.org",
     "@type": "MedicalBusiness",
@@ -65,6 +69,13 @@ function AgendarCita() {
   });
   const [status, setStatus] = React.useState({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (location.state?.scrollTo === "agendar-cita" && sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   React.useEffect(() => {
     if (!API_BASE) {
@@ -236,7 +247,7 @@ function AgendarCita() {
   };
 
   return (
-    <section className="AgendarCita">
+    <section ref={sectionRef} className="AgendarCita" id="agendar-cita">
       <Seo
         title="Agenda tu cita de optometría en Cali"
         description="Reserva en línea tu cita con nuestros especialistas en Bienestar Óptica. Selecciona fecha, horario y recibe confirmación inmediata."

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import foto1 from "@logos/bienestar_optica.jpg";
 import foto2 from "@logos/banner.jpg";
 import foto3 from "@logos/gafas-lentes.png";
@@ -76,7 +77,8 @@ const Carousel = () => {
           alt: item.title || "Proxima cita programada",
           badge: "Proximas citas",
           ctaLabel: "Agendar cita",
-          ctaHref: "#/agendar_cita",
+          ctaTo: "/agendar_cita",
+          ctaState: { scrollTo: "agendar-cita" },
           showGradient: false,
           showCaption: true,
         }));
@@ -153,11 +155,12 @@ const Carousel = () => {
                   <h5 className="carousel-title">{slide.title}</h5>
                   <p className="carousel-text mb-0">{slide.description}</p>
                   {slide.ctaLabel && (
-                    <a
+                    <Link
                       className="carousel-cta-btn btn text-uppercase fw-semibold shadow-sm"
-                      href={slide.ctaHref || "#/agendar_cita"}>
+                      to={slide.ctaTo || "/agendar_cita"}
+                      state={slide.ctaState}>
                       {slide.ctaLabel}
-                    </a>
+                    </Link>
                   )}
                 </div>
               )}
