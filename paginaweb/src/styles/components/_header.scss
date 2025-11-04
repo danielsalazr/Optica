@@ -19,12 +19,14 @@
     
   }
   .side-navbar {
-    width: 220px;
-    height: 100%;
+    width: 240px;
+    height: 100vh;
     position: fixed;
+    top: 0;
+    left: 0;
     margin-left: -300px;
-    background-color: #100901;
-    transition: 0.5s;
+    background-color: #0f172a;
+    transition: margin-left 0.35s ease;
   }
   
   .nav-link:active,
