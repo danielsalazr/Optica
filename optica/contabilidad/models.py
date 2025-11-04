@@ -513,54 +513,25 @@ class CitaAgenda(models.Model):
         return self.hero_image
 
     def _generate_overlay_image(self):
+        if self.background_image and self.background_image.name:
+            try:
+                extension = os.path.splitext(self.background_image.name)[1].lower() or ".jpg"
+                valid_ext = extension if extension in {".jpg", ".jpeg", ".png", ".webp"} else ".jpg"
+                with self.background_image.open("rb") as source_file:
+                    content = source_file.read()
+                file_name = f"citas/generated/cita_{self.pk}{valid_ext}"
+                if self.hero_image and self.hero_image.name and self.hero_image.storage.exists(self.hero_image.name):
+                    self.hero_image.storage.delete(self.hero_image.name)
+                self.hero_image.save(file_name, ContentFile(content), save=False)
+                super().save(update_fields=["hero_image"])
+                return
+            except (FileNotFoundError, OSError, ValueError):
+                pass
+
         width, height = 1280, 640
         base = self._compose_background(width, height)
-
-        overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
-        panel_height = int(height * 0.45)
-        draw.rectangle(
-            [(0, height - panel_height), (width, height)],
-            fill=(8, 12, 24, 225),
-        )
-
-        headline_font = self._resolve_font(60, bold=True)
-        date_font = self._resolve_font(40)
-        time_font = self._resolve_font(36)
-        note_font = self._resolve_font(28)
-
-        padding_x = 80
-        top_text = height - panel_height + 40
-        draw.text(
-            (padding_x, top_text),
-            self.title.upper(),
-            font=headline_font,
-            fill=(255, 255, 255, 230),
-        )
-        draw.text(
-            (padding_x, top_text + 90),
-            self.display_date,
-            font=date_font,
-            fill=(120, 220, 255, 255),
-        )
-        draw.text(
-            (padding_x, top_text + 150),
-            self.time_range,
-            font=time_font,
-            fill=(255, 255, 255, 230),
-        )
-
-        if self.nota:
-            draw.text(
-                (padding_x, top_text + 205),
-                self.nota,
-                font=note_font,
-                fill=(226, 232, 240, 255),
-            )
-
-        composite = Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
         buffer = BytesIO()
-        composite.save(buffer, format="JPEG", quality=90)
+        base.save(buffer, format="JPEG", quality=90)
 
         file_name = f"citas/generated/cita_{self.pk}.jpg"
         if self.hero_image and self.hero_image.name and self.hero_image.storage.exists(self.hero_image.name):
