@@ -6,7 +6,7 @@ import Carousel from "./Carousel";
 import Footer from "./Footer";
 
 function SideBar({ children }) {
-  const [hideMenu, setHideMenu] = useState(true);
+  const [hideMenu, setHideMenu] = useState(false);
   const [menuChangePosition, setMenuChangePosition] = useState(
     window.innerWidth < 400
   );

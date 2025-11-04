@@ -249,10 +249,12 @@ USE_L10N = True
 
 #statics
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
     #"/var/www/static/",
 ]
+
 
 #media
 MEDIA_ROOT = os.path.join(BASE_DIR,'media')
