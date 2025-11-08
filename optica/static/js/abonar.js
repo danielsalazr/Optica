@@ -19,7 +19,7 @@ submitAbonar.addEventListener('click', async function (e){
     const formData = new FormData(abonarForm);
 
     let cliente_id = formData.get('cliente_id');
-    let factura = formData.get('factura');
+    let factura = formData.get('venta') || formData.get('factura');
     let nombre = formData.get('nombre');
     let precio = formData.get('precio');
     let abono = formData.get('abono');
@@ -67,7 +67,7 @@ submitAbonar.addEventListener('click', async function (e){
     console.log(req.data);
 
     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-    await swalHtmlCreation(`Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Nombre cilente: ${nombre}<br>Precio Abono: ${moneyformat(precio)}<br>Medio de pago: ${medioDePagoText}`)
+    await swalHtmlCreation(`Se registró abono para la venta #${factura} <br>Cédula cliente: ${separadorMiles(cliente_id)}<br>Nombre cliente: ${nombre}<br>Precio Abono: ${moneyformat(precio)}<br>Medio de pago: ${medioDePagoText}`)
     
 });
 

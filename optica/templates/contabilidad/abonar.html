@@ -29,16 +29,17 @@
         <div class="row">
           <div class="form-group col-sm-12 col-md-6 col-xl-3">
             {% comment %} Este campo de factura debe llevar {% endcomment %}
-            <label for="email"># Factura</label>
+            <label for="ventaId"># Venta</label>
             <input
               type="number"
               class="form-control"
-              id="facturaVenta"
+              id="ventaId"
               placeholder=""
-              name="factura"
-              value="{{ventas.0.factura}}"
+              name="venta"
+              value="{{ventas.0.venta}}"
               readonly
             />
+            <input type="hidden" name="factura" value="{{ ventas.0.factura }}">
           </div>
           <div class="form-group col-sm-12 col-md-6 col-xl-3">
             <label for="cedula">Cedula de cliente:</label>

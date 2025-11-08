@@ -97,6 +97,7 @@ class VentaSerializer(serializers.ModelSerializer):
             'estado' : {'required': False},
             'foto' : {'required': False},
             'jornada': {'required': False, 'allow_null': True},
+            'empresaCliente': {'required': False, 'allow_blank': True},
         }
 
         # def to_representation(self, instance):
@@ -159,11 +160,16 @@ class VentaSerializer(serializers.ModelSerializer):
         abono = int(validated_data.get('totalAbono', 0) or 0)
         total = int(validated_data.get("precio", 0) or 0)
         console.log(f"El empresa ID es {empresa.id if empresa else None}")
-        
-        if abono > 0:
-            validated_data['estado'] = EstadoVenta.objects.get(id=2)
-        if abono == total:
-            validated_data['estado'] = EstadoVenta.objects.get(id=3)
+        if not validated_data.get('empresaCliente'):
+            validated_data['empresaCliente'] = 'Particular'
+
+        if total > 0:
+            if abono <= 0:
+                validated_data['estado'] = EstadoVenta.objects.get(id=1)
+            elif abono < total:
+                validated_data['estado'] = EstadoVenta.objects.get(id=2)
+            else:
+                validated_data['estado'] = EstadoVenta.objects.get(id=3)
 
         estado_slug = 'creado'
         if total > 0 and abono >= math.ceil(total / 2):
@@ -178,16 +184,25 @@ class VentaSerializer(serializers.ModelSerializer):
         # Obtenemos el ID de la empresa enviado en la solicitud
         console.log("se ejecuta el update")
         empresa = self._assign_empresa_nombre(validated_data)
-        abono = validated_data['totalAbono']
-        total = validated_data["precio"]
+        abono = int(validated_data.get('totalAbono', instance.totalAbono or 0) or 0)
+        total = int(validated_data.get("precio", instance.precio or 0) or 0)
         console.log(empresa.nombre if empresa else None)
         console.log(validated_data)
-        if abono == 0:
-            validated_data['estado'] = EstadoVenta.objects.get(id=1)
-        if abono > 0:
-            validated_data['estado'] = EstadoVenta.objects.get(id=2)
-        if abono == total:
-            validated_data['estado'] = EstadoVenta.objects.get(id=3)
+        validated_data['totalAbono'] = abono
+        if not validated_data.get('empresaCliente'):
+            validated_data['empresaCliente'] = instance.empresaCliente or 'Particular'
+
+        nuevo_estado = None
+        if total > 0:
+            if abono <= 0:
+                nuevo_estado = EstadoVenta.objects.get(id=1)
+            elif abono < total:
+                nuevo_estado = EstadoVenta.objects.get(id=2)
+            else:
+                nuevo_estado = EstadoVenta.objects.get(id=3)
+
+        if nuevo_estado and nuevo_estado.id != instance.estado_id:
+            validated_data['estado'] = nuevo_estado
 
         instance = super().update(instance, validated_data)
         maybe_mark_para_fabricacion(instance)
@@ -218,6 +233,7 @@ class ItemsVentaSerializer(serializers.ModelSerializer):
 
 
 class AbonoSerializer(serializers.ModelSerializer):
+    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
     
     class Meta:
         model = Abonos
@@ -229,7 +245,7 @@ class AbonoSerializer(serializers.ModelSerializer):
 
 
 class SaldoSerializer(serializers.ModelSerializer):
-    factura = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
+    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
     cliente = serializers.PrimaryKeyRelatedField(queryset=Clientes.objects.all())
 
     class Meta:
@@ -243,7 +259,7 @@ class SaldoSerializer(serializers.ModelSerializer):
 
 
 class HistoricoSaldosSerializer(serializers.ModelSerializer):
-    factura = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
+    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
     cliente = serializers.PrimaryKeyRelatedField(queryset=Clientes.objects.all())
 
     class Meta:
@@ -260,7 +276,7 @@ class PedidoVentaSerializer(serializers.ModelSerializer):
         model = PedidoVenta
         fields = [
             'estado',
-            'factura',
+            'venta',
         ]
         # extra_kwargs = {
         #     'detalle': {'required': False},
@@ -271,31 +287,6 @@ class PedidoVentaSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
         console.log(validated_data)
-        abono = int(self.initial_data.get("totalAbono"))
-        total = int(self.initial_data.get("precio"))
-
-        # console.log(self.initial_data)
-
-        console.log(abono)
-        console.log(total)
-
-        if abono > total / 2:
-            validated_data['estado'] = EstadoPedidoVenta(id=2)
-        # empresa_id = validated_data.pop('empresaCliente', None)
-        # abono = validated_data['totalAbono']
-        # total = validated_data["precio"]
-        # console.log(f"El empresa ID es {empresa_id}")
-        # if empresa_id:
-        #     # Buscamos la empresa en la base de datos
-        #     empresa = Empresa.objects.get(id=empresa_id)
-        #     console.log(empresa)
-        #     # Asignamos el nombre de la empresa al campo `empresaCliente`
-        #     validated_data['empresaCliente'] = empresa.nombre
-        
-        # if abono > 0:
-        #     validated_data['estado'] = EstadoVenta.objects.get(id=2)
-        # if abono == total:
-        #     validated_data['estado'] = EstadoVenta.objects.get(id=3)
         return super().create(validated_data)
 
 

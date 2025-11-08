@@ -74,6 +74,7 @@ from .utils_estado_pedido import (
     mark_entregado_si_corresponde,
     mark_estado_pedido,
     maybe_mark_para_fabricacion,
+    get_estado_pedido_by_slug,
 )
 
 console = Console()
@@ -333,9 +334,9 @@ def abonar(request, factura = 0):
         order by factura desc;
     """
     with connection.cursor() as cursor:
-        cursor.execute(query)
-        facturaSearched = cursor.fetchall()
-        console.log(facturaSearched)
+            cursor.execute(query)
+            facturaSearched = cursor.fetchall()
+            console.log(facturaSearched)
 
     listVentas = []
 
@@ -343,6 +344,7 @@ def abonar(request, factura = 0):
         listVentas.append({
             'numero': i+1,
             'factura': venta[0],
+            'venta': venta[0],
             'nombre': venta[1],
             'precio': venta[2],
             'abono': venta[3],
@@ -378,8 +380,8 @@ class Venta(APIView):
                     MIN(T3.foto) as foto 
                 from contabilidad_ventas T0
                 inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
-                inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
-                inner join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
+                left join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
+                left join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
                 where T0.id = {id}
                 group by T0.id, T1.id 
                 ;
@@ -568,14 +570,20 @@ class Venta(APIView):
             console.log(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer.save()
+        venta_obj = serializer.save()
 
         console.log(request.data)
         # data_copy['saldo'] = saldo['saldo']
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
         if medioDePago != "":
             serializerAbono = AbonoSerializer(data=abono, many=True)
-        serializerPedido = PedidoVentaSerializer(data=data_copy, many=False)
+        estado_creado_obj = get_estado_pedido_by_slug('creado')
+        pedido_payload = {
+            'estado': estado_creado_obj.id,
+            'venta': venta_obj.id,
+        }
+
+        serializerPedido = PedidoVentaSerializer(data=pedido_payload, many=False)
 
         if not serializerPedido.is_valid():
             console.log(serializerPedido.errors)
@@ -642,8 +650,9 @@ class Venta(APIView):
     def put(self, request, id=0):
         console.log(request.data)
 
-        factura = request.data['factura']
-        # console.log(factura)
+        factura = request.data.get('factura') or request.data.get('id') or id
+        if not factura:
+            return Response({'detail': 'Debe indicar la venta que desea actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
 
         venta_items = json.loads(request.data.get('venta', '[]'))
         abonos = json.loads(request.data.get('abonos', '[]'))
@@ -690,17 +699,16 @@ class Venta(APIView):
         
         if abonos:
         # Eliminamos abonos antiguos (o actualizamos según tu lógica de negocio)
-            Abonos.objects.filter(factura=factura).delete()
+            Abonos.objects.filter(venta=factura).delete()
             
             abonos_serializer = AbonoSerializer(data=abonos, many=True)
             if abonos_serializer.is_valid():
                 abonos_serializer.save()
             else:
                 console.log(abonos_serializer.errors)
-
         if saldo:
             saldo_obj, created = Saldos.objects.update_or_create(
-                factura=venta,
+                venta=venta,
                 defaults={'saldo': saldo.get('saldo', 0)}
             )
             
@@ -712,12 +720,19 @@ class Venta(APIView):
                 console.log(historico_serializer.errors)
 
         try:
-            pedido = PedidoVenta.objects.get(factura=venta)
-            pedido_serializer = PedidoVentaSerializer(pedido, data=data_copy)
+            pedido = PedidoVenta.objects.get(venta=venta)
+            pedido_serializer = PedidoVentaSerializer(pedido, data={'venta': venta.id}, partial=True)
             if pedido_serializer.is_valid():
                 pedido_serializer.save()
         except PedidoVenta.DoesNotExist:
             pass
+
+        total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+            total=Coalesce(Sum('precio'), 0)
+        ).get('total') or 0
+        venta.totalAbono = total_abonos_db
+        venta.save(update_fields=['totalAbono'])
+        maybe_mark_para_fabricacion(venta)
 
 
         # return Response(serializer.data)
@@ -820,15 +835,23 @@ class Abono(APIView):
     def post(self, request):
         console.log(request.data)
         metodoPago = request.data.get('medioDePago')
-        factura =  request.data.get('factura')
-        
-        venta = Ventas.objects.get(factura=factura)
-        saldo = Saldos.objects.get(factura=venta)
+        factura_raw = request.data.get('factura') or request.data.get('venta')
+        if not factura_raw:
+            return Response({'detail': 'Debe indicar la venta a la que aplica el abono.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            venta = Ventas.objects.get(pk=int(factura_raw))
+        except (Ventas.DoesNotExist, ValueError, TypeError):
+            return Response({'detail': 'La venta indicada no existe.'}, status=status.HTTP_404_NOT_FOUND)
+
+        saldo = get_object_or_404(Saldos, venta=venta)
         console.log(venta)
         # metodoPago = MediosDePago.objects.get(id=metodoPago)
     
 
-        serializer = AbonoSerializer(data=request.data)
+        data_copy = request.data.copy()
+        data_copy['factura'] = venta.id
+
+        serializer = AbonoSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if serializer.is_valid():
@@ -838,7 +861,7 @@ class Abono(APIView):
             serializer.save()
 
             total_Abono = Abonos.objects.filter(
-                factura=venta
+                venta=venta
             ).aggregate(total=Sum('precio'))#['total']
             
             venta.totalAbono = total_Abono.get('total')
@@ -934,7 +957,14 @@ class VentaEstadoPedidoView(APIView):
 
         if estado_slug == 'para_fabricacion':
             minimo = math.ceil((venta.precio or 0) / 2) if (venta.precio or 0) > 0 else 0
-            if minimo > 0 and (venta.totalAbono or 0) < minimo:
+            total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+                total=Coalesce(Sum('precio'), 0)
+            ).get('total') or 0
+            total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
+            if total_abono_actual != (venta.totalAbono or 0):
+                venta.totalAbono = total_abono_actual
+                venta.save(update_fields=['totalAbono'])
+            if minimo > 0 and total_abono_actual < minimo:
                 return Response(
                     {'detail': f'Para enviar a fabricacion se requiere un abono minimo de {minimo}.'},
                     status=status.HTTP_400_BAD_REQUEST
