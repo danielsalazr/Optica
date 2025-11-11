@@ -30,7 +30,7 @@
 
 /* for main section */
 .active-cont {
-  // margin-left: 220px;
+  margin-left: 0;
 }
 
 .menuBtn {
@@ -50,7 +50,7 @@
   color: #fff;
   margin-left: -18px;
   margin-top: 10px;
-  z-index: 2;
+  z-index: 11;
   left: 20px;
   transition: 0.4s ease-in-out;
 }

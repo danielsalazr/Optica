@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 const VALUE_POINTS = [
   {
@@ -43,9 +44,12 @@ const VisionValueSection = () => {
             </p>
 
             <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-3 mt-4 text-center text-sm-start">
-              <a className="btn btn-primary btn-lg px-4 py-3 d-flex align-items-center justify-content-center" href="#/agendar_cita">
+              <Link
+                className="btn btn-primary btn-lg px-4 py-3 d-flex align-items-center justify-content-center"
+                to="/agendar_cita"
+                state={{ scrollTo: "agendar-cita" }}>
                 Agenda tu examen visual
-              </a>
+              </Link>
               <a
                 className="btn btn-outline-primary btn-lg px-4 py-3 d-flex flex-column align-items-center justify-content-center gap-1"
                 href="tel:+573024800367">

@@ -32,7 +32,11 @@ function SideBar({ children }) {
     const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
     const handleChange = (event) => {
       setIsMobile(event.matches);
-      setHideMenu(event.matches);
+      if (event.matches) {
+        setHideMenu(true);
+      } else {
+        setHideMenu(false);
+      }
     };
 
     if (mediaQuery.addEventListener) {
@@ -79,6 +83,7 @@ function SideBar({ children }) {
     title: "Mision Vision",
     icon: "bx bxs-dashboard",
     pathRoute: "/mision_vision",
+    scrollTo: "mision-vision",
   });
 
   // menuData.push({
@@ -91,6 +96,7 @@ function SideBar({ children }) {
     title: "Brigadas Empresariales",
     icon: "bx bxs-dashboard",
     pathRoute: "/brigadas_empresariales",
+    scrollTo: "brigadas-empresariales",
   });
 
   // menuData.push({
@@ -121,6 +127,7 @@ function SideBar({ children }) {
     title: "Agendar Cita",
     icon: "bx bx-edit-alt",
     pathRoute: "/agendar_cita",
+    scrollTo: "agendar-cita",
   });
 
   // menuData.push({
@@ -181,6 +188,7 @@ function SideBar({ children }) {
 }
 
 function MenuLink({ toPath, onNavigate }) {
+  const linkState = toPath.scrollTo ? { scrollTo: toPath.scrollTo } : undefined;
   return (
     <li className="nav-link">
       {/* <a href={toPath.pathRoute} className="rounded">
@@ -195,6 +203,7 @@ function MenuLink({ toPath, onNavigate }) {
           fontSize: isActive ? "1.2rem" : "",
         })}
         to={toPath.pathRoute}
+        state={linkState}
         onClick={onNavigate}>
         <i className={toPath.icon}></i>
         <span className="mx-2">{toPath.title}</span>
