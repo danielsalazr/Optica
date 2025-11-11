@@ -28,10 +28,16 @@ urlpatterns = [
     
     path('venta/', views.Venta.as_view(), name="venta"),
     path('venta/<int:id>', views.Venta.as_view(), name="ventanum"),
+    path('venta/<int:venta_id>/estado-pedido/', views.VentaEstadoPedidoView.as_view(), name="venta-estado-pedido"),
     
     path('abono/', views.Abono.as_view(), name="abono"),
     path('abono/<factura>', views.Abono.as_view(), name="abono"),
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),
+
+    path('remisiones/', views.RemisionView.as_view(), name="remisiones"),
+    path('remisiones/venta/<int:venta_id>/', views.RemisionView.as_view(), name="remisiones-venta"),
+    path('jornadas/', views.JornadaView.as_view(), name="jornadas"),
+    path('jornadas/<int:jornada_id>/', views.JornadaDetailView.as_view(), name="jornadas-detail"),
     
 
     path('articulos/', views.articulos, name="articulos"),

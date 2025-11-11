@@ -14,6 +14,9 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     TipoVenta,
+    Remision,
+    RemisionItem,
+    Jornada,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -109,8 +112,12 @@ class ItemsVentaAdmin(admin.ModelAdmin):
         'descuento',
         'totalArticulo',
     )
-
-    # search_fields = ('factura',)
+    search_fields = (
+        'venta__id',
+        'venta__cliente_id',
+        'articulo__nombre',
+        'articulo__id',
+    )
 
 @admin.register(TipoVenta)
 class TipoVentaAdmin(admin.ModelAdmin):
@@ -239,6 +246,44 @@ class ItemsPEdidoVentaAdmin(admin.ModelAdmin):
         'articulo',
         'cantidad',
     )
+
+
+@admin.register(Remision)
+class RemisionAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'venta',
+        'cliente_id',
+        'fecha',
+        'observacion',
+        'creado_en',
+    )
+    list_filter = ('fecha',)
+    search_fields = ('id', 'venta__id', 'cliente_id')
+
+
+@admin.register(RemisionItem)
+class RemisionItemAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'remision',
+        'item_venta',
+        'cantidad',
+        'articulo_nombre',
+    )
+    autocomplete_fields = ('item_venta',)
+
+    def articulo_nombre(self, obj):
+        return obj.item_venta.articulo.nombre
+
+    articulo_nombre.short_description = "Articulo"
+
+
+@admin.register(Jornada)
+class JornadaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'empresa', 'sucursal', 'fecha', 'estado', 'responsable')
+    list_filter = ('estado', 'fecha', 'empresa', 'sucursal')
+    search_fields = ('empresa__nombre', 'sucursal')
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):
 #     list_display = (

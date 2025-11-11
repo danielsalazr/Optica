@@ -46,6 +46,8 @@ function Header() {
           <NavDropdown.Item href="ventas/crearVenta">
             Crear venta
           </NavDropdown.Item>
+          <NavDropdown.Item href="/remisiones">Remisiones</NavDropdown.Item>
+          <NavDropdown.Item href="/jornadas">Jornadas</NavDropdown.Item>
           <NavDropdown.Item href="#action/3.3">Something</NavDropdown.Item>
           <NavDropdown.Divider />
           <NavDropdown.Item href="#action/3.4">

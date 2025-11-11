@@ -43,42 +43,42 @@ async function page() {
 
     // Modificar la propiedad "precio" de cada objeto en la lista
     table = table.map(item => {
-      // Eliminar el símbolo "$" y reemplazar "." por ","
-      item.precio = moneyformat(item.precio)
-      item.totalAbono = moneyformat(item.totalAbono)
-      item.saldo = moneyformat(item.saldo)
-      return item; // Retornar el objeto modificado
+      const precioRaw = item.precio ?? 0;
+      const totalAbonoRaw = item.totalAbono ?? 0;
+      const saldoRaw = item.saldo ?? 0;
+      return {
+        ...item,
+        precioRaw,
+        totalAbonoRaw,
+        saldoRaw,
+        precio: moneyformat(precioRaw),
+        totalAbono: moneyformat(totalAbonoRaw),
+        saldo: moneyformat(saldoRaw),
+        estadoPedidoId: item.estado_pedido_id ?? null,
+        estadoPedidoNombre: item.estado_pedido_nombre ?? '',
+        estadoPedidoDetalle: item.estado_pedido_detalle ?? '',
+        estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
+      };
     });
 
     
     
   return (
-    <>
-      
-      <div className='container-md'>
-        <a className="previous round" href="{% url 'main' %}" 
-            style={{position: 'absolute', top: '40px !important', left: '20px !important', padding: '8px 16px', borderRadius: '50%', backgroundColor: '#f1f1f1'}}>
-            <i className="fa-solid fa-arrow-left" />
-        </a>
-        <div className="d-flex w-100 flex-column vh-100 align-items-center mt-4">
-
-          <div className="d-flex w-100 mb-1" style={{alignItems: 'center', justifyContent: 'space-between'}}>
-            <div></div>
-            <span className='h3'>Ventas</span>
-            {/* <div className='d-flex w-100 justify-content-end'> */}
-            <Link className="pe-2" rel="stylesheet" href="ventas/crearVenta" ><button className='btn btn-success'> crear Venta</button></Link> 
-            {/* </div> */}
-          </div>
-            
-          
-
-          <VentasData data={table} generalData={generalData} />
-          
-        </div>
+    <div className="page-shell">
+      <div className="ventas-toolbar">
+        <Link href="/" className="floating-back-button">
+          <i className="fa-solid fa-arrow-left" />
+        </Link>
+        <h1 className="ventas-page-title mb-0">Ventas</h1>
+        <Link href="/ventas/crearVenta" className="btn btn-primary fw-semibold px-4 py-2 rounded-pill">
+          Crear venta
+        </Link>
       </div>
 
-
-    </>
+      <div className="ventas-card">
+        <VentasData data={table} generalData={generalData} />
+      </div>
+    </div>
   )
 }
 

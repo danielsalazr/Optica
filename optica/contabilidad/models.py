@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
-from usuarios.models import Clientes
+from usuarios.models import Clientes, Empresa
+from django.conf import settings
 from django.db.models.deletion import DO_NOTHING
 from PIL import Image
 
@@ -110,6 +111,48 @@ class TipoVenta(models.Model):
         return self.nombre
 
 
+class Jornada(models.Model):
+
+    ESTADOS = [
+        ('planned', 'Planificada'),
+        ('in_progress', 'En progreso'),
+        ('closed', 'Cerrada'),
+    ]
+
+    empresa = models.ForeignKey(Empresa, on_delete=DO_NOTHING, related_name='jornadas')
+    sucursal = models.CharField(
+        max_length=120,
+        blank=True,
+        default='',
+        help_text="Sucursal o punto de atención donde se realiza la jornada.",
+    )
+    fecha = models.DateField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='planned')
+    responsable = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=DO_NOTHING,
+        related_name='jornadas',
+        blank=True,
+        null=True,
+    )
+    observaciones = models.TextField(blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Jornada"
+        verbose_name_plural = "Jornadas"
+        constraints = [
+            models.UniqueConstraint(fields=['empresa', 'fecha', 'sucursal'], name='unique_jornada_empresa_fecha'),
+        ]
+
+    def __str__(self):
+        etiqueta = f"{self.empresa}"
+        if self.sucursal:
+            etiqueta = f"{etiqueta} · {self.sucursal}"
+        return f"{etiqueta} · {self.fecha}"
+
+
 class Ventas(models.Model):
 
     OPCIONES = [
@@ -130,6 +173,16 @@ class Ventas(models.Model):
     # total_venta = models.IntegerField(default=0)
     #estado = models.CharField(max_length=50, default='')
     estado = models.ForeignKey(EstadoVenta, default=1,  on_delete=DO_NOTHING , verbose_name="Estado venta", blank=True, null=True)
+    estado_pedido = models.ForeignKey(
+        'EstadoPedidoVenta',
+        on_delete=DO_NOTHING,
+        related_name='ventas_estado_pedido',
+        verbose_name="Estado pedido",
+        blank=True,
+        null=True,
+    )
+    estado_pedido_detalle = models.TextField(max_length=500, blank=True, null=True)
+    estado_pedido_actualizado = models.DateTimeField(blank=True, null=True)
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
@@ -139,6 +192,7 @@ class Ventas(models.Model):
     usuarioAnulacion = models.IntegerField(default=None, blank=True, null=True)
     cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
     ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
+    jornada = models.ForeignKey(Jornada, on_delete=DO_NOTHING, related_name='ventas', blank=True, null=True)
     
 
     class Meta:
@@ -232,6 +286,36 @@ class ItemsVenta(models.Model):
     totalArticulo = models.IntegerField(default=0)
     # tipo_descuento
 
+
+class Remision(models.Model):
+    id = models.AutoField(primary_key=True)
+    venta = models.ForeignKey(Ventas, on_delete=models.CASCADE, related_name="remisiones")
+    cliente_id = models.BigIntegerField(verbose_name="cedula de cliente", blank=True, null=True, default=0)
+    fecha = models.DateField(verbose_name="Fecha de remision", default=timezone.now)
+    observacion = models.TextField(max_length=255, blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Remision"
+        verbose_name_plural = "Remisiones"
+
+    def __str__(self):
+        return f"Remision {self.id} - Venta {self.venta_id}"
+
+
+class RemisionItem(models.Model):
+    remision = models.ForeignKey(Remision, on_delete=models.CASCADE, related_name="items")
+    item_venta = models.ForeignKey(ItemsVenta, on_delete=models.PROTECT, related_name="remisiones_items")
+    cantidad = models.IntegerField(default=0)
+
+    class Meta:
+        managed = True
+        verbose_name = "Item remision"
+        verbose_name_plural = "Items remision"
+
+    def __str__(self):
+        return f"{self.item_venta.articulo} x {self.cantidad}"
 
 class Abonos(models.Model):
     id = models.AutoField(primary_key=True)

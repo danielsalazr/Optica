@@ -1,0 +1,290 @@
+:root {
+  --app-font: "Inter", "Segoe UI", Tahoma, sans-serif;
+  --app-bg: #f5f7fb;
+  --app-surface: #ffffff;
+  --app-border: #d8dde7;
+  --app-primary: #4f46e5;
+  --app-heading: #111827;
+  --app-text: #1f2937;
+  --app-muted: #6b7280;
+  --app-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+body {
+  font-family: var(--app-font);
+  background: var(--app-bg);
+  color: var(--app-text);
+  line-height: 1.55;
+}
+
+a {
+  color: var(--app-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #4338ca;
+  text-decoration: none;
+}
+
+.page-shell {
+  width: min(1160px, 100%);
+  margin: 2.5rem auto;
+  padding: 0 1.5rem 3rem;
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    margin-top: 1.5rem;
+    padding: 0 1rem 2.5rem;
+  }
+}
+
+.venta-page-title {
+  font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem);
+  font-weight: 700;
+  color: var(--app-heading);
+  margin-bottom: 1.5rem;
+}
+
+.venta-card {
+  background: var(--app-surface);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
+  padding: 2rem;
+  border: 1px solid #eef1f6;
+}
+
+.venta-card .form-label,
+.venta-card label {
+  font-weight: 600;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.venta-card .form-control,
+.venta-card .form-select {
+  border-radius: 12px;
+  border-color: var(--app-border);
+  min-height: 44px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.venta-card .form-control:focus,
+.venta-card .form-select:focus {
+  border-color: var(--app-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  background: #f8f9ff;
+}
+
+.venta-sections {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.venta-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--app-heading);
+  margin-bottom: 1rem;
+}
+
+.venta-section-title::before {
+  content: "";
+  width: 36px;
+  height: 2px;
+  background: var(--app-primary);
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.venta-summary {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.02));
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.venta-summary strong {
+  font-size: 1.6rem;
+  color: var(--app-primary);
+}
+
+.venta-summary span {
+  color: var(--app-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+.table-modern {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #ebeff5;
+  background: var(--app-surface);
+}
+
+.table-modern.table-responsive {
+  overflow: visible;
+}
+
+.table-modern table {
+  margin-bottom: 0;
+  color: var(--app-text);
+}
+
+.table-modern thead tr {
+  background: #f8faff;
+  color: var(--app-heading);
+}
+
+.table-modern th {
+  border-bottom: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.85rem 1rem;
+}
+
+.table-modern td {
+  vertical-align: middle;
+  padding: 0.85rem 1rem;
+  border-color: #eef1f5;
+}
+
+.table-modern tbody tr:hover {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.table-modern input.form-control {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.table-modern input.form-control:focus {
+  background: #ffffff;
+}
+
+.venta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.venta-actions .btn {
+  padding-inline: 1.25rem;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.floating-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--app-heading);
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  margin-bottom: 1.5rem;
+}
+
+.floating-back-button:hover {
+  background: rgba(79, 70, 229, 0.12);
+  transform: translateY(-2px);
+  color: var(--app-heading);
+}
+
+#previsualizadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.preview-card {
+  position: relative;
+  width: 120px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid #e0e6f1;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  padding: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.preview-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--app-primary);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.preview-remove:hover {
+  background: #4338ca;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 992px) {
+  .venta-card {
+    padding: 1.5rem;
+  }
+
+  .venta-actions {
+    justify-content: stretch;
+  }
+
+  .venta-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .floating-back-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .venta-card {
+    padding: 1.25rem;
+  }
+}

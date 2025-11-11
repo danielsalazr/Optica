@@ -6,8 +6,8 @@ from django.views.generic import ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.forms.models import model_to_dict
-from django.db import connection
-from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery
+from django.db import connection, IntegrityError
+from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery, Count
 from django.db.models.functions import Coalesce
 
 from django.contrib.auth.decorators import login_required
@@ -22,8 +22,6 @@ from rest_framework.permissions import IsAuthenticated
 
 # from .serializers import InventorySerializer
 
-
-
 from .serializers import (
     VentaSerializer,
     AbonoSerializer,
@@ -32,7 +30,12 @@ from .serializers import (
     HistoricoSaldosSerializer,
     PedidoVentaSerializer,
     ItemsPEdidoVentaSerializer,
+    RemisionSerializer,
+    RemisionItemSerializer,
+    JornadaSerializer,
  )
+
+import math
 
 from .models import (
     Ventas,
@@ -44,7 +47,11 @@ from .models import (
     PedidoVenta,
     ItemsPEdidoVenta,
     Saldos,
-    )
+    Remision,
+    RemisionItem,
+    EstadoPedidoVenta,
+    Jornada,
+)
 from usuarios.models import Clientes, Empresa
 
 from utils.diccionarios import (
@@ -60,6 +67,16 @@ import json
 import os
 from datetime import datetime
 from rich.console import Console
+
+from .utils_estado_pedido import (
+    ESTADO_PEDIDO_ORDER,
+    identify_estado_pedido_slug,
+    mark_entregado_si_corresponde,
+    mark_estado_pedido,
+    maybe_mark_para_fabricacion,
+    get_estado_pedido_by_slug,
+)
+
 console = Console()
 
 # Create your views here.
@@ -178,6 +195,17 @@ class VentasP(APIView):
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
+        estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
+        jornadas = Jornada.objects.select_related('empresa').filter(
+            estado__in=['planned', 'in_progress']
+        ).order_by('-fecha', '-id').values(
+            'id',
+            'fecha',
+            'estado',
+            'empresa_id',
+            'empresa__nombre',
+            'sucursal',
+        )
 
 
         context = {
@@ -187,6 +215,8 @@ class VentasP(APIView):
             'clientes': clientes,
             'articulos': articulos,
             'empresas': empresa,
+            'estadosPedido': list(estados_pedido),
+            'jornadas': list(jornadas),
         }
 
         console.log(context)
@@ -304,9 +334,9 @@ def abonar(request, factura = 0):
         order by factura desc;
     """
     with connection.cursor() as cursor:
-        cursor.execute(query)
-        facturaSearched = cursor.fetchall()
-        console.log(facturaSearched)
+            cursor.execute(query)
+            facturaSearched = cursor.fetchall()
+            console.log(facturaSearched)
 
     listVentas = []
 
@@ -314,6 +344,7 @@ def abonar(request, factura = 0):
         listVentas.append({
             'numero': i+1,
             'factura': venta[0],
+            'venta': venta[0],
             'nombre': venta[1],
             'precio': venta[2],
             'abono': venta[3],
@@ -349,8 +380,8 @@ class Venta(APIView):
                     MIN(T3.foto) as foto 
                 from contabilidad_ventas T0
                 inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
-                inner join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
-                inner join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
+                left join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
+                left join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
                 where T0.id = {id}
                 group by T0.id, T1.id 
                 ;
@@ -389,7 +420,48 @@ class Venta(APIView):
                 # results = cursor.fetchall()
 
             lista.update({'abonos': results})
-            
+
+            remisiones_qs = Remision.objects.filter(
+                venta_id=id
+            ).prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+
+            remisiones_totales = RemisionItem.objects.filter(
+                item_venta__venta_id=id
+            ).values('item_venta_id').annotate(
+                total=Coalesce(Sum('cantidad'), 0)
+            )
+
+            totales_map = {item['item_venta_id']: item['total'] for item in remisiones_totales}
+
+            remisiones_serializadas = RemisionSerializer(
+                remisiones_qs,
+                many=True,
+                context={'remision_totals': totales_map}
+            ).data
+
+            lista.update({'remisiones': remisiones_serializadas})
+
+            for item in lista.get('ventas', []):
+                item_id = item.get('id')
+                remisionado = totales_map.get(item_id, 0)
+                cantidad = item.get('cantidad') or 0
+                try:
+                    cantidad = int(cantidad)
+                except (ValueError, TypeError):
+                    cantidad = 0
+
+                item['remisionado'] = remisionado
+                item['pendienteRemision'] = max(cantidad - remisionado, 0)
+
+            venta_instance = Ventas.objects.select_related('jornada__empresa').filter(id=id).first()
+            if venta_instance:
+                lista.update({
+                    'jornada': venta_instance.jornada_id,
+                    'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
+                    'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
+                })
 
             return Response(lista, status=status.HTTP_200_OK)
 
@@ -426,6 +498,15 @@ class Venta(APIView):
                 T4.saldo,
                 #T0.precio - sum(T2.precio) as saldo, 
                 T3.nombre as estado,
+                T5.id as estado_pedido_id,
+                T5.nombre as estado_pedido_nombre,
+                T0.estado_pedido_detalle,
+                T0.estado_pedido_actualizado,
+                T6.id as jornada_id,
+                T6.estado as jornada_estado,
+                T6.fecha as jornada_fecha,
+                T6.sucursal as jornada_sucursal,
+                T7.nombre as jornada_empresa,
                 
                 T0.detalle
             FROM contabilidad_ventas T0
@@ -433,6 +514,9 @@ class Venta(APIView):
             #left join contabilidad_abonos T2 on T0.id = T2.venta_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
             LEFT join contabilidad_saldos T4 on T4.venta_id  = T0.id
+            LEFT join contabilidad_estadopedidoventa T5 on T5.id = T0.estado_pedido_id
+            LEFT join contabilidad_jornada T6 on T6.id = T0.jornada_id
+            LEFT join usuarios_empresa T7 on T7.id = T6.empresa_id
             #where id = {venta}
             
             #order by T0.id desc;
@@ -441,7 +525,20 @@ class Venta(APIView):
             cursor.execute(query)
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        
+        for item in results:
+            jornada_empresa = item.get('jornada_empresa')
+            jornada_fecha = item.get('jornada_fecha')
+            jornada_sucursal = item.get('jornada_sucursal')
+            if jornada_empresa and jornada_fecha:
+                partes = [jornada_empresa]
+                if jornada_sucursal:
+                    partes.append(jornada_sucursal)
+                partes.append(str(jornada_fecha))
+                item['jornada_label'] = " · ".join(partes)
+            elif item.get('jornada_id'):
+                item['jornada_label'] = f"Jornada #{item['jornada_id']}"
+            else:
+                item['jornada_label'] = ''
         
         console.log(ventas)
     
@@ -473,14 +570,20 @@ class Venta(APIView):
             console.log(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer.save()
+        venta_obj = serializer.save()
 
         console.log(request.data)
         # data_copy['saldo'] = saldo['saldo']
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
         if medioDePago != "":
             serializerAbono = AbonoSerializer(data=abono, many=True)
-        serializerPedido = PedidoVentaSerializer(data=data_copy, many=False)
+        estado_creado_obj = get_estado_pedido_by_slug('creado')
+        pedido_payload = {
+            'estado': estado_creado_obj.id,
+            'venta': venta_obj.id,
+        }
+
+        serializerPedido = PedidoVentaSerializer(data=pedido_payload, many=False)
 
         if not serializerPedido.is_valid():
             console.log(serializerPedido.errors)
@@ -547,8 +650,9 @@ class Venta(APIView):
     def put(self, request, id=0):
         console.log(request.data)
 
-        factura = request.data['factura']
-        # console.log(factura)
+        factura = request.data.get('factura') or request.data.get('id') or id
+        if not factura:
+            return Response({'detail': 'Debe indicar la venta que desea actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
 
         venta_items = json.loads(request.data.get('venta', '[]'))
         abonos = json.loads(request.data.get('abonos', '[]'))
@@ -595,17 +699,16 @@ class Venta(APIView):
         
         if abonos:
         # Eliminamos abonos antiguos (o actualizamos según tu lógica de negocio)
-            Abonos.objects.filter(factura=factura).delete()
+            Abonos.objects.filter(venta=factura).delete()
             
             abonos_serializer = AbonoSerializer(data=abonos, many=True)
             if abonos_serializer.is_valid():
                 abonos_serializer.save()
             else:
                 console.log(abonos_serializer.errors)
-
         if saldo:
             saldo_obj, created = Saldos.objects.update_or_create(
-                factura=venta,
+                venta=venta,
                 defaults={'saldo': saldo.get('saldo', 0)}
             )
             
@@ -617,12 +720,19 @@ class Venta(APIView):
                 console.log(historico_serializer.errors)
 
         try:
-            pedido = PedidoVenta.objects.get(factura=venta)
-            pedido_serializer = PedidoVentaSerializer(pedido, data=data_copy)
+            pedido = PedidoVenta.objects.get(venta=venta)
+            pedido_serializer = PedidoVentaSerializer(pedido, data={'venta': venta.id}, partial=True)
             if pedido_serializer.is_valid():
                 pedido_serializer.save()
         except PedidoVenta.DoesNotExist:
             pass
+
+        total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+            total=Coalesce(Sum('precio'), 0)
+        ).get('total') or 0
+        venta.totalAbono = total_abonos_db
+        venta.save(update_fields=['totalAbono'])
+        maybe_mark_para_fabricacion(venta)
 
 
         # return Response(serializer.data)
@@ -725,15 +835,23 @@ class Abono(APIView):
     def post(self, request):
         console.log(request.data)
         metodoPago = request.data.get('medioDePago')
-        factura =  request.data.get('factura')
-        
-        venta = Ventas.objects.get(factura=factura)
-        saldo = Saldos.objects.get(factura=venta)
+        factura_raw = request.data.get('factura') or request.data.get('venta')
+        if not factura_raw:
+            return Response({'detail': 'Debe indicar la venta a la que aplica el abono.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            venta = Ventas.objects.get(pk=int(factura_raw))
+        except (Ventas.DoesNotExist, ValueError, TypeError):
+            return Response({'detail': 'La venta indicada no existe.'}, status=status.HTTP_404_NOT_FOUND)
+
+        saldo = get_object_or_404(Saldos, venta=venta)
         console.log(venta)
         # metodoPago = MediosDePago.objects.get(id=metodoPago)
     
 
-        serializer = AbonoSerializer(data=request.data)
+        data_copy = request.data.copy()
+        data_copy['factura'] = venta.id
+
+        serializer = AbonoSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if serializer.is_valid():
@@ -743,7 +861,7 @@ class Abono(APIView):
             serializer.save()
 
             total_Abono = Abonos.objects.filter(
-                factura=venta
+                venta=venta
             ).aggregate(total=Sum('precio'))#['total']
             
             venta.totalAbono = total_Abono.get('total')
@@ -758,6 +876,7 @@ class Abono(APIView):
                 # cambiar el estado de la venta a pagada
                 venta.estado_id = 3
             venta.save()
+            maybe_mark_para_fabricacion(venta)
 
             # return JsonResponse({'accion': 'ok'}{'accion': 'ok'}, status=201)
             return Response({'accion': 'ok'}, status=status.HTTP_201_CREATED)
@@ -766,18 +885,162 @@ class Abono(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # return JsonResponse({'accion': 'valid'}, status=200)
 
-    # def delete(self, request, id=0):
-    #     # console.log(request.data)
-    #     # console.log(id)
-    #     abono = Abonos.objects.get(id=id)
-    #     factura = Ventas.objects.get(factura=abono.factura_id)
-    #     saldo = Saldos.objects.get(factura=factura)
 
-    #     abono.delete()
+class JornadaView(APIView):
+    def get(self, request):
+        estado = request.GET.get('estado')
+        empresa_id = request.GET.get('empresa')
+        jornadas_qs = Jornada.objects.select_related('empresa', 'responsable')
 
-    #     total_Abono = Abonos.objects.filter(
-    #         factura=factura
-    #     ).aggregate(total=Sum('precio'))
+        if estado:
+            jornadas_qs = jornadas_qs.filter(estado=estado)
+        if empresa_id:
+            jornadas_qs = jornadas_qs.filter(empresa_id=empresa_id)
+
+        jornadas_qs = jornadas_qs.annotate(
+            ventas_count=Count('ventas', distinct=True),
+            total_vendido=Coalesce(Sum('ventas__precio'), 0),
+            total_abonos=Coalesce(Sum('ventas__totalAbono'), 0),
+        ).order_by('-fecha', '-id')
+
+        serializer = JornadaSerializer(jornadas_qs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        data = request.data.copy()
+        if not data.get('responsable') and request.user.is_authenticated:
+            data['responsable'] = request.user.id
+
+        serializer = JornadaSerializer(data=data)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response(
+                    {'detail': 'Ya existe una jornada abierta para esa empresa, sucursal y fecha.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class JornadaDetailView(APIView):
+    def patch(self, request, jornada_id):
+        jornada = get_object_or_404(Jornada, pk=jornada_id)
+        serializer = JornadaSerializer(jornada, data=request.data, partial=True)
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except IntegrityError:
+                return Response(
+                    {'detail': 'Ya existe una jornada abierta para esa empresa, sucursal y fecha.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VentaEstadoPedidoView(APIView):
+    def post(self, request, venta_id):
+        venta = get_object_or_404(Ventas, pk=venta_id)
+        estado_slug = (request.data.get('estado') or '').strip()
+        detalle = (request.data.get('detalle') or '').strip()
+
+        if estado_slug not in ESTADO_PEDIDO_ORDER:
+            return Response({'detail': 'Estado solicitado no es valido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if estado_slug == 'entregado':
+            return Response({'detail': 'El estado Entregado se actualiza automaticamente luego de la remision completa.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+        if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
+            return Response({'detail': 'No es posible retroceder el estado del pedido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if estado_slug == 'para_fabricacion':
+            minimo = math.ceil((venta.precio or 0) / 2) if (venta.precio or 0) > 0 else 0
+            total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+                total=Coalesce(Sum('precio'), 0)
+            ).get('total') or 0
+            total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
+            if total_abono_actual != (venta.totalAbono or 0):
+                venta.totalAbono = total_abono_actual
+                venta.save(update_fields=['totalAbono'])
+            if minimo > 0 and total_abono_actual < minimo:
+                return Response(
+                    {'detail': f'Para enviar a fabricacion se requiere un abono minimo de {minimo}.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        elif estado_slug == 'en_fabricacion':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not detalle:
+                return Response({'detail': 'Indique el motivo del envio a fabricacion.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, detalle=detalle)
+        elif estado_slug == 'listo_entrega':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido En fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        else:
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+
+        data = {
+            'estado': venta.estado_pedido.nombre if venta.estado_pedido else None,
+            'estado_slug': identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)),
+            'detalle': venta.estado_pedido_detalle,
+            'actualizado': venta.estado_pedido_actualizado,
+            'updated': updated,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+class RemisionView(APIView):
+    def _build_totals_map(self, venta_id=None):
+        filtros = {}
+        if venta_id is not None:
+            filtros['item_venta__venta_id'] = venta_id
+
+        remisiones_totales = RemisionItem.objects.filter(**filtros).values('item_venta_id').annotate(
+            total=Coalesce(Sum('cantidad'), 0)
+        )
+
+        return {item['item_venta_id']: item['total'] for item in remisiones_totales}
+
+    def get(self, request, venta_id=None):
+        if venta_id is not None:
+            remisiones_qs = Remision.objects.filter(
+                venta_id=venta_id
+            ).prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+        else:
+            remisiones_qs = Remision.objects.all().prefetch_related(
+                'items__item_venta__articulo'
+            ).order_by('fecha', 'id')
+
+        totales_map = self._build_totals_map(venta_id)
+        serializer = RemisionSerializer(
+            remisiones_qs,
+            many=True,
+            context={'remision_totals': totales_map}
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = RemisionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            remision = serializer.save()
+            totales_map = self._build_totals_map(remision.venta_id)
+            mark_entregado_si_corresponde(remision.venta)
+            remision_data = RemisionSerializer(
+                remision,
+                context={'remision_totals': totales_map}
+            ).data
+
+            return Response(remision_data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class Pedidos(APIView):
     def get(self, request):
