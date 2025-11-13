@@ -6,11 +6,13 @@ import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumb
 
 function AbonosList(props) {
   const {data, generalData} = props;
+  console.log(data)
 
   const [listaAbonos, setListaAbonos] = useState([{
+    
       cedula :data.cedula, 
       cliente :data.cliente, 
-      factura :data.factura,  
+      pedido :data.id,  
       // imagenMedioPago :"https://cdn-icons-png.flaticon.com/512/1041/1041971.png", 
       // medioDePago :"Efectivo", 
       abono :data.abono, 
@@ -19,7 +21,7 @@ function AbonosList(props) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const req = await callApi(`abono/${data.factura}`)
+      const req = await callApi(`abono/${data.id}`)
       console.log(req.data)
       // setAbonos(req.data)
       setListaAbonos(req.data) 
@@ -33,8 +35,8 @@ function AbonosList(props) {
     <>
         <div className="row g-3 mb-3" >
           <div className="col-md-6">
-              <label htmlFor="inputEmail4" className="form-label">Factura</label>
-              <input type="text" className="form-control" id="factura" name="factura" defaultValue={data.factura} readOnly/>
+              <label htmlFor="inputEmail4" className="form-label">Pedido</label>
+              <input type="text" className="form-control" id="factura" name="factura" defaultValue={data.id} readOnly/>
           </div>
           <div className="col-md-6">
               <label htmlFor="inputPassword4" className="form-label">cliente</label>

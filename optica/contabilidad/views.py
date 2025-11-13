@@ -775,7 +775,7 @@ class Abono(APIView):
                 SELECT                                                                                                                                    
                     T0.cliente_id as cedula,                                                                                                              
                     T1.nombre as cliente,                                                                                                                 
-                    T0.factura_id as factura,                                                                                                             
+                    T0.venta_id as venta,                                                                                                             
                     DATE_FORMAT(T0.fecha, '%d/%m/%Y') as fecha,                                                                                                                                
                     T0.id,                                                                                                                                   
                     T0.medioDePago_id,   
@@ -786,12 +786,12 @@ class Abono(APIView):
                     left join usuarios_clientes T1 on T0.cliente_id = T1.cedula                                                                               
                     left join contabilidad_mediosdepago T2 on T2.id  =  T0.medioDePago_id                                                                       
                 #inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id  
-                where factura_id = {factura}
+                where venta_id = {factura}
                 /*group by 
                     #T0.cliente_id,
-                    T0.factura_id
+                    T0.venta_id
                 */
-                order by factura_id desc;
+                order by venta_id desc;
             """
 
             console.log(query)

@@ -85,8 +85,8 @@ function AbonosForm(props) {
     <>
       <form className="row g-3" ref={formRef} onSubmit={handleSubmit}>
         <div className="col-md-6">
-            <label htmlFor="inputEmail4" className="form-label">Factura</label>
-            <input type="text" className="form-control" id="factura" name="factura" defaultValue={data.factura} readOnly/>
+            <label htmlFor="inputEmail4" className="form-label">Pedido</label>
+            <input type="text" className="form-control" id="venta" name="venta" defaultValue={data.id} readOnly/>
         </div>
         <div className="col-md-6">
             <label htmlFor="inputPassword4" className="form-label">cliente</label>
