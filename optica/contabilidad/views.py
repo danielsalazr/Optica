@@ -744,7 +744,7 @@ class Venta(APIView):
         console.log(request.data)
         # console.log(id)
         id = request.data['id']
-        venta = Ventas.objects.get(factura=id)
+        venta = Ventas.objects.get(id=id)
         # abono = Abonos.objects.filter(factura=venta.factura).first()
         # saldo = Saldos.objects.get(factura=venta)
 

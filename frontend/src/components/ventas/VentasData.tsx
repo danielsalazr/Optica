@@ -246,6 +246,10 @@ function VentasData(props) {
       return;
     }
 
+    console.log(rowData)
+    console.log(config.needsHalfPayment)
+    console.log(cumpleMitadPago(rowData))
+
     if (config.needsHalfPayment && !cumpleMitadPago(rowData)) {
       await swalErr('Debe registrarse al menos el 50% del valor de la venta para enviar a fabricación.');
       return;

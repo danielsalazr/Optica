@@ -233,11 +233,12 @@ class ItemsVentaSerializer(serializers.ModelSerializer):
 
 
 class AbonoSerializer(serializers.ModelSerializer):
-    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
+    # factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
+    venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
     
     class Meta:
         model = Abonos
-        fields = ['factura','cliente_id','precio','medioDePago', 'descripcion']
+        fields = ['venta','cliente_id','precio','medioDePago', 'descripcion']
     
     extra_kwargs = {
         'descripcion': {'required': False},
@@ -245,28 +246,28 @@ class AbonoSerializer(serializers.ModelSerializer):
 
 
 class SaldoSerializer(serializers.ModelSerializer):
-    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
+    venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
     cliente = serializers.PrimaryKeyRelatedField(queryset=Clientes.objects.all())
 
     class Meta:
         model = Saldos
         fields = [
             'cliente',
-            'factura',
-            
+            'venta',        
             'saldo',
         ]
 
 
 class HistoricoSaldosSerializer(serializers.ModelSerializer):
-    factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
+    # venta = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
+    venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
     cliente = serializers.PrimaryKeyRelatedField(queryset=Clientes.objects.all())
 
     class Meta:
         model = HistoricoSaldos
         fields = [
             'cliente',
-            'factura',
+            'venta',
             'saldo',
         ]
         

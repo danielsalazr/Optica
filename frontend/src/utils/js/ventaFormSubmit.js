@@ -127,7 +127,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     const abono = metodoPago.map((metodo_Pago, index) => {
         return {
-            factura: id,
+            venta: id,
             cliente_id: cliente_id,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
@@ -137,7 +137,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     });
 
     const saldo =  {
-            factura: factura,
+            venta: id,
             cliente: cliente_id,
             saldo: total - totalAbono,
 
@@ -195,7 +195,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     }
 
     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-    await swalHtmlCreation('Factura creada!', `Se creo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>
+    await swalHtmlCreation('Venta creada!', `Se creo Venta: ${id} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>
         
         `)
         // Medio de pago: ${medioDePagoText}
@@ -276,7 +276,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
 
     const abono = metodoPago.map((metodo_Pago, index) => {
         return {
-            factura: factura,
+            venta: venta,
             cliente_id: cliente_id,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
@@ -286,7 +286,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     });
 
     const saldo =  {
-            factura: factura,
+            venta: venta,
             cliente: cliente_id,
             saldo: total - totalAbono,
 
@@ -344,7 +344,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     }
 
     // swalconfirmationAndReload('Se creo la factura #\n a nombre de daniel')
-    await swalHtmlCreation('Factura Actualizada', `Se Actualizo factura: ${factura} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>
+    await swalHtmlCreation('Venta Actualizada', `Se Actualizo Venta: ${id} <br>Cedula cilente: ${separadorMiles(cliente_id)}<br>Precio: ${moneyformat(total)} <br>
         
         `)
         // Medio de pago: ${medioDePagoText}
