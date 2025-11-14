@@ -47,10 +47,29 @@ function VentaUpdateForm(props) {
     const usuarioRef = useRef(null);
     const empresaRef = useRef(null);
     const telefonoRef = useRef(null);
+    const jornadaResetSkipRef = useRef(true);
 
     console.log(data)
 
-    
+    const getEmpresaIdFromVenta = (venta: any) => {
+        if (!venta) {
+            return '';
+        }
+        if (venta.empresaId) {
+            return String(venta.empresaId);
+        }
+        if (venta.empresaCliente) {
+            return String(venta.empresaCliente);
+        }
+        return '';
+    };
+
+    const getJornadaIdFromVenta = (venta: any) => {
+        if (!venta?.jornada) {
+            return '';
+        }
+        return String(venta.jornada);
+    };
 
     const [telefono, setTelefono] = useState('');
     const [empresa, setEmpresa] = useState('');
@@ -66,11 +85,89 @@ function VentaUpdateForm(props) {
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
     const [clientes, setClientes] = useState(data.clientes);
     const [empresas, setEmpresas] = useState(data.empresas);
+    const [empresaSeleccionada, setEmpresaSeleccionada] = useState(() => getEmpresaIdFromVenta(ventaData));
+    const [jornadaSeleccionada, setJornadaSeleccionada] = useState(() => getJornadaIdFromVenta(ventaData));
 
     let selectizeInstance = null;
 
     const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(fechaHoy)
+
+    const estadoJornadaLabels: Record<string, string> = {
+        planned: 'Planificada',
+        in_progress: 'En progreso',
+        closed: 'Cerrada',
+    };
+
+    const formatFecha = (fecha: string) => {
+        if (!fecha) {
+            return '';
+        }
+        const date = new Date(fecha);
+        if (Number.isNaN(date.getTime())) {
+            return fecha;
+        }
+        return date.toLocaleDateString('es-CO', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    };
+
+    const jornadas = useMemo(
+        () => (Array.isArray(data?.jornadas) ? data.jornadas : []),
+        [data]
+    );
+
+    const jornadasFiltradas = useMemo(() => {
+        if (!empresaSeleccionada) {
+            return jornadas;
+        }
+
+        return jornadas.filter((jornada) => {
+            const empresaId = jornada?.empresa_id ?? jornada?.empresaId ?? jornada?.empresa;
+            return String(empresaId ?? '') === String(empresaSeleccionada);
+        });
+    }, [jornadas, empresaSeleccionada]);
+
+    const jornadaPersistida = useMemo(() => {
+        if (!jornadaSeleccionada) {
+            return null;
+        }
+
+        const jornadaEnLista = jornadas.find(
+            (jornada) => String(jornada.id) === String(jornadaSeleccionada)
+        );
+
+        if (jornadaEnLista) {
+            return null;
+        }
+
+        return {
+            id: jornadaSeleccionada,
+            nombre: dataVenta?.jornadaNombre ?? `Jornada #${jornadaSeleccionada}`,
+            estado: dataVenta?.jornadaEstado ?? null,
+        };
+    }, [jornadas, jornadaSeleccionada, dataVenta?.jornadaNombre, dataVenta?.jornadaEstado]);
+
+    useEffect(() => {
+        if (jornadaResetSkipRef.current) {
+            jornadaResetSkipRef.current = false;
+            return;
+        }
+
+        if (!jornadaSeleccionada) {
+            return;
+        }
+
+        const existeEnFiltro = jornadasFiltradas.some(
+            (jornada) => String(jornada.id) === String(jornadaSeleccionada)
+        );
+
+        if (!existeEnFiltro) {
+            setJornadaSeleccionada('');
+        }
+    }, [jornadasFiltradas, jornadaSeleccionada, empresaSeleccionada]);
 
       useEffect(()=>{
               //import( "bootstrap/dist/js/bootstrap.bundle.js");
@@ -107,6 +204,16 @@ function VentaUpdateForm(props) {
                 setUsuario(selectizeInstance);
             }
 
+            let empresaJqueryWrapper: any = null;
+            let empresaSelectizeControl: any = null;
+            const handleEmpresaSelectizeChange = (valueOrEvent: any) => {
+                if (valueOrEvent && typeof valueOrEvent === 'object' && 'target' in valueOrEvent) {
+                    setEmpresaSeleccionada(valueOrEvent.target.value || '');
+                    return;
+                }
+                setEmpresaSeleccionada(valueOrEvent ? String(valueOrEvent) : '');
+            };
+
             if (empresaRef.current) {
                 const selectizeInstance2 = $(empresaRef.current).selectize({
                 
@@ -121,7 +228,23 @@ function VentaUpdateForm(props) {
                 });
     
                 setEmpresa(selectizeInstance2);
+                empresaJqueryWrapper = selectizeInstance2;
+                const selectizeControl = selectizeInstance2[0]?.selectize;
+                if (selectizeControl) {
+                    empresaSelectizeControl = selectizeControl;
+                    selectizeControl.on('change', handleEmpresaSelectizeChange);
+                } else {
+                    selectizeInstance2.on('change', handleEmpresaSelectizeChange);
+                }
             }
+
+            return () => {
+                if (empresaSelectizeControl) {
+                    empresaSelectizeControl.off('change', handleEmpresaSelectizeChange);
+                } else if (empresaJqueryWrapper) {
+                    empresaJqueryWrapper.off('change', handleEmpresaSelectizeChange);
+                }
+            };
               
           },[])
 
@@ -274,7 +397,15 @@ function VentaUpdateForm(props) {
                     <label htmlFor="EmpresaCliente">Empresa:</label>
 
                     <div className="input-group mb-3">
-                    <select ref={empresaRef} className="form-select  " id="empresaCliente" name="empresaCliente" defaultValue={dataVenta.empresaId} required>
+                    <select
+                        ref={empresaRef}
+                        className="form-select  "
+                        id="empresaCliente"
+                        name="empresaCliente"
+                        defaultValue={dataVenta?.empresaId ?? dataVenta?.empresaCliente ?? ''}
+                        required
+                        onChange={(event) => setEmpresaSeleccionada(event.target.value || '')}
+                    >
                         <option key="" value="">--</option>
                         {/* {data.clientes.map(element => ( */}
                         {empresas.map(element => (
@@ -292,6 +423,45 @@ function VentaUpdateForm(props) {
 
                     
                                 </div>
+                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                    <label htmlFor="jornada">Jornada</label>
+                    <select
+                        className="form-select"
+                        id="jornada"
+                        name="jornada"
+                        value={jornadaSeleccionada}
+                        onChange={(event) => setJornadaSeleccionada(event.target.value)}
+                    >
+                        <option value="">Sin jornada</option>
+                        {jornadasFiltradas.map((jornada) => {
+                            const fechaLegible = formatFecha(jornada.fecha) || jornada.fecha;
+                            const estadoLegible = estadoJornadaLabels[jornada.estado] ?? jornada.estado;
+                            const empresaNombre = jornada.empresa__nombre || jornada.empresa_nombre || '';
+                            return (
+                                <option key={jornada.id} value={jornada.id}>
+                                    {empresaNombre}
+                                    {jornada.sucursal ? ` - ${jornada.sucursal}` : ''}
+                                    {` - ${fechaLegible} (${estadoLegible})`}
+                                </option>
+                            );
+                        })}
+                        {jornadaPersistida && (
+                            <option value={jornadaPersistida.id}>
+                                {jornadaPersistida.nombre}
+                                {jornadaPersistida.estado
+                                    ? ` - (${estadoJornadaLabels[jornadaPersistida.estado] ?? jornadaPersistida.estado})`
+                                    : ''}
+                                {' - no disponible'}
+                            </option>
+                        )}
+                    </select>
+                    <small className="form-text text-muted">
+                        Vincula la venta a una jornada activa o&nbsp;
+                        <a href="/jornadas" target="_blank" rel="noreferrer">
+                            crea una nueva
+                        </a>.
+                    </small>
+                </div>
                 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                     <label htmlFor="password">Fecha de venta</label>
