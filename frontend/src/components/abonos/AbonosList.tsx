@@ -6,7 +6,7 @@ import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumb
 
 function AbonosList(props) {
   const {data, generalData} = props;
-  console.log(data)
+  // console.log(data)
 
   const [listaAbonos, setListaAbonos] = useState([{
     

@@ -2,6 +2,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IP_URL } from "@/utils/js/api";
+import { DataTable, DataTableExpandedRowsType, DataTableFilterMeta } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { InputText } from "primereact/inputtext";
+import { FilterMatchMode } from "primereact/api";
 
 type ArticuloCatalogo = {
   id: number;
@@ -39,6 +43,13 @@ type Remision = {
   items: RemisionItem[];
 };
 
+type RemisionTableRow = Remision & {
+  fechaLegible: string;
+  creadoLegible: string;
+  articulosResumen: string;
+  totalItems: number;
+};
+
 type ClienteInfo = {
   cedula?: number;
   nombre?: string;
@@ -70,6 +81,11 @@ const RemisionesPanel: React.FC<Props> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: "", matchMode: FilterMatchMode.CONTAINS },
+  });
+  const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
+  const [expandedRows, setExpandedRows] = useState<DataTableExpandedRowsType>(null);
 
   useEffect(() => {
     setLocalItems(items || []);
@@ -124,6 +140,94 @@ const RemisionesPanel: React.FC<Props> = ({
       day: "numeric",
     });
   };
+
+  const remisionesTableData = useMemo<RemisionTableRow[]>(() => {
+    return (localRemisiones || []).map((remision) => {
+      const articulosResumen =
+        remision.items
+          ?.map((item) => {
+            const nombre = item.articulo?.nombre ?? `Item ${item.itemVenta}`;
+            return `${nombre} (${item.cantidad})`;
+          })
+          .join(" · ") ?? "";
+
+      const totalItems = remision.items?.reduce((acc, item) => acc + (item.cantidad ?? 0), 0) ?? 0;
+
+      return {
+        ...remision,
+        fechaLegible: formatearFecha(remision.fecha),
+        creadoLegible: formatearFecha(remision.creado_en),
+        articulosResumen,
+        totalItems,
+      };
+    });
+  }, [localRemisiones]);
+
+  const handleGlobalFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setFilters((prev) => {
+      const globalFilter = prev?.global ?? { value: "", matchMode: FilterMatchMode.CONTAINS };
+      return {
+        ...prev,
+        global: {
+          ...globalFilter,
+          value,
+        },
+      };
+    });
+    setGlobalFilterValue(value);
+  }, []);
+
+  const remisionesHeader = useMemo(
+    () => (
+      <div className="d-flex flex-wrap w-100 justify-content-between align-items-center gap-3">
+        <h5 className="mb-0">Remisiones generadas</h5>
+        <span className="p-input-icon-left">
+          {/* <i className="pi pi-search" /> */}
+          <InputText
+            value={globalFilterValue}
+            onChange={handleGlobalFilterChange}
+            placeholder="Buscar remisiones..."
+          />
+        </span>
+      </div>
+    ),
+    [globalFilterValue, handleGlobalFilterChange]
+  );
+
+  const renderRemisionItems = useCallback(
+    (remision: RemisionTableRow) => {
+      if (!remision.items || remision.items.length === 0) {
+        return <div className="text-muted p-3">Esta remision no tiene items asociados.</div>;
+      }
+
+      return (
+        <div className="table-modern table-responsive px-3 pb-3">
+          <table className="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Articulo</th>
+                <th className="text-center">En esta remision</th>
+                <th className="text-center">Total despachado</th>
+                <th className="text-center">Pendiente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {remision.items.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.articulo?.nombre ?? `Item ${item.itemVenta}`}</td>
+                  <td className="text-center fw-semibold">{item.cantidad}</td>
+                  <td className="text-center text-primary">{item.cantidadDespachada}</td>
+                  <td className="text-center text-danger">{item.restante}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    },
+    []
+  );
 
   const limpiarFormulario = () => {
     setCantidades({});
@@ -365,49 +469,59 @@ const RemisionesPanel: React.FC<Props> = ({
 
       <div className="remision-list">
         {localRemisiones.length === 0 ? (
-          <div className="text-muted fst-italic">Aún no hay remisiones asociadas a esta venta.</div>
+          <div className="text-muted fst-italic">Aun no hay remisiones asociadas a esta venta.</div>
         ) : (
-          localRemisiones.map((remision) => (
-            <div className="ventas-card remision-card mb-3" key={remision.id}>
-              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <div>
-                  <h5 className="mb-1">Remisión #{remision.id}</h5>
-                  <div className="text-muted small">
-                    Fecha: {formatearFecha(remision.fecha)} · Creada: {formatearFecha(remision.creado_en)}
-                  </div>
-                  {remision.observacion && (
-                    <div className="text-muted small mt-1">
-                      Nota: {remision.observacion}
-                    </div>
-                  )}
-                </div>
-                <span className="badge text-bg-primary px-3 py-2">Venta #{remision.venta}</span>
-              </div>
-
-              <div className="table-modern table-responsive mt-3">
-                <table className="table table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>Artículo</th>
-                      <th className="text-center">En esta remisión</th>
-                      <th className="text-center">Total despachado</th>
-                      <th className="text-center">Pendiente</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {remision.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.articulo?.nombre ?? `Item ${item.itemVenta}`}</td>
-                        <td className="text-center fw-semibold">{item.cantidad}</td>
-                        <td className="text-center text-primary">{item.cantidadDespachada}</td>
-                        <td className="text-center text-danger">{item.restante}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))
+          <DataTable
+            value={remisionesTableData}
+            header={remisionesHeader}
+            globalFilterFields={["id", "venta", "observacion", "articulosResumen", "fechaLegible", "creadoLegible"]}
+            filters={filters}
+            paginator
+            rows={5}
+            rowsPerPageOptions={[5, 10, 20]}
+            stripedRows
+            showGridlines
+            emptyMessage="No se encontraron remisiones."
+            dataKey="id"
+            expandedRows={expandedRows}
+            onRowToggle={(e) => setExpandedRows(e.data)}
+            rowExpansionTemplate={renderRemisionItems}
+            className="ventas-card remision-card"
+          >
+            <Column expander style={{ width: "3rem" }} />
+            <Column
+              header="Remisión"
+              body={(row: RemisionTableRow) => <span className="fw-semibold">#{row.id}</span>}
+              style={{ width: "8rem" }}
+            />
+            <Column
+              header="Venta"
+              body={(row: RemisionTableRow) => <span className="badge text-bg-primary px-3 py-2">#{row.venta}</span>}
+              style={{ width: "8rem" }}
+            />
+            <Column field="fechaLegible" header="Fecha" style={{ minWidth: "10rem" }} />
+            <Column field="creadoLegible" header="Creada" style={{ minWidth: "10rem" }} />
+            <Column
+              field="totalItems"
+              header="Ítems"
+              body={(row: RemisionTableRow) => <span className="text-center d-block">{row.totalItems}</span>}
+              style={{ width: "6rem" }}
+            />
+            <Column
+              header="Artículos"
+              body={(row: RemisionTableRow) =>
+                row.articulosResumen ? row.articulosResumen : <span className="text-muted">Sin artículos</span>
+              }
+              style={{ minWidth: "16rem" }}
+            />
+            <Column
+              header="Observación"
+              body={(row: RemisionTableRow) =>
+                row.observacion ? row.observacion : <span className="text-muted">Sin nota</span>
+              }
+              style={{ minWidth: "14rem" }}
+            />
+          </DataTable>
         )}
       </div>
     </section>

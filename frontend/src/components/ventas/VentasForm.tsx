@@ -382,7 +382,7 @@ function VentasForm({data}) {
                 <Abonos data={data} clear={reiniciarModulos} changeClear={toggleReinicioModulos}/>
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
-                    Crear venta
+                        Crear venta
                     </button>
                 </div>
                 </div>

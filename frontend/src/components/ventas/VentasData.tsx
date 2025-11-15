@@ -129,10 +129,18 @@ function VentasData(props) {
   const cumpleMitadPago = (row) => {
     const precio = getPrecioRaw(row);
     const abono = getAbonoRaw(row);
+
+    console.log('Precio:', precio);
+    console.log('Abono:', abono);
     if (precio <= 0) {
       return false;
     }
     return abono >= Math.ceil(precio / 2);
+  };
+
+  const ventaPerteneceAJornada = (row) => {
+    const jornadaId = row?.jornada_id ?? row?.jornadaId ?? row?.jornada;
+    return Boolean(jornadaId);
   };
 
   const buildEstadoAction = (row) => {
@@ -242,34 +250,32 @@ function VentasData(props) {
   const handleEstadoPedidoAction = async (rowData) => {
     const config = buildEstadoAction(rowData);
     if (!config) {
-      await swalErr('Este pedido ya completó todos los estados configurados.');
+      await swalErr('Este pedido ya completo todos los estados configurados.');
       return;
     }
 
-    console.log(rowData)
-    console.log(config.needsHalfPayment)
-    console.log(cumpleMitadPago(rowData))
-
-    if (config.needsHalfPayment && !cumpleMitadPago(rowData)) {
-      await swalErr('Debe registrarse al menos el 50% del valor de la venta para enviar a fabricación.');
-      return;
-    }
+    const cumpleMitad = cumpleMitadPago(rowData);
+    const esVentaJornada = ventaPerteneceAJornada(rowData);
+    const requiereMitadPago = Boolean(config.needsHalfPayment) && !esVentaJornada;
+    const faltaMitadPago = requiereMitadPago && !cumpleMitad;
+    const requiereDetallePorPago =
+      !esVentaJornada && !cumpleMitad && (Boolean(config.requiresDetail) || faltaMitadPago);
 
     let detalle = null;
-    if (config.requiresDetail) {
-      detalle = await swalInput('Estás enviando a fabricar sin cumplir con la mitad del pago. ¿Cuál es el motivo?');
+    if (requiereDetallePorPago) {
+      detalle = await swalInput('Estas enviando a fabricar sin cumplir con la mitad del pago. Cual es el motivo?');
       if (detalle === null) {
         return;
       }
       if (!detalle.trim()) {
-        await swalErr('Debe ingresar un motivo válido.');
+        await swalErr('Debe ingresar un motivo valido.');
         return;
       }
     }
 
     setEstadoLoading(rowData.id);
     try {
-      const req = await callApi(`venta/${rowData.id}/estado-pedido/`, {
+      const req = await callApi('venta/' + rowData.id + '/estado-pedido/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,11 +291,11 @@ function VentasData(props) {
         return;
       }
 
-      await swalconfirmation(`Estado actualizado: ${req.data?.estado || config.label}.`);
+      await swalconfirmation('Estado actualizado: ' + (req.data?.estado || config.label) + '.');
       await handleFetchVentas(false);
     } catch (error) {
       console.error(error);
-      await swalErr('Ocurrió un error al actualizar el estado.');
+      await swalErr('Ocurrio un error al actualizar el estado.');
     } finally {
       setEstadoLoading(null);
     }

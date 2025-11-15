@@ -964,12 +964,16 @@ class VentaEstadoPedidoView(APIView):
             if total_abono_actual != (venta.totalAbono or 0):
                 venta.totalAbono = total_abono_actual
                 venta.save(update_fields=['totalAbono'])
-            if minimo > 0 and total_abono_actual < minimo:
-                return Response(
-                    {'detail': f'Para enviar a fabricacion se requiere un abono minimo de {minimo}.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+            pertenece_jornada = venta.jornada_id is not None
+            if not pertenece_jornada and minimo > 0 and total_abono_actual < minimo:
+                if not detalle:
+                    return Response(
+                        {'detail': 'Indique el motivo por el cual se envia a fabricacion sin cumplir el abono minimo.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                updated = mark_estado_pedido(venta, estado_slug, detalle=detalle)
+            else:
+                updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
         elif estado_slug == 'en_fabricacion':
             if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
                 return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)

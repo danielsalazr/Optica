@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useMemo, useState, useCallback } from "react";
+import { DataTable, DataTableFilterMeta } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { InputText } from "primereact/inputtext";
+import { FilterMatchMode } from "primereact/api";
 
 type RemisionItem = {
   id: number;
@@ -36,6 +40,13 @@ type PreparedRemisionRow = RemisionRow & {
   totalDespachado: number;
 };
 
+type ColumnMeta = {
+  field: keyof PreparedRemisionRow | string;
+  header: string;
+  sortable?: boolean;
+  bodyClassName?: string;
+};
+
 type Props = {
   data: RemisionRow[];
 };
@@ -55,6 +66,10 @@ const formatDate = (value?: string) => {
 
 const RemisionesData: React.FC<Props> = ({ data }) => {
   const [selected, setSelected] = useState<PreparedRemisionRow | null>(null);
+  const [filters, setFilters] = useState<DataTableFilterMeta>({
+    global: { value: "", matchMode: FilterMatchMode.CONTAINS },
+  });
+  const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
 
   const preparedData = useMemo<PreparedRemisionRow[]>(() => {
     return (data ?? []).map((remision) => {
@@ -81,67 +96,105 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     });
   }, [data]);
 
-  const columns = useMemo(
+  const columns = useMemo<ColumnMeta[]>(
     () => [
-      { key: "id", label: "Remisión" },
-      { key: "venta", label: "Venta" },
-      { key: "clienteNombre", label: "Cliente" },
-      { key: "clienteCedula", label: "Documento" },
-      { key: "fechaFormateada", label: "Fecha" },
-      { key: "itemsCount", label: "Items" },
-      { key: "cantidadRemitida", label: "Remitido" },
-      { key: "totalDespachado", label: "Despachado total" },
+      { field: "id", header: "Remisión", sortable: true },
+      { field: "venta", header: "Venta", sortable: true },
+      { field: "clienteNombre", header: "Cliente", sortable: true },
+      { field: "clienteCedula", header: "Documento" },
+      { field: "fechaFormateada", header: "Fecha", sortable: true },
+      { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
+      { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
+      { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center text-primary fw-semibold" },
     ],
     []
   );
 
-  const handleSelect = useCallback((row: PreparedRemisionRow) => {
-    setSelected(row);
+  const handleGlobalFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setFilters((prev) => ({
+      ...prev,
+      global: { value, matchMode: FilterMatchMode.CONTAINS },
+    }));
+    setGlobalFilterValue(value);
   }, []);
+
+  const handleSelectionChange = useCallback((event: { value: PreparedRemisionRow | null }) => {
+    setSelected(event.value ?? null);
+  }, []);
+
+  const tableHeader = useMemo(
+    () => (
+      <div className="d-flex w-100 justify-content-between align-items-center gap-3 flex-wrap">
+        <span className="fw-semibold text-muted">Listado de remisiones</span>
+        <span className="p-input-icon-left">
+          {/* <i className="pi pi-search" /> */}
+          <InputText
+            value={globalFilterValue}
+            onChange={handleGlobalFilterChange}
+            placeholder="Buscar remisiones..."
+          />
+        </span>
+      </div>
+    ),
+    [globalFilterValue, handleGlobalFilterChange]
+  );
+
+  const globalFilterFields = useMemo(
+    () => [
+      "id",
+      "venta",
+      "clienteNombre",
+      "clienteCedula",
+      "fechaFormateada",
+      "itemsCount",
+      "cantidadRemitida",
+      "totalDespachado",
+      "observacion",
+    ],
+    []
+  );
 
   return (
     <div className="remisiones-module">
-      <div className="ventas-toolbar mb-4">
+      <div className="ventas-toolbar mb-4 gap-3">
         <h1 className="ventas-page-title mb-0">Remisiones</h1>
-        <span className="badge text-bg-primary px-3 py-2 ms-auto">
+        <span className="badge text-bg-primary px-3 py-2">
           {preparedData.length} registro{preparedData.length === 1 ? "" : "s"}
         </span>
       </div>
 
-      <div className="ventas-card table-modern table-responsive">
-        <table className="table table-hover align-middle mb-0">
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th key={column.key}>{column.label}</th>
-              ))}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {preparedData.map((row) => (
-              <tr key={row.id} className={selected?.id === row.id ? "table-active" : ""}>
-                <td>{row.id}</td>
-                <td>{row.venta}</td>
-                <td>{row.clienteNombre}</td>
-                <td>{row.clienteCedula}</td>
-                <td>{row.fechaFormateada}</td>
-                <td className="text-center">{row.itemsCount}</td>
-                <td className="text-center">{row.cantidadRemitida}</td>
-                <td className="text-center text-primary">{row.totalDespachado}</td>
-                <td className="text-end">
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary btn-sm rounded-pill"
-                    onClick={() => handleSelect(row)}
-                  >
-                    Ver detalle
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="ventas-card">
+        <DataTable
+          value={preparedData}
+          header={tableHeader}
+          paginator
+          rows={10}
+          rowsPerPageOptions={[5, 10, 20, 50]}
+          stripedRows
+          showGridlines
+          dataKey="id"
+          selectionMode="single"
+          selection={selected}
+          onSelectionChange={handleSelectionChange}
+          filters={filters}
+          globalFilterFields={globalFilterFields}
+          emptyMessage="No se encontraron remisiones."
+          responsiveLayout="scroll"
+        >
+          {columns.map((column) => {
+            const field = String(column.field);
+            return (
+              <Column
+                key={field}
+                field={field}
+                header={column.header}
+                sortable={column.sortable}
+                bodyClassName={column.bodyClassName}
+              />
+            );
+          })}
+        </DataTable>
       </div>
 
       {selected && (

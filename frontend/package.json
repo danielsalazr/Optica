@@ -24,7 +24,9 @@
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
     "react-phone-number-input": "^3.4.11",
-    "selectize": "^0.12.6"
+    "selectize": "^0.12.6",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
