@@ -27,6 +27,7 @@ import { callApi } from '@/utils/js/api';
 
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { title } from 'process';
+import { Row } from 'react-bootstrap';
 
 const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
 
@@ -123,10 +124,12 @@ function VentasData(props) {
     await handleFetchVentas(false);
   };
 
+
   const getPrecioRaw = (row) => Number(row?.precioRaw ?? 0);
   const getAbonoRaw = (row) => Number(row?.totalAbonoRaw ?? 0);
 
   const cumpleMitadPago = (row) => {
+    console.log(row)
     const precio = getPrecioRaw(row);
     const abono = getAbonoRaw(row);
 
@@ -181,16 +184,26 @@ function VentasData(props) {
     }
     let redata = await res.json();
 
-    console.log(redata)
-    redata = redata.map(item => {
-      // Eliminar el símbolo "$" y reemplazar "." por ","
-      item.precio = moneyformat(item.precio)
-      item.totalAbono = moneyformat(item.totalAbono)
-      item.saldo = moneyformat(item.saldo)
-      return item; // Retornar el objeto modificado
+    redata = redata.map((item) => {
+      const precioRaw = Number(item.precioRaw ?? item.precio ?? 0);
+      const totalAbonoRaw = Number(item.totalAbonoRaw ?? item.totalAbono ?? 0);
+      const saldoRaw = Number(item.saldoRaw ?? item.saldo ?? 0);
+
+      return {
+        ...item,
+        precioRaw,
+        totalAbonoRaw,
+        saldoRaw,
+        precio: moneyformat(precioRaw),
+        totalAbono: moneyformat(totalAbonoRaw),
+        saldo: moneyformat(saldoRaw),
+        estadoPedidoId: item.estadoPedidoId ?? item.estado_pedido_id ?? null,
+        estadoPedidoNombre: item.estadoPedidoNombre ?? item.estado_pedido_nombre ?? '',
+        estadoPedidoDetalle: item.estadoPedidoDetalle ?? item.estado_pedido_detalle ?? '',
+        estadoPedidoFecha: item.estadoPedidoFecha ?? item.estado_pedido_actualizado ?? null,
+      };
     });
     setDataTable(redata)
-    console.log(dataTablee)
     if (withToggle) {
       toggleState()
     }
