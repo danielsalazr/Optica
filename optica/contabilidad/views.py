@@ -955,8 +955,13 @@ class VentaEstadoPedidoView(APIView):
         if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
             return Response({'detail': 'No es posible retroceder el estado del pedido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if estado_slug == 'para_fabricacion':
-            minimo = math.ceil((venta.precio or 0) / 2) if (venta.precio or 0) > 0 else 0
+        def _get_minimo_abono():
+            precio = venta.precio or 0
+            if precio <= 0:
+                return 0
+            return math.ceil(precio / 2)
+
+        def _sync_total_abono():
             total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
                 total=Coalesce(Sum('precio'), 0)
             ).get('total') or 0
@@ -964,6 +969,11 @@ class VentaEstadoPedidoView(APIView):
             if total_abono_actual != (venta.totalAbono or 0):
                 venta.totalAbono = total_abono_actual
                 venta.save(update_fields=['totalAbono'])
+            return total_abono_actual
+
+        if estado_slug == 'para_fabricacion':
+            minimo = _get_minimo_abono()
+            total_abono_actual = _sync_total_abono()
             pertenece_jornada = venta.jornada_id is not None
             if not pertenece_jornada and minimo > 0 and total_abono_actual < minimo:
                 if not detalle:
@@ -977,9 +987,16 @@ class VentaEstadoPedidoView(APIView):
         elif estado_slug == 'en_fabricacion':
             if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
                 return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
-            if not detalle:
+            minimo = _get_minimo_abono()
+            total_abono_actual = _sync_total_abono()
+            pertenece_jornada = venta.jornada_id is not None
+            requiere_detalle = not pertenece_jornada and minimo > 0 and total_abono_actual < minimo
+            if requiere_detalle and not detalle:
                 return Response({'detail': 'Indique el motivo del envio a fabricacion.'}, status=status.HTTP_400_BAD_REQUEST)
-            updated = mark_estado_pedido(venta, estado_slug, detalle=detalle)
+            if requiere_detalle:
+                updated = mark_estado_pedido(venta, estado_slug, detalle=detalle)
+            else:
+                updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
         elif estado_slug == 'listo_entrega':
             if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
                 return Response({'detail': 'Debe marcar el pedido En fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
