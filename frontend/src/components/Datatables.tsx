@@ -24,14 +24,14 @@ const DataTables = (props) => {
     const tableRef = useRef(null);
     const [activeFilter, setActiveFilter] = useState("todos");
     const [activeEstadoPedidoFilter, setActiveEstadoPedidoFilter] = useState("todos");
-    const { header, data, imprimir, columns, onAction, order, slotes, estadoPedidoFilters } = props;
+    const { header, data, imprimir, columns, onAction, order, slotes, estadoPedidoFilters, rowDetail } = props;
     
 
     console.log("columns", columns);
 
 
     // const headers = ['Nombre', 'telefono', 'vinilla']  
-    useEffect(() => {
+  useEffect(() => {
         let cleanup: (() => void) | undefined;
 
         (async () => {
@@ -54,10 +54,59 @@ const DataTables = (props) => {
             };
         })();
 
-        return () => {
-            cleanup?.();
-        };
-    }, []);
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!rowDetail) return;
+
+    let dt = null;
+    let intervalId = null;
+
+    const handler = async (event) => {
+      const target = event.target;
+      if (target?.closest?.('button, a, input, select, textarea, svg, path')) {
+        return;
+      }
+      const tr = target.closest('tr');
+      if (!tr || tr.classList.contains('child')) return;
+      const row = dt.row(tr);
+      if (!row || !row.data()) return;
+
+      if (row.child.isShown()) {
+        row.child.hide();
+        tr.classList.remove('shown');
+        return;
+      }
+
+      const html = await rowDetail(row.data());
+      row.child(html).show();
+      tr.classList.add('shown');
+    };
+
+    const attach = () => {
+      if (!dt) return;
+      dt.off('click', 'tbody tr', handler);
+      dt.on('click', 'tbody tr', handler);
+    };
+
+    intervalId = setInterval(() => {
+      dt = tableRef.current?.dt?.();
+      if (dt) {
+        attach();
+        clearInterval(intervalId);
+      }
+    }, 150);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (dt) {
+        dt.off('click', 'tbody tr', handler);
+      }
+    };
+  }, [rowDetail, data]);
 
 //     const applyFilter = (filter: string) => {
 //   if (!table.current) return;

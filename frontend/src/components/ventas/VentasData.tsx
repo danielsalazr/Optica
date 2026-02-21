@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import { swalErr, swalHtml, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
@@ -92,6 +92,7 @@ function VentasData(props) {
   const [remisionError, setRemisionError] = useState<string | null>(null);
   const [remisionContext, setRemisionContext] = useState(null);
   const [remisionRowContext, setRemisionRowContext] = useState(null);
+  const detailCache = useRef(new Map());
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -129,6 +130,112 @@ function VentasData(props) {
       await fetchRemisionData(remisionRowContext.id);
     }
     await handleFetchVentas(false);
+  };
+
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const buildDetalleHtml = (detalle) => {
+    const ventasItems = detalle?.ventas ?? [];
+    const remisiones = detalle?.remisiones ?? [];
+    const observacion = detalle?.observacion ?? '';
+    const estadoPedido = detalle?.estadoPedidoNombre ?? detalle?.estado_pedido_nombre ?? '';
+    const estadoDetalle = detalle?.estadoPedidoDetalle ?? detalle?.estado_pedido_detalle ?? '';
+
+    const itemsRows = ventasItems.map((item) => {
+      const nombre = item.articulo_nombre ?? item.articulo?.nombre ?? `Articulo #${item.articulo_id ?? ''}`;
+      const cantidad = item.cantidad ?? 0;
+      const precio = item.precio_articulo ?? 0;
+      const descuento = item.descuento ?? 0;
+      const total = item.totalArticulo ?? 0;
+      return `
+        <tr>
+          <td>${escapeHtml(nombre)}</td>
+          <td class="text-center">${escapeHtml(cantidad)}</td>
+          <td class="text-end">${escapeHtml(moneyformat(precio))}</td>
+          <td class="text-center">${escapeHtml(descuento)}%</td>
+          <td class="text-end fw-semibold">${escapeHtml(moneyformat(total))}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const remisionesRows = remisiones.map((rem) => `
+      <tr>
+        <td>#${escapeHtml(rem.id)}</td>
+        <td>${escapeHtml(rem.fecha)}</td>
+        <td class="text-end">${escapeHtml(moneyformat(rem.totalRemision ?? 0))}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="ventas-card" style="margin: 0.75rem 1rem;">
+        <div class="mb-3">
+          <div class="fw-semibold">Estado pedido: ${escapeHtml(estadoPedido || '—')}</div>
+          ${estadoDetalle ? `<div class="text-muted small">Detalle: ${escapeHtml(estadoDetalle)}</div>` : ''}
+          ${observacion ? `<div class="text-muted small">Observación: ${escapeHtml(observacion)}</div>` : ''}
+        </div>
+        <div class="table-modern table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Artículo</th>
+                <th class="text-center">Cantidad</th>
+                <th class="text-end">Precio</th>
+                <th class="text-center">Descuento</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows || '<tr><td colspan="5" class="text-center text-muted">Sin ítems</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        <div class="table-modern table-responsive mt-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Remisión</th>
+                <th>Fecha</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${remisionesRows || '<tr><td colspan="3" class="text-center text-muted">Sin remisiones</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  };
+
+  const getDetalleRow = async (row) => {
+    const id = row?.id;
+    if (!id) return '';
+    if (detailCache.current.has(id)) {
+      return detailCache.current.get(id);
+    }
+    try {
+      const req = await callApi(`venta/${id}`);
+      if (!req.res.ok) {
+        const fallback = `<div class="text-muted small px-3 py-2">No fue posible cargar el detalle.</div>`;
+        detailCache.current.set(id, fallback);
+        return fallback;
+      }
+      const html = buildDetalleHtml(req.data);
+      detailCache.current.set(id, html);
+      return html;
+    } catch (err) {
+      const fallback = `<div class="text-muted small px-3 py-2">No fue posible cargar el detalle.</div>`;
+      detailCache.current.set(id, fallback);
+      return fallback;
+    }
   };
 
 
@@ -574,6 +681,7 @@ function VentasData(props) {
         onAction={handleAction}
         imprimir={con}
         slotes={slots}
+        rowDetail={getDetalleRow}
         estadoPedidoFilters={[
           { key: "todos", label: "Todos", expr: "", regex: false },
           { key: "creado", label: ESTADO_PEDIDO_LABELS.creado, expr: "pedido tomado|creado|pendiente", regex: true, ci: true },
