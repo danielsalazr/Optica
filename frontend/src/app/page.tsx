@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import TablaArticulos from "@/components/TablaArticulos";
 import Footer from "@/components/Footer";
+import SalesIndicator from "@/components/SalesIndicator";
 // import 'bootstrap/dist/js/bootstrap.bundle.min';
 
 
@@ -35,8 +36,11 @@ const data = await getData();
     // <div className={styles.page}>
       <>
 
-<div className="container-fluid d-flex w-100 vh-100 align-items-center">
+<div className="container-fluid d-flex w-100 vh-100 ">
   <div className="row w-100">
+  <main className="p-3">
+          <SalesIndicator />
+        </main>
     <div className="col-sm-6 col-md-6 mb-3  mx-auto">
       <div className="card">
         <div className="card-header">

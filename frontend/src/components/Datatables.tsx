@@ -23,7 +23,8 @@ const DataTables = (props) => {
     // const tableRef = useRef(null);
     const tableRef = useRef(null);
     const [activeFilter, setActiveFilter] = useState("todos");
-    const { header, data, imprimir, columns, onAction, order, slotes } = props;
+    const [activeEstadoPedidoFilter, setActiveEstadoPedidoFilter] = useState("todos");
+    const { header, data, imprimir, columns, onAction, order, slotes, estadoPedidoFilters } = props;
     
 
     console.log("columns", columns);
@@ -116,6 +117,12 @@ const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
     dt.column("estado_pago:name").search(expr, regex, smart, ci).draw();
   };
 
+const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) => {
+    const dt = tableRef.current?.dt();
+    if (!dt) return;
+    dt.column("estado_pedido:name").search(expr, regex, smart, ci).draw();
+  };
+
     const customStyles = {
       cells: {
         style: {
@@ -131,6 +138,8 @@ const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
 
   const btn = (variant: string, key: string) =>
     `btn ${activeFilter === key ? `btn-${variant}` : `btn-outline-${variant}`}`;
+  const btnPedido = (variant: string, key: string) =>
+    `btn ${activeEstadoPedidoFilter === key ? `btn-${variant}` : `btn-outline-${variant}`}`;
 
   const headerLabels =
     header ??
@@ -230,6 +239,24 @@ const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
         No anulados
       </button>
       </div>
+      {estadoPedidoFilters?.length ? (
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          {estadoPedidoFilters.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              className={btnPedido("secondary", f.key)}
+              aria-pressed={activeEstadoPedidoFilter === f.key}
+              onClick={() => {
+                setEstadoPedido(f.expr ?? "", f.regex ?? true, f.smart ?? false, f.ci ?? true);
+                setActiveEstadoPedidoFilter(f.key);
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
         {/* <button onClick={imprimir}>eliminar</button> */}
         {/* <table id="myTable" ref={tableRef} className="table  table-striped table-bordered"> */}
        { data.length > 0 && <DataTable 

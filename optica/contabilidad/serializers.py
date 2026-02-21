@@ -42,20 +42,24 @@ class JornadaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Jornada
         fields = [
-            'id',
-            'empresa',
-            'empresa_nombre',
-            'sucursal',
-            'fecha',
-            'estado',
-            'responsable',
-            'responsable_nombre',
-            'observaciones',
-            'creado_en',
+              'id',
+              'empresa',
+              'empresa_nombre',
+              'sucursal',
+              'fecha',
+              'condicion_pago',
+              'fecha_inicio',
+              'cantidad_cuotas',
+              'fecha_vencimiento',
+              'estado',
+              'responsable',
+              'responsable_nombre',
+              'observaciones',
+              'creado_en',
             'ventas_count',
             'total_vendido',
             'total_abonos',
-        ]
+          ]
         read_only_fields = ('creado_en', 'ventas_count', 'total_vendido', 'total_abonos')
 
     def get_responsable_nombre(self, obj):
@@ -77,17 +81,18 @@ class VentaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ventas
         fields = [ 
-                'id',
-                'precio',
-                'cliente_id',
-                'empresaCliente',
-                "totalAbono",
-                'fecha',
-                'detalle',
-                'observacion',
-                'estado',
-                'foto',
-                'jornada',
+                  'id',
+                  'precio',
+                  'cliente_id',
+                  'empresaCliente',
+                  "totalAbono",
+                  'fecha',
+                  'detalle',
+                  'observacion',
+                  'estado',
+                  'foto',
+                  'foto_formula',
+                  'jornada',
         ]
         # read_only_fields = ('campo1', 'campo2')
 
@@ -95,10 +100,11 @@ class VentaSerializer(serializers.ModelSerializer):
             'detalle': {'required': False},
             'observacion': {'required': False},
             'estado' : {'required': False},
-            'foto' : {'required': False},
-            'jornada': {'required': False, 'allow_null': True},
-            'empresaCliente': {'required': False, 'allow_blank': True},
-        }
+              'foto' : {'required': False},
+              'foto_formula' : {'required': False},
+              'jornada': {'required': False, 'allow_null': True},
+              'empresaCliente': {'required': False, 'allow_blank': True},
+          }
 
         # def to_representation(self, instance):
         #     representation = super().to_representation(instance)
@@ -311,6 +317,9 @@ class RemisionItemSerializer(serializers.ModelSerializer):
     cantidadFactura = serializers.SerializerMethodField(read_only=True)
     cantidadDespachada = serializers.SerializerMethodField(read_only=True)
     restante = serializers.SerializerMethodField(read_only=True)
+    precioUnitario = serializers.SerializerMethodField(read_only=True)
+    totalRemisionado = serializers.SerializerMethodField(read_only=True)
+    descuento = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RemisionItem
@@ -322,6 +331,9 @@ class RemisionItemSerializer(serializers.ModelSerializer):
             'cantidadFactura',
             'cantidadDespachada',
             'restante',
+            'precioUnitario',
+            'totalRemisionado',
+            'descuento',
         ]
         extra_kwargs = {
             'cantidad': {'min_value': 1}
@@ -358,10 +370,27 @@ class RemisionItemSerializer(serializers.ModelSerializer):
 
         return max(obj.item_venta.cantidad - despacho, 0)
 
+    def get_precioUnitario(self, obj):
+        item_venta = obj.item_venta
+        cantidad = item_venta.cantidad or 0
+        if cantidad > 0:
+            return (item_venta.totalArticulo or 0) / cantidad
+        return item_venta.precio_articulo or 0
+
+    def get_totalRemisionado(self, obj):
+        precio_unitario = self.get_precioUnitario(obj) or 0
+        return precio_unitario * (obj.cantidad or 0)
+
+    def get_descuento(self, obj):
+        return obj.item_venta.descuento or 0
+
 
 class RemisionSerializer(serializers.ModelSerializer):
     items = RemisionItemSerializer(many=True)
     cliente = serializers.SerializerMethodField(read_only=True)
+    empresaCliente = serializers.SerializerMethodField(read_only=True)
+    totalRemision = serializers.SerializerMethodField(read_only=True)
+    abonos = serializers.SerializerMethodField(read_only=True)
     venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
 
     class Meta:
@@ -371,10 +400,13 @@ class RemisionSerializer(serializers.ModelSerializer):
             'venta',
             'cliente_id',
             'cliente',
+            'empresaCliente',
             'fecha',
             'observacion',
             'items',
             'creado_en',
+            'totalRemision',
+            'abonos',
         ]
         read_only_fields = ('cliente_id', 'creado_en')
 
@@ -388,6 +420,38 @@ class RemisionSerializer(serializers.ModelSerializer):
             }
         except Clientes.DoesNotExist:
             return None
+
+    def get_empresaCliente(self, obj):
+        try:
+            return obj.venta.empresaCliente
+        except Exception:
+            return None
+
+    def get_totalRemision(self, obj):
+        total = 0
+        for item in obj.items.all():
+            cantidad = item.cantidad or 0
+            cantidad_factura = item.item_venta.cantidad or 0
+            if cantidad_factura > 0:
+                precio_unitario = (item.item_venta.totalArticulo or 0) / cantidad_factura
+            else:
+                precio_unitario = item.item_venta.precio_articulo or 0
+            total += precio_unitario * cantidad
+        return total
+
+    def get_abonos(self, obj):
+        abonos_qs = Abonos.objects.filter(venta_id=obj.venta_id).select_related('medioDePago').order_by('fecha')
+        return [
+            {
+                'id': abono.id,
+                'precio': abono.precio,
+                'medioDePago': abono.medioDePago_id,
+                'medioPagoNombre': abono.medioDePago.nombre if abono.medioDePago else None,
+                'fecha': abono.fecha,
+                'descripcion': abono.descripcion,
+            }
+            for abono in abonos_qs
+        ]
 
     def validate(self, attrs):
         venta = attrs['venta']

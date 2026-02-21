@@ -312,7 +312,18 @@ function VentaUpdateForm(props) {
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                 <label htmlFor="foto">Fotos de la venta:</label>
                 <input type="file" className="form-control" id="imagenes" multiple accept="image/*"  name="foto" />
-                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="foto_formula">Foto de formula:</label>
+                <input
+                  type="file"
+                  className="form-control"
+                  id="foto_formula"
+                  name="foto_formula"
+                  accept="image/*"
+                  capture="environment"
+                />
+              </div>
                 <div id="previsualizadores" className="mt-2" />
                 
                 <hr className="my-3" />

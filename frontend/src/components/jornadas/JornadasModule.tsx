@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { IP_URL } from "@/utils/js/api";
+import { Calendar } from "primereact/calendar";
+import "@/styles/style.css"
+
 
 type JornadaEstado = "planned" | "in_progress" | "closed";
 
@@ -11,6 +14,10 @@ type Jornada = {
   empresa_nombre: string;
   sucursal?: string;
   fecha: string;
+  condicion_pago?: "quincenal" | "mensual" | string | null;
+  fecha_inicio?: string | null;
+  cantidad_cuotas?: number | null;
+  fecha_vencimiento?: string | null;
   estado: JornadaEstado;
   responsable?: number | null;
   responsable_nombre?: string | null;
@@ -69,8 +76,8 @@ const formatDate = (value?: string | null) => {
   }
   return date.toLocaleDateString("es-CO", {
     year: "numeric",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
@@ -95,6 +102,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     empresa: "",
     sucursal: "",
     fecha: new Date().toISOString().split("T")[0],
+    fecha_inicio: new Date().toISOString().split("T")[0],
+    condicion_pago: "quincenal",
+    cantidad_cuotas: "1",
+    fecha_vencimiento: new Date().toISOString().split("T")[0],
     observaciones: "",
   });
 
@@ -175,9 +186,48 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       empresa: "",
       sucursal: "",
       fecha: new Date().toISOString().split("T")[0],
+      fecha_inicio: new Date().toISOString().split("T")[0],
+      condicion_pago: "quincenal",
+      cantidad_cuotas: "1",
+      fecha_vencimiento: new Date().toISOString().split("T")[0],
       observaciones: "",
     });
   };
+
+  const toISODate = (value: Date | string | null | undefined) => {
+    if (!value) return "";
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const addDaysSkipping31 = (startDate: Date | string, days: number) => {
+    if (!startDate || !days || days <= 0) return startDate;
+    const fecha = startDate instanceof Date ? new Date(startDate) : new Date(startDate);
+    if (Number.isNaN(fecha.getTime())) return startDate;
+    let count = 0;
+    while (count < days) {
+      fecha.setDate(fecha.getDate() + 1);
+      if (fecha.getDate() !== 31) {
+        count += 1;
+      }
+    }
+    return fecha;
+  };
+
+  useEffect(() => {
+    const multiplicador = formData.condicion_pago === "mensual" ? 30 : 15;
+    const cuotas = Number(formData.cantidad_cuotas) || 0;
+    const dias = cuotas * multiplicador;
+    const nuevaFecha = addDaysSkipping31(formData.fecha_inicio, dias);
+    setFormData((prev) => ({
+      ...prev,
+      fecha_vencimiento: toISODate(nuevaFecha as Date),
+    }));
+  }, [formData.condicion_pago, formData.cantidad_cuotas, formData.fecha_inicio]);
 
   const mostrarMensaje = (tipo: "error" | "success", texto: string) => {
     setMensaje({ tipo, mensaje: texto });
@@ -204,6 +254,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         empresa: Number(formData.empresa),
         sucursal: formData.sucursal.trim(),
         fecha: formData.fecha,
+        fecha_inicio: formData.fecha_inicio,
+        condicion_pago: formData.condicion_pago,
+        cantidad_cuotas: Number(formData.cantidad_cuotas) || 0,
+        fecha_vencimiento: formData.fecha_vencimiento,
         observaciones: formData.observaciones.trim(),
       };
 
@@ -338,13 +392,76 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
               <label className="form-label" htmlFor="fecha">
                 Fecha
               </label>
+              <Calendar
+                inputId="fecha"
+                value={new Date(formData.fecha)}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    fecha: toISODate(e.value),
+                  }))
+                }
+                dateFormat="dd/mm/yy"
+                showIcon
+                className="w-100"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="fecha_inicio">
+                Fecha de inicio
+              </label>
+              <Calendar
+                inputId="fecha_inicio"
+                value={new Date(formData.fecha_inicio)}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    fecha_inicio: toISODate(e.value),
+                  }))
+                }
+                dateFormat="dd/mm/yy"
+                showIcon
+                className="w-100"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="condicion_pago">
+                Condición de pago
+              </label>
+              <select
+                id="condicion_pago"
+                className="form-select"
+                value={formData.condicion_pago}
+                onChange={handleFormChange("condicion_pago")}
+              >
+                <option value="quincenal">Quincenal</option>
+                <option value="mensual">Mensual</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="cantidad_cuotas">
+                Cantidad de cuotas
+              </label>
               <input
-                type="date"
-                id="fecha"
+                type="number"
+                id="cantidad_cuotas"
                 className="form-control"
-                value={formData.fecha}
-                onChange={handleFormChange("fecha")}
-                required
+                min={1}
+                value={formData.cantidad_cuotas}
+                onChange={handleFormChange("cantidad_cuotas")}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="fecha_vencimiento">
+                Fecha de vencimiento
+              </label>
+              <Calendar
+                inputId="fecha_vencimiento"
+                value={new Date(formData.fecha_vencimiento)}
+                dateFormat="dd/mm/yy"
+                showIcon
+                className="w-100"
+                readOnlyInput
               />
             </div>
             <div className="col-12">
@@ -453,6 +570,15 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                         <div className="text-muted small">
                           {jornada.sucursal ? `Sucursal: ${jornada.sucursal}` : "Sin sucursal"}
                         </div>
+                        {(jornada.condicion_pago ||
+                          jornada.cantidad_cuotas ||
+                          jornada.fecha_vencimiento) && (
+                          <div className="text-muted small mt-1">
+                            Pago: {jornada.condicion_pago ?? "—"} · Cuotas:{" "}
+                            {jornada.cantidad_cuotas ?? 0} · Vence:{" "}
+                            {formatDate(jornada.fecha_vencimiento)}
+                          </div>
+                        )}
                         {jornada.observaciones && (
                           <div className="text-muted small fst-italic mt-1">
                             {jornada.observaciones}

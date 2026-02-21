@@ -26,8 +26,8 @@ body {
 }
 
 .page-shell {
-  width: min(1360px, 100%);
-  margin: 2.5rem auto;
+  width: min(1480px, 100%);
+  margin: 1.5rem auto;
   padding: 0 1.5rem 3rem;
 }
 
@@ -76,7 +76,7 @@ body {
   background: var(--app-surface);
   border-radius: 18px;
   box-shadow: var(--app-shadow);
-  padding: 2rem;
+  padding: 1rem;
   border: 1px solid #eef1f6;
 }
 
@@ -231,7 +231,200 @@ body {
 .remisiones-module {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.75rem;
+}
+
+.remisiones-header {
+  font-weight: 600;
+}
+
+.remisiones-search .p-inputtext {
+  border-radius: 999px;
+  padding-left: 2.5rem;
+  min-width: 240px;
+}
+
+
+
+
+
+.remisiones-table .p-datatable-header {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.02));
+  border: 1px solid rgba(79, 70, 229, 0.12);
+  border-radius: 14px;
+  padding: 0.5rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.remisiones-table .p-datatable-wrapper {
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid #e7ecf4;
+  background: var(--app-surface);
+}
+
+.remisiones-table .p-datatable-thead > tr > th {
+  border-radius: 0;
+  background: #f8faff;
+  color: var(--app-heading);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  padding: 0.30rem 0.85rem;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.remisiones-table .p-datatable-tbody > tr > td {
+  padding: 0.4rem 0.75rem;
+  border-color: #eef1f5;
+}
+
+.remisiones-table .p-datatable-tbody > tr {
+  border-radius: 14px;
+}
+
+.remisiones-table .p-datatable-tbody > tr > td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+.remisiones-table .p-datatable-tbody > tr > td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+.remisiones-table .p-datatable-tbody > tr + tr > td {
+  border-top: 1px solid #eef1f5;
+}
+
+.remisiones-table .p-datatable-tbody > tr.p-highlight {
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.remisiones-table .p-datatable-tbody > tr:hover {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.remisiones-table .p-paginator {
+  border-top: 1px solid #edf1f7;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 0 0 22px 22px;
+}
+
+.remisiones-table .p-paginator .p-paginator-pages .p-paginator-page,
+.remisiones-table .p-paginator .p-paginator-prev,
+.remisiones-table .p-paginator .p-paginator-next,
+.remisiones-table .p-paginator .p-paginator-first,
+.remisiones-table .p-paginator .p-paginator-last {
+  height: 12px;
+  min-width: 32px;
+}
+
+.remisiones-table .p-paginator .p-dropdown {
+  height: 18px;
+}
+
+.remisiones-table .p-paginator .p-dropdown .p-dropdown-label {
+  line-height: 4px;
+}
+
+.remisiones-badge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.remisiones-table .p-tag {
+  font-weight: 600;
+}
+
+.remisiones-tag {
+  min-width: 2.75rem;
+  font-size: 0.75rem;
+  justify-content: center;
+}
+
+.remisiones-table .p-datatable-header {
+  padding: 0.75rem 1rem;
+}
+
+.remisiones-table .p-datatable-header .p-inputtext {
+  font-size: 0.85rem;
+  padding-block: 0.35rem;
+}
+
+.remisiones-table .p-datatable-tbody {
+  font-size: 0.9rem;
+}
+
+.remisiones-fecha {
+  color: #111827;
+}
+
+/* Overrides compactas para el paginador de remisiones */
+.remisiones-table .p-paginator {
+  padding-top: 0.4rem;
+  padding-bottom: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.remisiones-table .p-paginator .p-paginator-pages .p-paginator-page,
+.remisiones-table .p-paginator .p-paginator-prev,
+.remisiones-table .p-paginator .p-paginator-next,
+.remisiones-table .p-paginator .p-paginator-first,
+.remisiones-table .p-paginator .p-paginator-last {
+  height: 26px;
+  min-width: 26px;
+}
+
+.remisiones-table .p-paginator .p-dropdown {
+  height: 26px;
+}
+
+.remisiones-table .p-paginator .p-dropdown .p-dropdown-label {
+  line-height: 4px;
+}
+
+/* Compactar aún más: filas, header y paginador */
+.remisiones-table .p-datatable-header {
+  padding: 0.55rem 0.9rem;
+}
+
+.remisiones-table .p-datatable-thead > tr > th {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.68rem;
+}
+
+.remisiones-table .p-datatable-tbody > tr > td {
+  padding: 0.35rem 0.65rem;
+}
+
+.remisiones-table .p-datatable-tbody {
+  font-size: 0.88rem;
+}
+
+.remisiones-table .p-paginator {
+  padding-top: 0.3rem;
+  padding-bottom: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.remisiones-table .p-paginator .p-paginator-pages .p-paginator-page,
+.remisiones-table .p-paginator .p-paginator-prev,
+.remisiones-table .p-paginator .p-paginator-next,
+.remisiones-table .p-paginator .p-paginator-first,
+.remisiones-table .p-paginator .p-paginator-last {
+  height: 24px;
+  min-width: 24px;
+}
+
+.remisiones-table .p-paginator .p-dropdown {
+  height: 24px;
+}
+
+.remisiones-table .p-paginator .p-dropdown .p-dropdown-label {
+  line-height: 4px;
 }
 
 .data-table-shell {
@@ -273,7 +466,7 @@ body {
 
 .jornadas-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -282,6 +475,31 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
   align-items: start;
+}
+
+.jornadas-stats .ventas-card {
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.02));
+  border: 1px solid rgba(79, 70, 229, 0.12);
+  box-shadow: var(--app-shadow);
+}
+
+.jornadas-stats .ventas-card .display-6 {
+  font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem);
+  color: var(--app-heading);
+}
+
+@media (max-width: 992px) {
+  .jornadas-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .jornadas-stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 .jornadas-form form small {
@@ -302,6 +520,25 @@ body {
 .jornadas-panel table td,
 .jornadas-panel table th {
   vertical-align: middle;
+}
+
+.jornadas-panel .table-modern {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.jornadas-panel .table-modern.table-responsive {
+  overflow-x: auto;
+}
+
+.jornadas-panel table {
+  width: 100%;
+  font-size: 0.92rem;
+}
+
+.jornadas-panel table th,
+.jornadas-panel table td {
+  padding: 0.65rem 0.85rem;
 }
 
 @media (max-width: 768px) {

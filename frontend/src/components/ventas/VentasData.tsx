@@ -30,6 +30,13 @@ import { title } from 'process';
 import { Row } from 'react-bootstrap';
 
 const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
+const ESTADO_PEDIDO_LABELS = {
+  creado: 'Pedido tomado',
+  para_fabricacion: 'Para fabricar',
+  en_fabricacion: 'Enviado a Fabricar',
+  listo_entrega: 'Listo para entrega',
+  entregado: 'Entregado',
+};
 
 const identifyEstadoPedidoKey = (nombre?: string): string => {
   const value = (nombre || '').toLowerCase();
@@ -194,6 +201,7 @@ function VentasData(props) {
         precioRaw,
         totalAbonoRaw,
         saldoRaw,
+        empresaCliente: item.empresaCliente ?? "",
         precio: moneyformat(precioRaw),
         totalAbono: moneyformat(totalAbonoRaw),
         saldo: moneyformat(saldoRaw),
@@ -318,6 +326,7 @@ function VentasData(props) {
     { title: "Pedido", data: "id"},
     { "data": "cedula" },
     { "data": "cliente" },
+    { title: "Empresa", data: "empresaCliente" },
     { "data": "precio" },
     { "data": "totalAbono" },
     { "data": "saldo" },
@@ -558,7 +567,22 @@ function VentasData(props) {
 
 
 
-      <DataTables data={dataTablee} columns={columns} order={order} onAction={handleAction} imprimir={con} slotes={slots} />
+      <DataTables
+        data={dataTablee}
+        columns={columns}
+        order={order}
+        onAction={handleAction}
+        imprimir={con}
+        slotes={slots}
+        estadoPedidoFilters={[
+          { key: "todos", label: "Todos", expr: "", regex: false },
+          { key: "creado", label: ESTADO_PEDIDO_LABELS.creado, expr: "pedido tomado|creado|pendiente", regex: true, ci: true },
+          { key: "para_fabricacion", label: ESTADO_PEDIDO_LABELS.para_fabricacion, expr: "para enviar|para fabricar", regex: true, ci: true },
+          { key: "en_fabricacion", label: ESTADO_PEDIDO_LABELS.en_fabricacion, expr: "enviado a fabric", regex: true, ci: true },
+          { key: "listo_entrega", label: ESTADO_PEDIDO_LABELS.listo_entrega, expr: "listo", regex: true, ci: true },
+          { key: "entregado", label: ESTADO_PEDIDO_LABELS.entregado, expr: "entregado|garantia", regex: true, ci: true },
+        ]}
+      />
     </>
   )
 }

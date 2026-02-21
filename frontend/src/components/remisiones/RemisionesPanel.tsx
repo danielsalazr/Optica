@@ -6,6 +6,7 @@ import { DataTable, DataTableExpandedRowsType, DataTableFilterMeta } from "prime
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { FilterMatchMode } from "primereact/api";
+import { moneyformat } from "@/utils/js/utils";
 
 type ArticuloCatalogo = {
   id: number;
@@ -27,6 +28,8 @@ type RemisionItem = {
   cantidadFactura: number;
   cantidadDespachada: number;
   restante: number;
+  precioUnitario?: number;
+  totalRemisionado?: number;
   articulo?: {
     id: number;
     nombre: string;
@@ -136,8 +139,8 @@ const RemisionesPanel: React.FC<Props> = ({
     }
     return fechaLocal.toLocaleDateString("es-CO", {
       year: "numeric",
-      month: "short",
-      day: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
@@ -208,6 +211,9 @@ const RemisionesPanel: React.FC<Props> = ({
               <tr>
                 <th>Articulo</th>
                 <th className="text-center">En esta remision</th>
+                <th className="text-center">Precio</th>
+                <th className="text-center">Descuento</th>
+                <th className="text-center">Total</th>
                 <th className="text-center">Total despachado</th>
                 <th className="text-center">Pendiente</th>
               </tr>
@@ -217,6 +223,16 @@ const RemisionesPanel: React.FC<Props> = ({
                 <tr key={item.id}>
                   <td>{item.articulo?.nombre ?? `Item ${item.itemVenta}`}</td>
                   <td className="text-center fw-semibold">{item.cantidad}</td>
+                  <td className="text-center">{moneyformat(item.precioUnitario ?? 0)}</td>
+                  <td className="text-center">
+                    {item.descuento ? `${item.descuento}%` : "0%"}
+                  </td>
+                  <td className="text-center fw-semibold">
+                    {moneyformat(
+                      item.totalRemisionado ??
+                        (item.precioUnitario ?? 0) * (item.cantidad ?? 0)
+                    )}
+                  </td>
                   <td className="text-center text-primary">{item.cantidadDespachada}</td>
                   <td className="text-center text-danger">{item.restante}</td>
                 </tr>

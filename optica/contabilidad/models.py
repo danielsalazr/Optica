@@ -127,6 +127,10 @@ class Jornada(models.Model):
         help_text="Sucursal o punto de atención donde se realiza la jornada.",
     )
     fecha = models.DateField()
+    condicion_pago = models.CharField(max_length=20, blank=True, null=True)
+    fecha_inicio = models.DateField(blank=True, null=True)
+    cantidad_cuotas = models.IntegerField(blank=True, null=True)
+    fecha_vencimiento = models.DateField(blank=True, null=True)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='planned')
     responsable = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -186,6 +190,7 @@ class Ventas(models.Model):
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
+    foto_formula = models.ImageField(upload_to='fotos_formulas/', blank=True, null=True)
     tipo_venta = models.ForeignKey(TipoVenta, default=1, on_delete=DO_NOTHING, null=True, blank=True)
     anulado = models.BooleanField(default=False, verbose_name="Anulado")
     detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
@@ -497,4 +502,3 @@ class ItemsPEdidoVenta(models.Model):
     def __str__(self):
         return f"{self.articulo}"
     
-

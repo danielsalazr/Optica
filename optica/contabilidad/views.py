@@ -156,7 +156,8 @@ class VentasP(APIView):
                 sum(T2.precio) as abono, 
                 T0.precio - sum(T2.precio) as saldo, 
                 T3.nombre, 
-                T0.cliente_id 
+                T0.cliente_id,
+                T0.empresaCliente
             FROM contabilidad_ventas T0
             left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
             left join contabilidad_abonos T2 on T0.id = T2.venta_id
@@ -188,6 +189,7 @@ class VentasP(APIView):
                 'abono': venta[3],
                 'saldo': venta[4],
                 'estado': venta[5],
+                'empresaCliente': venta[7],
             })
 
         console.log(listVentas)
@@ -493,6 +495,7 @@ class Venta(APIView):
                 #CONCAT(T1.nombre, ' ', T1.apellido),
                 
                 T0.precio,
+                T0.empresaCliente,
                 T0.totalAbono,
                 #sum(T2.precio) as abono,
                 T4.saldo,

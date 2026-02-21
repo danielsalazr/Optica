@@ -10,11 +10,11 @@ from django.utils import timezone
 from .models import EstadoPedidoVenta, ItemsVenta
 
 ESTADOS_PEDIDO_DEFINICIONES: Sequence[Tuple[str, str]] = (
-    ("creado", "Creado / Pendiente de pago (Pedido tomado)"),
-    ("para_fabricacion", "Para enviar a fabricacion (Enviado a Fabricar)"),
-    ("en_fabricacion", "En Fabricacion (listo para recoger)"),
-    ("listo_entrega", "Listo Para entrega (Entregado)"),
-    ("entregado", "Entregado (Proceso de Garantia)"),
+    ("creado", "Pedido tomado"),
+    ("para_fabricacion", "Para enviar a fabricacion"),
+    ("en_fabricacion", "Enviado a Fabricar"),
+    ("listo_entrega", "Listo para entrega"),
+    ("entregado", "Entregado"),
 )
 
 ESTADO_PEDIDO_ORDER = {slug: idx for idx, (slug, _) in enumerate(ESTADOS_PEDIDO_DEFINICIONES)}
@@ -39,7 +39,7 @@ def identify_estado_pedido_slug(nombre: Optional[str]) -> str:
         return "creado"
     if "para enviar" in value or "enviar a fabric" in value:
         return "para_fabricacion"
-    if "en fabric" in value:
+    if "en fabric" in value or "enviado a fabricar" in value:
         return "en_fabricacion"
     if "listo" in value:
         return "listo_entrega"

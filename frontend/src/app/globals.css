@@ -30,8 +30,29 @@ body {
 
 * {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+  /* padding: 0;
+  margin: 0; */
+}
+
+input.p-inputtext{
+  padding-left: 32px !important;
+  height: 36px;
+}
+
+.remisiones-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.remisiones-search .pi {
+  /* position: absolute; */
+  /* left: 0.85rem; */
+  top: 50%;
+  left: 8px;
+  /* transform: translateY(-50%); */
+  /* color: var(--app-muted); */
+  /* pointer-events: none; */
 }
 
 a {
