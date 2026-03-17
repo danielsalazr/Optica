@@ -19,6 +19,8 @@ from .models import (
     Remision,
     RemisionItem,
     Jornada,
+    AbonoMasivo,
+    Vendedor,
 )
 from .utils_estado_pedido import (
     get_estado_pedido_by_slug,
@@ -85,8 +87,13 @@ class VentaSerializer(serializers.ModelSerializer):
                   'precio',
                   'cliente_id',
                   'empresaCliente',
+                  'vendedor',
                   "totalAbono",
                   'fecha',
+                  'condicion_pago',
+                  'fecha_inicio',
+                  'fecha_vencimiento',
+                  'cuotas',
                   'detalle',
                   'observacion',
                   'estado',
@@ -99,11 +106,16 @@ class VentaSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'detalle': {'required': False},
             'observacion': {'required': False},
-            'estado' : {'required': False},
+              'estado' : {'required': False},
               'foto' : {'required': False},
               'foto_formula' : {'required': False},
               'jornada': {'required': False, 'allow_null': True},
               'empresaCliente': {'required': False, 'allow_blank': True},
+              'vendedor': {'required': True, 'allow_null': False},
+              'condicion_pago': {'required': False, 'allow_blank': True},
+              'fecha_inicio': {'required': False, 'allow_null': True},
+              'fecha_vencimiento': {'required': False, 'allow_null': True},
+              'cuotas': {'required': False},
           }
 
         # def to_representation(self, instance):
@@ -244,11 +256,28 @@ class AbonoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Abonos
-        fields = ['venta','cliente_id','precio','medioDePago', 'descripcion']
+        fields = ['venta','cliente_id','precio','medioDePago', 'descripcion', 'abono_masivo', 'fecha']
     
     extra_kwargs = {
         'descripcion': {'required': False},
+        'abono_masivo': {'required': False, 'allow_null': True},
+        'fecha': {'required': False, 'allow_null': True},
     }
+
+
+class AbonoMasivoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AbonoMasivo
+        fields = [
+            'id',
+            'tipo',
+            'nombre_objetivo',
+            'empresa',
+            'jornada',
+            'cliente',
+            'creado_en',
+        ]
+        read_only_fields = ('creado_en',)
 
 
 class SaldoSerializer(serializers.ModelSerializer):
@@ -391,6 +420,13 @@ class RemisionSerializer(serializers.ModelSerializer):
     empresaCliente = serializers.SerializerMethodField(read_only=True)
     totalRemision = serializers.SerializerMethodField(read_only=True)
     abonos = serializers.SerializerMethodField(read_only=True)
+    condicionPago = serializers.SerializerMethodField(read_only=True)
+    compromisoPago = serializers.SerializerMethodField(read_only=True)
+    numeroCuotas = serializers.SerializerMethodField(read_only=True)
+    fechaInicio = serializers.SerializerMethodField(read_only=True)
+    fechaVencimiento = serializers.SerializerMethodField(read_only=True)
+    valorCuota = serializers.SerializerMethodField(read_only=True)
+    cuotasPagadas = serializers.SerializerMethodField(read_only=True)
     venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
 
     class Meta:
@@ -407,6 +443,13 @@ class RemisionSerializer(serializers.ModelSerializer):
             'creado_en',
             'totalRemision',
             'abonos',
+            'condicionPago',
+            'compromisoPago',
+            'numeroCuotas',
+            'fechaInicio',
+            'fechaVencimiento',
+            'valorCuota',
+            'cuotasPagadas',
         ]
         read_only_fields = ('cliente_id', 'creado_en')
 
@@ -452,6 +495,76 @@ class RemisionSerializer(serializers.ModelSerializer):
             }
             for abono in abonos_qs
         ]
+
+    def _get_venta(self, obj):
+        try:
+            return obj.venta
+        except Exception:
+            return None
+
+    def _get_numero_cuotas(self, venta):
+        if not venta:
+            return None
+        cuotas = getattr(venta, 'cuotas', None)
+        if cuotas:
+            return cuotas
+        condicion = (getattr(venta, 'condicion_pago', '') or '').lower()
+        fecha_inicio = getattr(venta, 'fecha_inicio', None)
+        fecha_vencimiento = getattr(venta, 'fecha_vencimiento', None)
+        if fecha_inicio and fecha_vencimiento and condicion:
+            dias = (fecha_vencimiento - fecha_inicio).days
+            if dias <= 0:
+                return 0
+            paso = 15 if 'quinc' in condicion else 30
+            return round(dias / paso, 2)
+        return 0
+
+    def get_condicionPago(self, obj):
+        venta = self._get_venta(obj)
+        return getattr(venta, 'condicion_pago', None)
+
+    def get_compromisoPago(self, obj):
+        venta = self._get_venta(obj)
+        return self._get_numero_cuotas(venta)
+
+    def get_numeroCuotas(self, obj):
+        venta = self._get_venta(obj)
+        return self._get_numero_cuotas(venta)
+
+    def get_fechaInicio(self, obj):
+        venta = self._get_venta(obj)
+        return getattr(venta, 'fecha_inicio', None)
+
+    def get_fechaVencimiento(self, obj):
+        venta = self._get_venta(obj)
+        return getattr(venta, 'fecha_vencimiento', None)
+
+    def get_valorCuota(self, obj):
+        venta = self._get_venta(obj)
+        if not venta:
+            return 0
+        total = venta.precio or 0
+        total_abono = venta.totalAbono or 0
+        saldo = max(total - total_abono, 0)
+        cuotas = getattr(venta, 'cuotas', None) or 0
+        if cuotas <= 0:
+            return 0
+        return round(saldo / cuotas, 2)
+
+    def get_cuotasPagadas(self, obj):
+        venta = self._get_venta(obj)
+        if not venta:
+            return 0
+        total = venta.precio or 0
+        total_abono = venta.totalAbono or 0
+        saldo = max(total - total_abono, 0)
+        cuotas = getattr(venta, 'cuotas', None) or 0
+        if cuotas <= 0:
+            return 0
+        valor_cuota = round(saldo / cuotas, 2)
+        if valor_cuota <= 0:
+            return 0
+        return round(total_abono / valor_cuota, 2)
 
     def validate(self, attrs):
         venta = attrs['venta']

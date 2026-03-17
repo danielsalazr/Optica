@@ -76,6 +76,10 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     const totalArticulo =  formData.getAll('totalArticulo');
     const precioAbono = formData.getAll("precioAbono");
     const descuento = formData.getAll("descuento");
+    const condicionPago = formData.get("condicion_pago");
+    const fechaInicio = formData.get("fecha_inicio");
+    const fechaVencimiento = formData.get("fecha_Vencimiento");
+    const compromisoPago = formData.get("compromisoPago");
     
     // const arrayPrueba = transformarArray(precio_articulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
     // console.log(arrayPrueba)
@@ -102,6 +106,18 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     formData.set('precio', total)  // total
     formData.set('totalAbono', totalAbono)
     formData.set('empresaCliente', empresaID)
+    if (condicionPago) {
+        formData.set('condicion_pago', condicionPago);
+    }
+    if (fechaInicio) {
+        formData.set('fecha_inicio', fechaInicio);
+    }
+    if (fechaVencimiento) {
+        formData.set('fecha_vencimiento', fechaVencimiento);
+    }
+    if (compromisoPago) {
+        formData.set('cuotas', compromisoPago);
+    }
 
     
     agregarArrayAFormData(formData, 'descuento', descuentos, true);
@@ -225,6 +241,10 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     const totalArticulo =  formData.getAll('totalArticulo');
     const precioAbono = formData.getAll("precioAbono");
     const descuento = formData.getAll("descuento");
+    const condicionPago = formData.get("condicion_pago");
+    const fechaInicio = formData.get("fecha_inicio");
+    const fechaVencimiento = formData.get("fecha_Vencimiento");
+    const compromisoPago = formData.get("compromisoPago");
     
     // const arrayPrueba = transformarArray(precio_articulo, fromMoneyToText)   // Esto puede ser un array o un string dependiendo del envío
     // console.log(arrayPrueba)
@@ -251,6 +271,18 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     formData.set('precio', total)  // total
     formData.set('totalAbono', totalAbono)
     formData.set('empresaCliente', empresaID)
+    if (condicionPago) {
+        formData.set('condicion_pago', condicionPago);
+    }
+    if (fechaInicio) {
+        formData.set('fecha_inicio', fechaInicio);
+    }
+    if (fechaVencimiento) {
+        formData.set('fecha_vencimiento', fechaVencimiento);
+    }
+    if (compromisoPago) {
+        formData.set('cuotas', compromisoPago);
+    }
 
     
     agregarArrayAFormData(formData, 'descuento', descuentos, true);
@@ -276,7 +308,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
 
     const abono = metodoPago.map((metodo_Pago, index) => {
         return {
-            venta: venta,
+            venta: id,
             cliente_id: cliente_id,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
@@ -286,7 +318,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     });
 
     const saldo =  {
-            venta: venta,
+            venta: id,
             cliente: cliente_id,
             saldo: total - totalAbono,
 

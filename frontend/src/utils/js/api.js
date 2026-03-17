@@ -33,6 +33,19 @@ const buildUrl = (endPoint = '') => {
   return `${base}${endPoint}`.replace(/([^:]\/)\/+/g, '$1');
 };
 
+const getCookie = (name) => {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop().split(';').shift();
+  }
+  return null;
+};
+
+const isUnsafeMethod = (method = 'GET') =>
+  !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method.toUpperCase());
+
 export const wl = typeof window !== 'undefined' ? window.location.href.split(/[:/]/) : [];
 export const BASE_URL = ensureBaseUrl();
 
@@ -42,8 +55,20 @@ export function IP_URL() {
 
 async function fetchJson(endPoint, options = {}) {
   const url = buildUrl(endPoint);
+  const method = options.method ?? 'GET';
+  const headers = { ...(options.headers || {}) };
+
+  if (isUnsafeMethod(method) && !headers['X-CSRFToken']) {
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
+  }
+
   const config = {
     credentials: 'include',
+    method,
+    headers,
     ...options,
   };
   const response = await fetch(url, config);

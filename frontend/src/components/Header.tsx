@@ -81,6 +81,9 @@ function Header() {
             style={{color: "white"}}
           >
             <NavDropdown.Item href="/abonos">Abonos</NavDropdown.Item>
+            <NavDropdown.Item href="/abonos/masivo">
+              Abono masivo
+            </NavDropdown.Item>
             <NavDropdown.Item href="ventas/crearVenta">
               Crear venta
             </NavDropdown.Item>

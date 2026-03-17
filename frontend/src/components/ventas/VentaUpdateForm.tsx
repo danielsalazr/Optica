@@ -46,6 +46,7 @@ function VentaUpdateForm(props) {
     const formRef = useRef(null);
     const usuarioRef = useRef(null);
     const empresaRef = useRef(null);
+    const vendedorRef = useRef(null);
     const telefonoRef = useRef(null);
 
     console.log(data)
@@ -66,6 +67,7 @@ function VentaUpdateForm(props) {
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
     const [clientes, setClientes] = useState(data.clientes);
     const [empresas, setEmpresas] = useState(data.empresas);
+    const [vendedores, setVendedores] = useState(data.vendedores || []);
 
     let selectizeInstance = null;
 
@@ -121,6 +123,16 @@ function VentaUpdateForm(props) {
                 });
     
                 setEmpresa(selectizeInstance2);
+            }
+
+            if (vendedorRef.current) {
+                $(vendedorRef.current).selectize({
+                    createOnBlur: true,
+                    persist: false,
+                    maxItems: 1,
+                    highlight: false,
+                    hideSelected: true,
+                });
             }
               
           },[])
@@ -292,6 +304,24 @@ function VentaUpdateForm(props) {
 
                     
                                 </div>
+                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                    <label htmlFor="vendedor">Vendedor</label>
+                    <select
+                        ref={vendedorRef}
+                        className="form-select"
+                        id="vendedor"
+                        name="vendedor"
+                        defaultValue={dataVenta.vendedor ?? dataVenta.vendedor_id ?? ''}
+                        required
+                    >
+                        <option value="">--</option>
+                        {vendedores.map((vendedor) => (
+                            <option key={vendedor.id} value={vendedor.id}>
+                                {vendedor.nombre} {vendedor.celular ? `· ${vendedor.celular}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                </div>
                 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                     <label htmlFor="password">Fecha de venta</label>
@@ -331,7 +361,15 @@ function VentaUpdateForm(props) {
                 <div className="form-group">
                 {/* <FormulaLentes data={data} />  */}
                 <TablaArticulos articulos={data.articulos || []} ventaData={dataVenta.ventas} />
-                <Abonos data={data} ventaData={dataVenta.abonos} totalAbonoLoad={dataVenta.totalAbono} />
+                <Abonos
+                    data={data}
+                    ventaData={dataVenta.abonos}
+                    totalAbonoLoad={dataVenta.totalAbono}
+                    condicionPagoInit={dataVenta.condicion_pago}
+                    compromisoPagoInit={dataVenta.cuotas}
+                    fechaInicioInit={dataVenta.fecha_inicio}
+                    fechaVencimientoInit={dataVenta.fecha_vencimiento}
+                />
                 
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                     Actualizar venta

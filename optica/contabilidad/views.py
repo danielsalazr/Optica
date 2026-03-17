@@ -6,8 +6,8 @@ from django.views.generic import ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.forms.models import model_to_dict
-from django.db import connection, IntegrityError
-from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery, Count
+from django.db import connection, IntegrityError, transaction
+from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery, Count, F
 from django.db.models.functions import Coalesce
 
 from django.contrib.auth.decorators import login_required
@@ -41,6 +41,7 @@ from .models import (
     Ventas,
     ItemsVenta,
     Abonos,
+    AbonoMasivo,
     MediosDePago,
     Articulos,
     FotosArticulos,
@@ -51,6 +52,7 @@ from .models import (
     RemisionItem,
     EstadoPedidoVenta,
     Jornada,
+    Vendedor,
 )
 from usuarios.models import Clientes, Empresa
 
@@ -197,6 +199,7 @@ class VentasP(APIView):
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
+        vendedores = Vendedor.objects.all().values()
         estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
         jornadas = Jornada.objects.select_related('empresa').filter(
             estado__in=['planned', 'in_progress']
@@ -217,6 +220,7 @@ class VentasP(APIView):
             'clientes': clientes,
             'articulos': articulos,
             'empresas': empresa,
+            'vendedores': vendedores,
             'estadosPedido': list(estados_pedido),
             'jornadas': list(jornadas),
         }
@@ -374,32 +378,34 @@ class Venta(APIView):
 
         console.log(id)
         if id != 0:
-
+  
             query = f"""
-                select 
-                    T0.id as pedido, T0.*, T1.*, T2.id as "empresaId", 
-                    #T3.foto
-                    MIN(T3.foto) as foto 
-                from contabilidad_ventas T0
-                inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
-                left join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
-                left join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
-                where T0.id = {id}
-                group by T0.id, T1.id 
-                ;
-            """
-
+                  select 
+                      T0.id as pedido, T0.*, T1.*, T2.id as "empresaId", 
+                      T4.nombre as articulo_nombre,
+                      #T3.foto
+                      MIN(T3.foto) as foto 
+                  from contabilidad_ventas T0
+                  inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
+                  left join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
+                  left join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
+                  left join contabilidad_articulos T4 on T4.id = T1.articulo_id
+                  where T0.id = {id}
+                  group by T0.id, T1.id 
+                  ;
+              """
+  
             with connection.cursor() as cursor:
-                cursor.execute(query)
-                columns = [col[0] for col in cursor.description]
-                results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-                # results = cursor.fetchall()
-
+                  cursor.execute(query)
+                  columns = [col[0] for col in cursor.description]
+                  results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+                  # results = cursor.fetchall()
+  
             console.log(results)
             
             # Datos de venta
             clasificacion = [
-                ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'venta_id', 'foto']),
+                  ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'articulo_nombre', 'venta_id', 'foto']),
                 # ('abonos', ['totalArticulo', 'articulo_id', 'venta_id']),
                 # Puedes añadir más clasificaciones según necesites
             ]
@@ -687,18 +693,44 @@ class Venta(APIView):
         venta_actualizada = serializer.save()
 
         if venta_items:
-        # Eliminamos los items antiguos
-            ItemsVenta.objects.filter(venta=venta).delete()
-            
-            # Creamos los nuevos items
-            for item in venta_items:
-                console.log(item)
-                # item['venta'] = venta.id
-            items_serializer = ItemsVentaSerializer(data=venta_items, many=True)
-            if items_serializer.is_valid():
-                items_serializer.save()
-            else:
-                console.log(items_serializer.errors)
+            # Validar que no se eliminen items ya remisionados
+            existing_items = ItemsVenta.objects.filter(venta=venta).prefetch_related("remisiones_items")
+            existing_by_articulo = {item.articulo_id: item for item in existing_items}
+            requested_articulos = {int(item.get("articulo")) for item in venta_items if item.get("articulo")}
+
+            bloqueados = [
+                item for item in existing_items
+                if item.remisiones_items.exists() and item.articulo_id not in requested_articulos
+            ]
+            if bloqueados:
+                return Response(
+                    {"detail": "No puede eliminar items que ya tienen remisiones asociadas."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Crear o actualizar items solicitados
+            for item_data in venta_items:
+                articulo_id = int(item_data.get("articulo"))
+                item_existente = existing_by_articulo.get(articulo_id)
+                if item_existente:
+                    item_existente.cantidad = int(item_data.get("cantidad") or 0)
+                    item_existente.precio_articulo = int(item_data.get("precio_articulo") or 0)
+                    item_existente.descuento = int(item_data.get("descuento") or 0)
+                    item_existente.totalArticulo = int(item_data.get("totalArticulo") or 0)
+                    item_existente.save()
+                else:
+                    item_data["venta"] = venta.id
+                    items_serializer = ItemsVentaSerializer(data=item_data)
+                    if items_serializer.is_valid():
+                        items_serializer.save()
+                    else:
+                        console.log(items_serializer.errors)
+
+            # Eliminar items que no vienen en la solicitud y no tienen remisiones
+            ItemsVenta.objects.filter(
+                venta=venta,
+                remisiones_items__isnull=True
+            ).exclude(articulo_id__in=requested_articulos).delete()
         
         if abonos:
         # Eliminamos abonos antiguos (o actualizamos según tu lógica de negocio)
@@ -1016,6 +1048,175 @@ class VentaEstadoPedidoView(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+class AbonoMasivoPreview(APIView):
+    def get(self, request):
+        tipo = (request.GET.get('tipo') or '').strip()
+        empresa_id = request.GET.get('empresa_id')
+        jornada_id = request.GET.get('jornada_id')
+        cliente_id = request.GET.get('cliente_id')
+
+        qs = Ventas.objects.filter(anulado=False)
+
+        if tipo == 'empresa':
+            if not empresa_id:
+                return Response({'detail': 'Debe indicar la empresa.'}, status=status.HTTP_400_BAD_REQUEST)
+            empresa = Empresa.objects.filter(id=empresa_id).first()
+            if not empresa:
+                return Response({'detail': 'Empresa no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            qs = qs.filter(empresaCliente=empresa.nombre)
+        elif tipo == 'jornada':
+            if not jornada_id:
+                return Response({'detail': 'Debe indicar la jornada.'}, status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(jornada_id=jornada_id)
+        elif tipo == 'cliente':
+            if not cliente_id:
+                return Response({'detail': 'Debe indicar el cliente.'}, status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(cliente_id=cliente_id)
+        else:
+            return Response({'detail': 'Tipo de previsualización no válido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = qs.annotate(
+            total_abonos=Coalesce(Sum('abonos__precio'), 0),
+            saldo=F('precio') - Coalesce(Sum('abonos__precio'), 0),
+        ).filter(saldo__gt=0)
+
+        ventas = qs.values(
+            'id',
+            'cliente_id',
+            'empresaCliente',
+            'jornada_id',
+            'precio',
+            'total_abonos',
+            'saldo',
+            'cuotas',
+            'fecha',
+        ).order_by('fecha', 'id')
+
+        return Response(list(ventas), status=status.HTTP_200_OK)
+
+
+class AbonoMasivoApply(APIView):
+    def post(self, request):
+        data = request.data
+        tipo = (data.get('tipo') or '').strip()
+        empresa_id = data.get('empresa_id')
+        jornada_id = data.get('jornada_id')
+        cliente_id = data.get('cliente_id')
+        medio_id = data.get('medioDePago') or data.get('medioPago')
+        descripcion = data.get('descripcion')
+        fecha = data.get('fecha')
+        items = data.get('items', [])
+
+        if not tipo:
+            return Response({'detail': 'Debe indicar el tipo de abono masivo.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not medio_id:
+            return Response({'detail': 'Debe indicar el medio de pago.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if isinstance(items, str):
+            try:
+                items = json.loads(items)
+            except json.JSONDecodeError:
+                return Response({'detail': 'Items no es un JSON válido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not isinstance(items, list) or not items:
+            return Response({'detail': 'Debe indicar al menos un item para abonar.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        empresa = None
+        jornada = None
+        cliente = None
+        nombre_objetivo = None
+
+        if tipo == 'empresa':
+            if not empresa_id:
+                return Response({'detail': 'Debe indicar la empresa.'}, status=status.HTTP_400_BAD_REQUEST)
+            empresa = Empresa.objects.filter(id=empresa_id).first()
+            if not empresa:
+                return Response({'detail': 'Empresa no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            nombre_objetivo = empresa.nombre
+        elif tipo == 'jornada':
+            if not jornada_id:
+                return Response({'detail': 'Debe indicar la jornada.'}, status=status.HTTP_400_BAD_REQUEST)
+            jornada = Jornada.objects.filter(id=jornada_id).first()
+            if not jornada:
+                return Response({'detail': 'Jornada no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            nombre_objetivo = str(jornada)
+        elif tipo == 'cliente':
+            if not cliente_id:
+                return Response({'detail': 'Debe indicar el cliente.'}, status=status.HTTP_400_BAD_REQUEST)
+            cliente = Clientes.objects.filter(cedula=cliente_id).first()
+            if not cliente:
+                return Response({'detail': 'Cliente no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            nombre_objetivo = f"{cliente.nombre} {cliente.apellido}".strip()
+        else:
+            return Response({'detail': 'Tipo de abono masivo inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            abono_masivo = AbonoMasivo.objects.create(
+                tipo=tipo,
+                nombre_objetivo=nombre_objetivo,
+                empresa=empresa,
+                jornada=jornada,
+                cliente=cliente,
+            )
+
+            creados = []
+            for item in items:
+                venta_id = item.get('venta') or item.get('venta_id') or item.get('id')
+                monto = item.get('monto') or item.get('aplicar') or 0
+                try:
+                    monto = float(monto)
+                except (TypeError, ValueError):
+                    monto = 0
+
+                if not venta_id or monto <= 0:
+                    continue
+
+                venta = Ventas.objects.filter(id=venta_id).first()
+                if not venta:
+                    continue
+
+                cliente_obj = Clientes.objects.filter(cedula=venta.cliente_id).first()
+                if not cliente_obj:
+                    continue
+
+                abono_data = {
+                    'venta': venta.id,
+                    'cliente_id': venta.cliente_id,
+                    'precio': int(monto),
+                    'medioDePago': medio_id,
+                    'descripcion': descripcion,
+                    'abono_masivo': abono_masivo.id,
+                }
+                if fecha:
+                    abono_data['fecha'] = fecha
+
+                serializer = AbonoSerializer(data=abono_data)
+                if serializer.is_valid():
+                    serializer.save()
+                    creados.append(venta.id)
+                else:
+                    console.log(serializer.errors)
+
+                total_abono = Abonos.objects.filter(venta=venta).aggregate(total=Sum('precio')).get('total') or 0
+                venta.totalAbono = total_abono
+                saldo_obj, _ = Saldos.objects.get_or_create(
+                    venta=venta,
+                    defaults={'cliente': cliente_obj, 'saldo': 0}
+                )
+                saldo_obj.saldo = max((venta.precio or 0) - total_abono, 0)
+
+                if saldo_obj.saldo != (venta.precio or 0) and saldo_obj.saldo != 0:
+                    venta.estado_id = 2
+                elif saldo_obj.saldo == 0:
+                    venta.estado_id = 3
+
+                venta.save()
+                saldo_obj.save()
+                maybe_mark_para_fabricacion(venta)
+
+        return Response({'accion': 'ok', 'creados': creados}, status=status.HTTP_201_CREATED)
+
 
 class RemisionView(APIView):
     def _build_totals_map(self, venta_id=None):

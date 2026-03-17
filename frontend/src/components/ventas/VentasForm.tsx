@@ -39,6 +39,7 @@ function VentasForm({data}) {
     const formRef = useRef(null);
     const usuarioRef = useRef(null);
     const empresaRef = useRef(null);
+    const vendedorRef = useRef(null);
     const telefonoRef = useRef(null);
 
     const [telefono, setTelefono] = useState('');
@@ -53,6 +54,7 @@ function VentasForm({data}) {
     const [modalEmpresaShow, setModalEmpresaShow] = React.useState(false);
     const [clientes, setClientes] = useState(data.clientes);
     const [empresas, setEmpresas] = useState(data.empresas);
+    const [vendedores, setVendedores] = useState(data.vendedores || []);
     const [jornadas, setJornadas] = useState(data.jornadas || []);
     const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
 
@@ -150,6 +152,16 @@ function VentasForm({data}) {
                 setEmpresa(selectizeInstance2);
                 selectizeInstance2[0].selectize.on('change', (value: string) => {
                     setEmpresaSeleccionada(value || '');
+                });
+            }
+
+            if (vendedorRef.current) {
+                $(vendedorRef.current).selectize({
+                    createOnBlur: true,
+                    persist: false,
+                    maxItems: 1,
+                    highlight: false,
+                    hideSelected: true,
                 });
             }
             
@@ -312,6 +324,17 @@ function VentasForm({data}) {
                             crea una nueva
                         </a>.
                     </small>
+                </div>
+                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                    <label htmlFor="vendedor">Vendedor</label>
+                    <select ref={vendedorRef} className="form-select" id="vendedor" name="vendedor" required>
+                        <option value="">--</option>
+                        {vendedores.map((vendedor) => (
+                            <option key={vendedor.id} value={vendedor.id}>
+                                {vendedor.nombre} {vendedor.celular ? `· ${vendedor.celular}` : ''}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 {/* <div className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3">
                     <label htmlFor="valor">Precio de venta $</label>

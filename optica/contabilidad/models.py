@@ -43,6 +43,18 @@ class Proveedores(models.Model):
     telefono = models.CharField(max_length=50, default='', null=True)
     email = models.EmailField(max_length=254)
 
+class Vendedor(models.Model):
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=100)
+    celular = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Vendedor"
+        verbose_name_plural = "Vendedores"
+
+    def __str__(self):
+        return self.nombre
 
 class Gastos(models.Model):
     id = models.AutoField(primary_key=True)
@@ -173,6 +185,7 @@ class Ventas(models.Model):
     observacion = models.TextField(max_length=50, default='', blank=True, null=True)
     precio = models.IntegerField(default=0, verbose_name="Precio")
     totalAbono = models.IntegerField(default=0, verbose_name="Abono inicial")
+    vendedor = models.ForeignKey(Vendedor, on_delete=DO_NOTHING, blank=True, null=True)
     # Descuento = models.IntegerField(default=0)
     # total_venta = models.IntegerField(default=0)
     #estado = models.CharField(max_length=50, default='')
@@ -191,6 +204,9 @@ class Ventas(models.Model):
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)
     foto = models.ImageField(upload_to='fotos_ventas/', blank=True, null=True)
     foto_formula = models.ImageField(upload_to='fotos_formulas/', blank=True, null=True)
+    condicion_pago = models.CharField(max_length=20, blank=True, null=True)
+    fecha_inicio = models.DateField(blank=True, null=True)
+    fecha_vencimiento = models.DateField(blank=True, null=True)
     tipo_venta = models.ForeignKey(TipoVenta, default=1, on_delete=DO_NOTHING, null=True, blank=True)
     anulado = models.BooleanField(default=False, verbose_name="Anulado")
     detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
@@ -322,6 +338,30 @@ class RemisionItem(models.Model):
     def __str__(self):
         return f"{self.item_venta.articulo} x {self.cantidad}"
 
+class AbonoMasivo(models.Model):
+    TIPOS = [
+        ('empresa', 'Empresa'),
+        ('jornada', 'Jornada'),
+        ('cliente', 'Cliente'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    nombre_objetivo = models.CharField(max_length=120, blank=True, null=True)
+    empresa = models.ForeignKey(Empresa, on_delete=DO_NOTHING, blank=True, null=True)
+    jornada = models.ForeignKey(Jornada, on_delete=DO_NOTHING, blank=True, null=True)
+    cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, blank=True, null=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        verbose_name = "Abono masivo"
+        verbose_name_plural = "Abonos masivos"
+
+    def __str__(self):
+        return f"{self.tipo} - {self.nombre_objetivo or self.id}"
+
+
 class Abonos(models.Model):
     id = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Ventas, on_delete=DO_NOTHING , verbose_name="pedido de venta", blank=True, null=True)
@@ -331,6 +371,7 @@ class Abonos(models.Model):
     medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de Pago")
     fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
     descripcion = models.TextField(max_length=200, default=None, blank=True, null=True)
+    abono_masivo = models.ForeignKey(AbonoMasivo, on_delete=DO_NOTHING, blank=True, null=True)
     # abono debe mostrar el saldo, osea el valor a pagar
 
     class Meta:

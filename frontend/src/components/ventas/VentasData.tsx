@@ -1,11 +1,10 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import { swalErr, swalHtml, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
 import Link from 'next/link'
 
-import DataTables from '@/components/Datatables';
 import SideAction from '../bootstrap/SideAction';
 import AbonosForm from '../abonos/AbonosForm';
 import AbonosList from '../abonos/AbonosList';
@@ -18,7 +17,11 @@ import Offcanvas from 'react-bootstrap/Offcanvas';
 import Modal from 'react-bootstrap/Modal';
 import Spinner from 'react-bootstrap/Spinner';
 import '@/styles/style.css';
-import { callApi } from '@/utils/js/api';
+import { callApi, IP_URL } from '@/utils/js/api';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { InputText } from 'primereact/inputtext';
+import { Tooltip } from 'primereact/tooltip';
 
 
 
@@ -92,7 +95,17 @@ function VentasData(props) {
   const [remisionError, setRemisionError] = useState<string | null>(null);
   const [remisionContext, setRemisionContext] = useState(null);
   const [remisionRowContext, setRemisionRowContext] = useState(null);
+  const [formulaModalOpen, setFormulaModalOpen] = useState(false);
+  const [formulaLoading, setFormulaLoading] = useState(false);
+  const [formulaError, setFormulaError] = useState<string | null>(null);
+  const [formulaImages, setFormulaImages] = useState<string[]>([]);
+  const [formulaVentaId, setFormulaVentaId] = useState<number | null>(null);
   const detailCache = useRef(new Map());
+  const [expandedRows, setExpandedRows] = useState(null);
+  const [detailLoading, setDetailLoading] = useState({});
+  const [estadoPagoFilter, setEstadoPagoFilter] = useState('todos');
+  const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
+  const [globalFilter, setGlobalFilter] = useState('');
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -125,6 +138,52 @@ function VentasData(props) {
     await fetchRemisionData(rowData.id);
   };
 
+  const resolveMediaUrl = (path?: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const base = IP_URL();
+    if (path.startsWith('/media/')) {
+      return `${base.replace(/\/$/, '')}${path}`;
+    }
+    return `${base.replace(/\/$/, '')}/media/${path.replace(/^\/+/, '')}`;
+  };
+
+  const handleFormulaModal = async (rowData) => {
+    setFormulaVentaId(rowData.id);
+    setFormulaModalOpen(true);
+    setFormulaLoading(true);
+    setFormulaError(null);
+    setFormulaImages([]);
+    try {
+      const req = await callApi(`venta/${rowData.id}`);
+      if (!req.res.ok) {
+        throw new Error(req.data?.detail || 'No fue posible obtener la fórmula.');
+      }
+      const data = req.data || {};
+      const candidates: string[] = [];
+      if (Array.isArray(data.foto_formula)) {
+        candidates.push(...data.foto_formula);
+      } else if (data.foto_formula) {
+        candidates.push(data.foto_formula);
+      }
+      if (Array.isArray(data.formulas)) {
+        candidates.push(...data.formulas);
+      }
+      const resolved = candidates
+        .map((item) => resolveMediaUrl(item))
+        .filter(Boolean) as string[];
+
+      if (!resolved.length) {
+        setFormulaError('No hay fórmulas asociadas a esta venta.');
+      }
+      setFormulaImages(resolved);
+    } catch (error) {
+      setFormulaError(error instanceof Error ? error.message : 'Error al cargar la fórmula.');
+    } finally {
+      setFormulaLoading(false);
+    }
+  };
+
   const handleRemisionCreated = async () => {
     if (remisionRowContext) {
       await fetchRemisionData(remisionRowContext.id);
@@ -132,111 +191,7 @@ function VentasData(props) {
     await handleFetchVentas(false);
   };
 
-  const escapeHtml = (value) => {
-    if (value === null || value === undefined) return '';
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  };
 
-  const buildDetalleHtml = (detalle) => {
-    const ventasItems = detalle?.ventas ?? [];
-    const remisiones = detalle?.remisiones ?? [];
-    const observacion = detalle?.observacion ?? '';
-    const estadoPedido = detalle?.estadoPedidoNombre ?? detalle?.estado_pedido_nombre ?? '';
-    const estadoDetalle = detalle?.estadoPedidoDetalle ?? detalle?.estado_pedido_detalle ?? '';
-
-    const itemsRows = ventasItems.map((item) => {
-      const nombre = item.articulo_nombre ?? item.articulo?.nombre ?? `Articulo #${item.articulo_id ?? ''}`;
-      const cantidad = item.cantidad ?? 0;
-      const precio = item.precio_articulo ?? 0;
-      const descuento = item.descuento ?? 0;
-      const total = item.totalArticulo ?? 0;
-      return `
-        <tr>
-          <td>${escapeHtml(nombre)}</td>
-          <td class="text-center">${escapeHtml(cantidad)}</td>
-          <td class="text-end">${escapeHtml(moneyformat(precio))}</td>
-          <td class="text-center">${escapeHtml(descuento)}%</td>
-          <td class="text-end fw-semibold">${escapeHtml(moneyformat(total))}</td>
-        </tr>
-      `;
-    }).join('');
-
-    const remisionesRows = remisiones.map((rem) => `
-      <tr>
-        <td>#${escapeHtml(rem.id)}</td>
-        <td>${escapeHtml(rem.fecha)}</td>
-        <td class="text-end">${escapeHtml(moneyformat(rem.totalRemision ?? 0))}</td>
-      </tr>
-    `).join('');
-
-    return `
-      <div class="ventas-card" style="margin: 0.75rem 1rem;">
-        <div class="mb-3">
-          <div class="fw-semibold">Estado pedido: ${escapeHtml(estadoPedido || '—')}</div>
-          ${estadoDetalle ? `<div class="text-muted small">Detalle: ${escapeHtml(estadoDetalle)}</div>` : ''}
-          ${observacion ? `<div class="text-muted small">Observación: ${escapeHtml(observacion)}</div>` : ''}
-        </div>
-        <div class="table-modern table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Artículo</th>
-                <th class="text-center">Cantidad</th>
-                <th class="text-end">Precio</th>
-                <th class="text-center">Descuento</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsRows || '<tr><td colspan="5" class="text-center text-muted">Sin ítems</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-        <div class="table-modern table-responsive mt-3">
-          <table class="table table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Remisión</th>
-                <th>Fecha</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${remisionesRows || '<tr><td colspan="3" class="text-center text-muted">Sin remisiones</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  };
-
-  const getDetalleRow = async (row) => {
-    const id = row?.id;
-    if (!id) return '';
-    if (detailCache.current.has(id)) {
-      return detailCache.current.get(id);
-    }
-    try {
-      const req = await callApi(`venta/${id}`);
-      if (!req.res.ok) {
-        const fallback = `<div class="text-muted small px-3 py-2">No fue posible cargar el detalle.</div>`;
-        detailCache.current.set(id, fallback);
-        return fallback;
-      }
-      const html = buildDetalleHtml(req.data);
-      detailCache.current.set(id, html);
-      return html;
-    } catch (err) {
-      const fallback = `<div class="text-muted small px-3 py-2">No fue posible cargar el detalle.</div>`;
-      detailCache.current.set(id, fallback);
-      return fallback;
-    }
-  };
 
 
   const getPrecioRaw = (row) => Number(row?.precioRaw ?? 0);
@@ -284,6 +239,47 @@ function VentasData(props) {
     }
     return null;
   };
+
+  const normalize = (value) => (value ?? '').toString().toLowerCase().trim();
+
+  const filteredData = useMemo(() => {
+    return (dataTablee ?? []).filter((row) => {
+      const estadoPago = normalize(row?.estado);
+      const estadoPedidoKey = identifyEstadoPedidoKey(row?.estadoPedidoNombre);
+
+      if (estadoPagoFilter !== 'todos') {
+        if (estadoPagoFilter === 'con_abono' && estadoPago !== 'con abono') return false;
+        if (estadoPagoFilter === 'sin_pago' && estadoPago !== 'sin pago') return false;
+        if (estadoPagoFilter === 'pagado' && estadoPago !== 'pagado') return false;
+        if (estadoPagoFilter === 'anulado' && estadoPago !== 'anulado') return false;
+        if (estadoPagoFilter === 'no_anulados' && estadoPago === 'anulado') return false;
+      }
+
+      if (estadoPedidoFilter !== 'todos' && estadoPedidoKey !== estadoPedidoFilter) {
+        return false;
+      }
+
+      if (globalFilter.trim()) {
+        const term = normalize(globalFilter);
+        const fields = [
+          row?.id,
+          row?.cedula,
+          row?.cliente,
+          row?.empresaCliente,
+          row?.precio,
+          row?.totalAbono,
+          row?.saldo,
+          row?.estado,
+          row?.estadoPedidoNombre,
+        ]
+          .filter(Boolean)
+          .map((v) => normalize(v));
+        return fields.some((v) => v.includes(term));
+      }
+
+      return true;
+    });
+  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter]);
 
 
 
@@ -429,47 +425,16 @@ function VentasData(props) {
     }
   };
 
-  const columns = [
-    { title: "Pedido", data: "id"},
-    { "data": "cedula" },
-    { "data": "cliente" },
-    { title: "Empresa", data: "empresaCliente" },
-    { "data": "precio" },
-    { "data": "totalAbono" },
-    { "data": "saldo" },
-    { title: "Estado", data: "estadoPedidoNombre", name: 'estado_pedido', className: 'dt-body-center estado-pedido-col',
-      render: (data, type, row) => {
-        const value = (data ?? '').toString().trim() || 'Creado / Pendiente de pago (Pedido tomado)';
-        if (type === 'display') {
-            const key = identifyEstadoPedidoKey(value);
-            const badge = estadoPedidoBadgeClass(key);
-          const detail = row?.estadoPedidoDetalle ? row.estadoPedidoDetalle.replace(/"/g, '&quot;') : '';
-          const titleAttr = detail ? `title="${detail}"` : '';
-          return `<span class="badge ${badge} badge-estado-pedido" ${titleAttr}>${value}</span>`;
-        }
-        return value;
-      }
-    },
-    { title: "Estado pago", data: "estado", name: 'estado_pago', className: 'dt-body-center estado-pago-col',
-      render: (data, type) => {
-        const value = (data ?? '').toString().trim();
-        if (type === 'display') {
-          const v = value.toLowerCase();
-          const color =
-            v === 'anulado'   ? 'danger'  :
-            v === 'pagado'    ? 'success' :
-            v === 'con abono' ? 'info'    :
-                                'warning';
-          return `<span class="badge bg-${color} badge-estado-pedido">${value}</span>`;
-        }
-        return value;
-      }
-    },
-    {
-      "data": null, "name": 'Acciones',
-    }
 
-  ];
+  const getEstadoPagoBadge = (value) => {
+    const v = normalize(value);
+    const color =
+      v === 'anulado' ? 'danger' :
+      v === 'pagado' ? 'success' :
+      v === 'con abono' ? 'info' :
+      'warning';
+    return <span className={`badge bg-${color} badge-estado-pedido`}>{value}</span>;
+  };
 
   const slots = {
     // estado: (data, row) => {
@@ -484,13 +449,9 @@ function VentasData(props) {
     Acciones: (data, row) => (
       <div className='gap-2 d-flex justify-content-center flex-wrap'>
         <button
-          className="btn-action btn btn-sm btn-outline-secondary"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Actualizar estado del pedido"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-outline-secondary ventas-action-tooltip"
+          data-pr-tooltip="Actualizar estado del pedido"
+          data-pr-position="top"
           onClick={() => handleEstadoPedidoAction(row)}
           disabled={estadoLoading === row.id}
         >
@@ -502,14 +463,9 @@ function VentasData(props) {
         </button>
 
         <button
-          className="btn-action btn btn-sm btn-danger"
-          // data-action="eliminar"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Eliminar Abono"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-danger ventas-action-tooltip"
+          data-pr-tooltip="Anular venta"
+          data-pr-position="top"
           onClick={() => handleAction("eliminar", row)}
 
         >
@@ -517,26 +473,17 @@ function VentasData(props) {
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
         </button>
         <button
-          className="btn-action btn btn-sm btn-outline-primary"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Remisiones"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
+          data-pr-tooltip="Remisiones"
+          data-pr-position="top"
           onClick={() => handleRemisionModal(row)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M4 5h16M4 19h16M9 5v8a2 2 0 0 0 2 2h2"></path><path d="M15 19v-8a2 2 0 0 0-2-2h-2"></path></g></svg>
         </button>
         <button
-          className="btn-action btn btn-sm btn-primary"
-          // data-action="editar"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Editar Abono"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+          data-pr-tooltip="Editar venta"
+          data-pr-position="top"
           onClick={() => handleAction("editar", row)}
         >
           <Link href={`ventas/${row.id}`}>
@@ -546,41 +493,34 @@ function VentasData(props) {
 
         </button>
         <button
-          className="btn-action btn btn-sm btn-primary"
-          // data-action="abonar"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          // data-bs-content="Abonar a factura"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
+          data-pr-tooltip="Ver fórmula"
+          data-pr-position="top"
+          onClick={() => handleFormulaModal(row)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></g></svg>
+        </button>
+        <button
+          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+          data-pr-tooltip="Abonar a la venta"
+          data-pr-position="top"
           onClick={() => handleAction("abonar", row)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M21 15h-2.5a1.503 1.503 0 0 0-1.5 1.5a1.503 1.503 0 0 0 1.5 1.5h1a1.503 1.503 0 0 1 1.5 1.5a1.503 1.503 0 0 1-1.5 1.5H17m2 0v1m0-8v1m-6 6H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2m12 3.12V9a2 2 0 0 0-2-2h-2" /><path d="M16 10V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6m8 0H8m8 0h1m-9 0H7m1 4v.01M8 17v.01m4-3.02V14m0 3v.01" /></g></svg>
         </button>
 
         <button
-          className="btn-action btn btn-sm btn-primary"
-          // data-action="verAbonos"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Ver historico de abonos"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+          data-pr-tooltip="Ver histórico de abonos"
+          data-pr-position="top"
           onClick={() => handleAction("verAbonos", row)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2m5 6h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3H10m2 0v1m0-8v1" /></g></svg>
         </button>
         <button
-          className="btn-action btn btn-sm btn-primary"
-          // data-action="verAbonos"
-          data-bs-container="body"
-          data-bs-toggle="popover"
-          data-bs-placement="top"
-          data-bs-content="Devoluciones"
-          data-bs-delay='{"show":500,"hide":150}'
-          data-bs-trigger="hover"
+          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+          data-pr-tooltip="Devoluciones"
+          data-pr-position="top"
           onClick={() => handleAction("verAbonos", row)}
         >
 
@@ -591,23 +531,136 @@ function VentasData(props) {
     )
   }
 
-  const order = {
-    idx: 0,
-    dir: 'desc'
-  }
-
-  function con() {
-    console.log("eliminar")
-  }
-
-
   const componentesPorEstado = {
     1: <AbonosForm data={clientData} generalData={generalData} fun={handleFetchVentas} />,
     2: <AbonosList data={clientData} generalData={generalData} />,
     // default: <ComponenteDefault />
   }
+
+  const ensureDetalle = async (row) => {
+    const id = row?.id;
+    if (!id || detailCache.current.has(id)) return;
+    setDetailLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const req = await callApi(`venta/${id}`);
+      if (req.res.ok) {
+        detailCache.current.set(id, req.data);
+      }
+    } finally {
+      setDetailLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const onRowToggle = (e) => {
+    setExpandedRows(e.data);
+  };
+
+  const onRowExpand = async (e) => {
+    await ensureDetalle(e.data);
+  };
+
+  const rowExpansionTemplate = (rowData) => {
+    const detalle = detailCache.current.get(rowData.id);
+    if (!detalle) {
+      return (
+        <div className="px-3 py-2 text-muted">
+          {detailLoading[rowData.id] ? 'Cargando detalle…' : 'No hay detalle disponible.'}
+        </div>
+      );
+    }
+
+    const ventasItems = detalle?.ventas ?? [];
+    const remisiones = detalle?.remisiones ?? [];
+    const observacion = detalle?.observacion ?? '';
+    const estadoPedido = detalle?.estadoPedidoNombre ?? detalle?.estado_pedido_nombre ?? '';
+    const estadoDetalle = detalle?.estadoPedidoDetalle ?? detalle?.estado_pedido_detalle ?? '';
+    const tieneFormula = Boolean(
+      detalle?.foto_formula ||
+      detalle?.fotoFormula ||
+      detalle?.foto_formula_url ||
+      detalle?.formula ||
+      detalle?.formulas ||
+      detalle?.ventas?.some((item) => item?.foto_formula || item?.fotoFormula)
+    );
+
+    return (
+      <div className="ventas-card my-2">
+        <div className="mb-3">
+          <div className="fw-semibold">Estado pedido: {estadoPedido || '—'}</div>
+          <div className="mt-2">
+            <span className={`badge ${tieneFormula ? 'bg-success' : 'bg-secondary'}`}>
+              {tieneFormula ? 'Formula asociada' : 'Sin formula'}
+            </span>
+          </div>
+          {estadoDetalle && <div className="text-muted small">Detalle: {estadoDetalle}</div>}
+          {observacion && <div className="text-muted small">Observación: {observacion}</div>}
+        </div>
+        <div className="table-modern table-responsive">
+          <table className="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Artículo</th>
+                <th className="text-center">Cantidad</th>
+                <th className="text-end">Precio</th>
+                <th className="text-center">Descuento</th>
+                <th className="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ventasItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center text-muted">
+                    Sin ítems
+                  </td>
+                </tr>
+              ) : (
+                ventasItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.articulo_nombre ?? item.articulo?.nombre ?? `Articulo #${item.articulo_id ?? ''}`}</td>
+                    <td className="text-center">{item.cantidad ?? 0}</td>
+                    <td className="text-end">{moneyformat(item.precio_articulo ?? 0)}</td>
+                    <td className="text-center">{item.descuento ?? 0}%</td>
+                    <td className="text-end fw-semibold">{moneyformat(item.totalArticulo ?? 0)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="table-modern table-responsive mt-3">
+          <table className="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Remisión</th>
+                <th>Fecha</th>
+                <th className="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {remisiones.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-center text-muted">
+                    Sin remisiones
+                  </td>
+                </tr>
+              ) : (
+                remisiones.map((rem) => (
+                  <tr key={rem.id}>
+                    <td>#{rem.id}</td>
+                    <td>{rem.fecha}</td>
+                    <td className="text-end">{moneyformat(rem.totalRemision ?? 0)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
   return (
     <>
+      <Tooltip target=".ventas-action-tooltip" />
       <BootstrapModal
         show={modalAnularShow}
         onHide={() => setModalAnularShow(false)}
@@ -672,25 +725,113 @@ function VentasData(props) {
         </Modal.Body>
       </Modal>
 
+      <Modal
+        size="lg"
+        show={formulaModalOpen}
+        onHide={() => setFormulaModalOpen(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Fórmula · Venta #{formulaVentaId ?? '--'}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {formulaLoading && (
+            <div className="py-4 text-center">
+              <Spinner animation="border" role="status" />
+              <p className="text-muted mt-3 mb-0">Cargando fórmula…</p>
+            </div>
+          )}
+          {formulaError && !formulaLoading && (
+            <div className="alert alert-warning">{formulaError}</div>
+          )}
+          {!formulaLoading && !formulaError && formulaImages.length > 0 && (
+            <div className="d-flex flex-wrap gap-3 justify-content-center">
+              {formulaImages.map((src, idx) => (
+                <div key={`${src}-${idx}`} className="border rounded p-2 bg-light">
+                  <img
+                    src={src}
+                    alt={`Formula ${idx + 1}`}
+                    style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
 
 
-      <DataTables
-        data={dataTablee}
-        columns={columns}
-        order={order}
-        onAction={handleAction}
-        imprimir={con}
-        slotes={slots}
-        rowDetail={getDetalleRow}
-        estadoPedidoFilters={[
-          { key: "todos", label: "Todos", expr: "", regex: false },
-          { key: "creado", label: ESTADO_PEDIDO_LABELS.creado, expr: "pedido tomado|creado|pendiente", regex: true, ci: true },
-          { key: "para_fabricacion", label: ESTADO_PEDIDO_LABELS.para_fabricacion, expr: "para enviar|para fabricar", regex: true, ci: true },
-          { key: "en_fabricacion", label: ESTADO_PEDIDO_LABELS.en_fabricacion, expr: "enviado a fabric", regex: true, ci: true },
-          { key: "listo_entrega", label: ESTADO_PEDIDO_LABELS.listo_entrega, expr: "listo", regex: true, ci: true },
-          { key: "entregado", label: ESTADO_PEDIDO_LABELS.entregado, expr: "entregado|garantia", regex: true, ci: true },
-        ]}
-      />
+
+      <div className="data-table-shell">
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          <button type="button" className={`btn ${estadoPagoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPagoFilter('todos')}>Todos</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'con_abono' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setEstadoPagoFilter('con_abono')}>Con abono</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'sin_pago' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setEstadoPagoFilter('sin_pago')}>Sin pago</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'pagado' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setEstadoPagoFilter('pagado')}>Pagado</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'anulado' ? 'btn-danger' : 'btn-outline-danger'}`} onClick={() => setEstadoPagoFilter('anulado')}>Anulado</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'no_anulados' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setEstadoPagoFilter('no_anulados')}>No anulados</button>
+        </div>
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          <button type="button" className={`btn ${estadoPedidoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('todos')}>Todos</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'creado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('creado')}>{ESTADO_PEDIDO_LABELS.creado}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'para_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('para_fabricacion')}>{ESTADO_PEDIDO_LABELS.para_fabricacion}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'en_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('en_fabricacion')}>{ESTADO_PEDIDO_LABELS.en_fabricacion}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'listo_entrega' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('listo_entrega')}>{ESTADO_PEDIDO_LABELS.listo_entrega}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'entregado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('entregado')}>{ESTADO_PEDIDO_LABELS.entregado}</button>
+        </div>
+        <div className="d-flex justify-content-end mb-3">
+          <span className="p-input-icon-left">
+            <i className="pi pi-search" />
+            <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
+          </span>
+        </div>
+
+        <DataTable
+          value={filteredData}
+          paginator
+          rows={10}
+          rowsPerPageOptions={[5, 10, 20, 50]}
+          stripedRows
+          rowHover
+          showGridlines
+          dataKey="id"
+          responsiveLayout="scroll"
+          sortMode="multiple"
+          removableSort
+          expandedRows={expandedRows}
+          onRowToggle={onRowToggle}
+          onRowExpand={onRowExpand}
+          rowExpansionTemplate={rowExpansionTemplate}
+          className="ventas-table p-datatable-sm"
+          paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
+        >
+          <Column expander style={{ width: '3rem' }} />
+          <Column field="id" header="Pedido" sortable style={{ width: '7rem' }} />
+          <Column field="cedula" header="Cedula" sortable />
+          <Column field="cliente" header="Cliente" sortable />
+          <Column field="empresaCliente" header="Empresa" sortable />
+          <Column field="precio" header="Precio" sortable />
+          <Column field="totalAbono" header="Total abono" sortable />
+          <Column field="saldo" header="Saldo" sortable />
+          <Column
+            header="Estado"
+            body={(row) => {
+              const value = (row?.estadoPedidoNombre ?? '').toString().trim() || 'Pedido tomado';
+              const key = identifyEstadoPedidoKey(value);
+              const badge = estadoPedidoBadgeClass(key);
+              return <span className={`badge ${badge} badge-estado-pedido`}>{value}</span>;
+            }}
+          />
+          <Column
+            header="Estado pago"
+            body={(row) => getEstadoPagoBadge(row?.estado ?? '')}
+          />
+          <Column header="Acciones" body={(row) => slots.Acciones(null, row)} />
+        </DataTable>
+      </div>
     </>
   )
 }

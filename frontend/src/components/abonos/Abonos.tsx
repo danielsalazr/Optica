@@ -8,7 +8,17 @@ import Button from 'react-bootstrap/Button'
 import 'boxicons'
 
 function Abonos(props) {
-  const { data, ventaData, totalAbonoLoad, clear, changeClear } = props
+  const {
+    data,
+    ventaData,
+    totalAbonoLoad,
+    clear,
+    changeClear,
+    condicionPagoInit,
+    compromisoPagoInit,
+    fechaInicioInit,
+    fechaVencimientoInit,
+  } = props
 
   console.log(ventaData)
   console.log(data)
@@ -40,6 +50,21 @@ function Abonos(props) {
   const [condicionPago, setCondicionPago] = useState('quincenal')
   const [compromisoPago, setCompromisoPago] = useState(1)
   const [fechaVencimientoDate, setFechaVencimientoDate] = useState(todayDate)
+
+  useEffect(() => {
+    if (condicionPagoInit) {
+      setCondicionPago(condicionPagoInit);
+    }
+    if (compromisoPagoInit) {
+      setCompromisoPago(Number(compromisoPagoInit));
+    }
+    if (fechaInicioInit) {
+      setFechaInicioDate(new Date(fechaInicioInit));
+    }
+    if (fechaVencimientoInit) {
+      setFechaVencimientoDate(new Date(fechaVencimientoInit));
+    }
+  }, [condicionPagoInit, compromisoPagoInit, fechaInicioInit, fechaVencimientoInit])
 
   const toISODate = (value) => {
     if (!value) return ""

@@ -17,6 +17,7 @@ from .models import (
     Remision,
     RemisionItem,
     Jornada,
+    Vendedor,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -136,12 +137,19 @@ class VentasAdmin(admin.ModelAdmin):
         'precio_venta',
         'abono_inicial',
         'empresaCliente',
+        'vendedor',
         'fecha',
         'estado',
         'foto',
     )
 
     search_fields = ('id',)
+
+
+@admin.register(Vendedor)
+class VendedorAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre', 'celular')
+    search_fields = ('nombre', 'celular')
 
 @admin.register(MediosDePago)
 class MediosDePagoAdmin(admin.ModelAdmin):

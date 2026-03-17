@@ -7,6 +7,8 @@ import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
+import { callApi, IP_URL } from "@/utils/js/api";
+import { Dialog } from "primereact/dialog";
 
 import "@/styles/style.css";
 
@@ -49,6 +51,13 @@ type RemisionRow = {
   items?: RemisionItem[];
   totalRemision?: number;
   abonos?: Abono[];
+  condicionPago?: string | null;
+  compromisoPago?: number | null;
+  numeroCuotas?: number | null;
+  fechaInicio?: string | null;
+  fechaVencimiento?: string | null;
+  valorCuota?: number | null;
+  cuotasPagadas?: number | null;
 };
 
 type PreparedRemisionRow = RemisionRow & {
@@ -92,6 +101,56 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     global: { value: "", matchMode: FilterMatchMode.CONTAINS },
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
+  const [formulaOpen, setFormulaOpen] = useState(false);
+  const [formulaLoading, setFormulaLoading] = useState(false);
+  const [formulaError, setFormulaError] = useState<string | null>(null);
+  const [formulaImages, setFormulaImages] = useState<string[]>([]);
+
+  const resolveMediaUrl = (path?: string | null) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    const base = IP_URL();
+    if (path.startsWith("/media/")) {
+      return `${base.replace(/\/$/, "")}${path}`;
+    }
+    return `${base.replace(/\/$/, "")}/media/${path.replace(/^\/+/, "")}`;
+  };
+
+  const handleFormulaModal = useCallback(async () => {
+    if (!selected?.venta) return;
+    setFormulaOpen(true);
+    setFormulaLoading(true);
+    setFormulaError(null);
+    setFormulaImages([]);
+    try {
+      const req = await callApi(`venta/${selected.venta}`);
+      if (!req.res.ok) {
+        throw new Error(req.data?.detail || "No fue posible obtener la fórmula.");
+      }
+      const data = req.data || {};
+      const candidates: string[] = [];
+      if (Array.isArray(data.foto_formula)) {
+        candidates.push(...data.foto_formula);
+      } else if (data.foto_formula) {
+        candidates.push(data.foto_formula);
+      }
+      if (Array.isArray(data.formulas)) {
+        candidates.push(...data.formulas);
+      }
+      const resolved = candidates
+        .map((item) => resolveMediaUrl(item))
+        .filter(Boolean) as string[];
+
+      if (!resolved.length) {
+        setFormulaError("No hay fórmulas asociadas a esta venta.");
+      }
+      setFormulaImages(resolved);
+    } catch (error) {
+      setFormulaError(error instanceof Error ? error.message : "Error al cargar la fórmula.");
+    } finally {
+      setFormulaLoading(false);
+    }
+  }, [selected]);
 
   const preparedData = useMemo<PreparedRemisionRow[]>(() => {
     return (data ?? []).map((remision) => {
@@ -432,6 +491,15 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                   {moneyformat(totalRemisionSeleccionada)}
                 </div>
               </div>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={handleFormulaModal}
+                >
+                  Ver fórmula
+                </button>
+              </div>
             </div>
           </div>
 
@@ -518,10 +586,44 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                 </table>
               </div>
             )}
+            <div className="mt-3 text-muted small">
+              <div>Condición de pago: <strong>{selected.condicionPago ?? "—"}</strong></div>
+              <div>Compromiso de pago: <strong>{selected.compromisoPago ?? "—"}</strong></div>
+              <div>Número de cuotas: <strong>{selected.numeroCuotas ?? "—"}</strong></div>
+              <div>Valor por cuota: <strong>{moneyformat(selected.valorCuota ?? 0)}</strong></div>
+              <div>Cuotas pagadas: <strong>{selected.cuotasPagadas ?? 0}</strong></div>
+            </div>
           </div>
         </div>
         </>
       )}
+
+      <Dialog
+        header={`Fórmula · Venta #${selected?.venta ?? "--"}`}
+        visible={formulaOpen}
+        style={{ width: "70vw", maxWidth: "900px" }}
+        onHide={() => setFormulaOpen(false)}
+      >
+        {formulaLoading && (
+          <div className="py-3 text-center text-muted">Cargando fórmula…</div>
+        )}
+        {formulaError && !formulaLoading && (
+          <div className="text-danger mb-2">{formulaError}</div>
+        )}
+        {!formulaLoading && !formulaError && formulaImages.length > 0 && (
+          <div className="d-flex flex-wrap gap-3 justify-content-center">
+            {formulaImages.map((src, idx) => (
+              <div key={`${src}-${idx}`} className="border rounded p-2 bg-light">
+                <img
+                  src={src}
+                  alt={`Fórmula ${idx + 1}`}
+                  style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain" }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 };
