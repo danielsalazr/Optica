@@ -12,7 +12,6 @@ import ("@/utils/js/ventas");
 import { obtenerInfoArticulo } from '@/utils/js/ventas';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
 import { buildBackendUrl } from '@/utils/js/env';
-import { buildBackendUrl } from '@/utils/js/env';
 
 import $ from 'jquery';
 import 'selectize';
