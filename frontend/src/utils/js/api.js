@@ -1,6 +1,8 @@
 /* Utilidades para centralizar llamadas HTTP al backend */
 
-const DEFAULT_API_BASE = 'http://localhost:8000/';
+import { BACKEND_BASE_URL, buildBackendUrl } from "./env";
+
+const DEFAULT_API_BASE = `${BACKEND_BASE_URL || 'http://localhost:8000'}/`;
 
 const resolveBaseUrl = () => {
   if (typeof window !== 'undefined') {
@@ -16,6 +18,10 @@ const resolveBaseUrl = () => {
       : `${process.env.NEXT_PUBLIC_API_BASE}/`;
   }
 
+  if (BACKEND_BASE_URL) {
+    return `${BACKEND_BASE_URL}/`;
+  }
+
   return DEFAULT_API_BASE;
 };
 
@@ -29,8 +35,7 @@ const ensureBaseUrl = () => {
 };
 
 const buildUrl = (endPoint = '') => {
-  const base = ensureBaseUrl();
-  return `${base}${endPoint}`.replace(/([^:]\/)\/+/g, '$1');
+  return buildBackendUrl(endPoint).replace(/([^:]\/)\/+/g, '$1');
 };
 
 const getCookie = (name) => {

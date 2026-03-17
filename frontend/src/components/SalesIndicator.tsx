@@ -3,6 +3,7 @@ import React from 'react';
 import { TrendingUp, DollarSign, CreditCard, XCircle, AlertCircle } from 'lucide-react';
 import { TbBackground } from 'react-icons/tb';
 import { useState, useEffect } from 'react';
+import { buildBackendUrl } from '@/utils/js/env';
 
 type GeneralInfoCard = {
     title: string;
@@ -43,7 +44,7 @@ const SalesIndicator = () => {
     useEffect(() => {
 
         const fetchData = async () => {
-            const req = await fetch("http://localhost:8000/informacionGeneral/");
+            const req = await fetch(buildBackendUrl("informacionGeneral/"));
             const data = await req.json();
 
             console.log(data)

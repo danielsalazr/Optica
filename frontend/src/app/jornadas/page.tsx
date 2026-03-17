@@ -1,7 +1,8 @@
 import React from "react";
 import JornadasModule from "@/components/jornadas/JornadasModule";
+import { buildBackendUrl } from "@/utils/js/env";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/").replace(/\/?$/, "/");
+const API_BASE = `${buildBackendUrl("")}/`;
 
 const buildUrl = (path: string) => {
   const normalizedPath = path.startsWith("/") ? path.slice(1) : path;

@@ -3,7 +3,7 @@ import DataTables from '@/components/Datatables'
 
 
 async function getDataVentas() {
-  const res = await fetch("http://localhost:8000/venta/", {
+  const res = await fetch(buildBackendUrl("venta/"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {

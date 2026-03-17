@@ -3,6 +3,7 @@ import React from 'react'
 import Link from "next/link";
 
 import VentasData from '@/components/ventas/VentasData';
+import { buildBackendUrl } from '@/utils/js/env';
 import DataTables from '@/components/Datatables';
 import { moneyformat } from '@/utils/js/utils';
 
@@ -21,7 +22,7 @@ type VentaRow = {
 };
 
 async function getDataVentas() {
-  const res = await fetch("http://localhost:8000/venta/", {
+  const res = await fetch(buildBackendUrl("venta/"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {
@@ -32,7 +33,7 @@ async function getDataVentas() {
 }
 
 async function getGeneralData() {
-  const res = await fetch("http://localhost:8000/ventas/", {
+  const res = await fetch(buildBackendUrl("ventas/"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {

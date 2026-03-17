@@ -2,6 +2,7 @@ import React from 'react'
 
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import AbonosData from '@/components/abonos/AbonosData';
+import { buildBackendUrl } from '@/utils/js/env';
 
 type AbonoRow = {
   precio: number | string;
@@ -11,7 +12,7 @@ type AbonoRow = {
 
 
 async function getDataAbonos() {
-    const res = await fetch("http://localhost:8000/abono/", {
+    const res = await fetch(buildBackendUrl("abono/"), {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {

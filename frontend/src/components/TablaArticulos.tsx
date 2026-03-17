@@ -11,6 +11,7 @@ import { addRow } from "@/utils/js/tablaArticulos.js"
 import ("@/utils/js/ventas");
 import { obtenerInfoArticulo } from '@/utils/js/ventas';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
+import { buildBackendUrl } from '@/utils/js/env';
 
 import $ from 'jquery';
 import 'selectize';
@@ -85,7 +86,7 @@ function TablaArticulos(props: TablaArticulosProps) {
   const [utilsLoaded, setUtilsLoaded] = useState(false);
 
     const datatos = async () => {
-        const req =  await fetch("http://localhost:8000/articuloInfo/1");
+        const req =  await fetch(buildBackendUrl("articuloInfo/1"));
         const data = await req.json();
     
         // console.log(data)

@@ -1,5 +1,6 @@
 import React from 'react'
 import VentaUpdateForm from '@/components/ventas/VentaUpdateForm';
+import { buildBackendUrl } from '@/utils/js/env';
 
 interface VentaPageProps {
   params: Promise<{
@@ -9,7 +10,7 @@ interface VentaPageProps {
 
 
 async function getVenta(id: string) {
-  const res = await fetch(`http://localhost:8000/venta/${id}`, {
+  const res = await fetch(buildBackendUrl(`venta/${id}`), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {
@@ -20,7 +21,7 @@ async function getVenta(id: string) {
 }
 
 async function getGeneralData() {
-  const res = await fetch("http://localhost:8000/ventas/", {
+  const res = await fetch(buildBackendUrl("ventas/"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {

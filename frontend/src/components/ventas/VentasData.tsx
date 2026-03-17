@@ -19,6 +19,7 @@ import Modal from 'react-bootstrap/Modal';
 import Spinner from 'react-bootstrap/Spinner';
 import '@/styles/style.css';
 import { callApi, IP_URL } from '@/utils/js/api';
+import { buildBackendUrl } from '@/utils/js/env';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
@@ -287,7 +288,7 @@ function VentasData(props) {
   const handleFetchVentas = async (withToggle = true) => {
     //etLoading(true);
 
-    const res = await fetch("http://localhost:8000/venta/", {
+    const res = await fetch(buildBackendUrl("venta/"), {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {

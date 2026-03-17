@@ -2,7 +2,7 @@ import RemisionesData from "@/components/remisiones/RemisionesData";
 
 
 async function getRemisiones() {
-  const res = await fetch("http://localhost:8000/remisiones/", {
+  const res = await fetch(buildBackendUrl("remisiones/"), {
     cache: "no-store",
   });
 

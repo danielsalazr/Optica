@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { IP_URL } from '@/utils/js/api';
 import Link from "next/link";
+import { buildAdminUrl } from '@/utils/js/env';
 
 
 // const DropDown = dynamic(() => import('./DropDown'), {
@@ -150,7 +151,7 @@ function Header() {
       </form>
       <div className="text-end">
       
-        <a href="http://localhost:8000/admin/"className="btn btn-outline-light me-2">Admin</a>
+        <a href={buildAdminUrl("admin/")}className="btn btn-outline-light me-2">Admin</a>
         <button type="button" className="btn btn-outline-light me-2">Login</button>
         <button type="button" className="btn btn-warning">Sign-up</button>
       </div>
