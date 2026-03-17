@@ -1,12 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function MedioPago(props) {
+type MedioPagoOption = {
+    id: string | number;
+    nombre: string;
+    imagen: string;
+};
+
+type MedioPagoInitialValue = {
+    medioDePago_id?: string | number;
+    medioPago?: string;
+    imagenMedioPago?: string;
+};
+
+type MedioPagoProps = {
+    data: {
+        mediosPago?: MedioPagoOption[];
+        [key: string]: unknown;
+    } | null | undefined;
+    name: string;
+    className?: string;
+    labelInput?: React.ReactNode;
+    required?: boolean;
+    setData?: MedioPagoInitialValue;
+};
+
+function MedioPago(props: MedioPagoProps) {
 
     const { data, name, className, labelInput, required, setData } = props;
     console.log(setData)
-    const containerRef = useRef(null);
-    const dropdownRef = useRef(null);
-    const hiddenInputRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
+    const hiddenInputRef = useRef<HTMLInputElement | null>(null);
 
     const [selectedOption, setSelectedOption] = useState(
         setData ? {
@@ -27,7 +51,7 @@ function MedioPago(props) {
         }
     };
 
-    const selectOption = (element) => {
+    const selectOption = (element: MedioPagoOption) => {
         console.log(element)
         setSelectedOption({
             value: element.id,
@@ -53,8 +77,9 @@ function MedioPago(props) {
     };
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node | null;
+            if (containerRef.current && target && !containerRef.current.contains(target)) {
                 dropdownRef.current?.classList.remove('show');
             }
         };
@@ -72,7 +97,7 @@ function MedioPago(props) {
                     <span>{selectedOption.text}</span>
                 </div>
                 <div ref={dropdownRef} className="dropdownSelector form-select">
-                    {data.mediosPago.map((element) => (
+                    {(data?.mediosPago ?? []).map((element) => (
                         <div
                             key={element.id}
                             className="optionPayment"

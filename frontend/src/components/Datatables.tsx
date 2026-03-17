@@ -19,12 +19,66 @@ const DataTable = dynamic(async () => {
 
 
 
-const DataTables = (props) => {
+type DataTableColumn = {
+    data?: string | null;
+    title?: string;
+    name?: string;
+    width?: string;
+    [key: string]: unknown;
+};
+
+type EstadoPedidoFilter = {
+    key: string;
+    label: string;
+    expr?: string;
+    regex?: boolean;
+    smart?: boolean;
+    ci?: boolean;
+};
+
+type DataTablesProps = {
+    header?: string[];
+    data?: Array<Record<string, unknown>>;
+    imprimir?: () => void;
+    columns?: DataTableColumn[];
+    onAction?: (action: string, rowData: Record<string, unknown>) => void;
+    order?: Record<string, unknown>;
+    slotes?: Record<string, unknown>;
+    estadoPedidoFilters?: EstadoPedidoFilter[];
+    rowDetail?: (row: Record<string, unknown>) => Promise<string> | string;
+};
+
+type JQueryDataTableLike = {
+    row: (element: Element) => {
+        data: () => Record<string, unknown> | null;
+        child: ((html: string) => { show: () => void }) & {
+            isShown: () => boolean;
+            hide: () => void;
+            show: () => void;
+        };
+    };
+    on: (event: string, selector: string, handler: (event: Event) => void) => void;
+    off: (event: string, selector: string, handler: (event: Event) => void) => void;
+    column: (name: string) => any;
+    cells: (...args: unknown[]) => any;
+};
+
+const DataTables = (props: DataTablesProps) => {
     // const tableRef = useRef(null);
-    const tableRef = useRef(null);
+    const tableRef = useRef<{ dt?: () => JQueryDataTableLike | undefined } | null>(null);
     const [activeFilter, setActiveFilter] = useState("todos");
     const [activeEstadoPedidoFilter, setActiveEstadoPedidoFilter] = useState("todos");
-    const { header, data, imprimir, columns, onAction, order, slotes, estadoPedidoFilters, rowDetail } = props;
+    const {
+        header,
+        data = [],
+        imprimir,
+        columns = [],
+        onAction,
+        order,
+        slotes,
+        estadoPedidoFilters,
+        rowDetail,
+    } = props;
     
 
     console.log("columns", columns);
@@ -46,7 +100,7 @@ const DataTables = (props) => {
             );
 
             const popoverList = popoverTriggerList.map(
-                (popoverTriggerEl) => new Popover(popoverTriggerEl)
+                (popoverTriggerEl: Element) => new Popover(popoverTriggerEl)
             );
 
             cleanup = () => {
@@ -62,16 +116,18 @@ const DataTables = (props) => {
   useEffect(() => {
     if (!rowDetail) return;
 
-    let dt = null;
-    let intervalId = null;
+    let dt: JQueryDataTableLike | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    const handler = async (event) => {
-      const target = event.target;
+    const handler = async (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
       if (target?.closest?.('button, a, input, select, textarea, svg, path')) {
         return;
       }
       const tr = target.closest('tr');
       if (!tr || tr.classList.contains('child')) return;
+      if (!dt) return;
       const row = dt.row(tr);
       if (!row || !row.data()) return;
 
@@ -81,7 +137,7 @@ const DataTables = (props) => {
         return;
       }
 
-      const html = await rowDetail(row.data());
+      const html = await rowDetail(row.data() as Record<string, unknown>);
       row.child(html).show();
       tr.classList.add('shown');
     };
@@ -93,10 +149,12 @@ const DataTables = (props) => {
     };
 
     intervalId = setInterval(() => {
-      dt = tableRef.current?.dt?.();
+      dt = tableRef.current?.dt?.() ?? null;
       if (dt) {
         attach();
-        clearInterval(intervalId);
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
       }
     }, 150);
 
@@ -139,7 +197,7 @@ const DataTables = (props) => {
 // };
 
 const debugEstado = () => {
-  const dt = tableRef.current?.dt();
+  const dt = tableRef.current?.dt?.();
   if (!dt) return;
 
   // 1) Datos crudos de la columna (procedentes de tu 'data')
@@ -150,7 +208,7 @@ const debugEstado = () => {
     .cells(null, 'estado_pago:name')
     .nodes()
     .to$()
-    .map((i, td) => td.textContent?.trim())
+    .map((i: number, td: HTMLElement) => td.textContent?.trim())
     .get();
   console.log('DISPLAY text:', displayText);
 
@@ -161,13 +219,13 @@ const debugEstado = () => {
 };
 
 const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
-    const dt = tableRef.current?.dt();
+    const dt = tableRef.current?.dt?.();
     if (!dt) return;
     dt.column("estado_pago:name").search(expr, regex, smart, ci).draw();
   };
 
 const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) => {
-    const dt = tableRef.current?.dt();
+    const dt = tableRef.current?.dt?.();
     if (!dt) return;
     dt.column("estado_pedido:name").search(expr, regex, smart, ci).draw();
   };
@@ -193,7 +251,7 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
   const headerLabels =
     header ??
     (columns
-      ? columns.map((col, index) => {
+      ? columns.map((col: DataTableColumn, index: number) => {
           if (col?.title) {
             return col.title;
           }
@@ -290,7 +348,7 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
       </div>
       {estadoPedidoFilters?.length ? (
         <div className="d-flex flex-wrap gap-2 mb-3">
-          {estadoPedidoFilters.map((f) => (
+          {estadoPedidoFilters.map((f: EstadoPedidoFilter) => (
             <button
               key={f.key}
               type="button"
@@ -313,10 +371,7 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
             data={data} 
             columns={columns} 
             className="display"
-            customStyles={customStyles}
-            fixedHeader
-            scroller
-            ref={tableRef}
+            ref={tableRef as any}
             
             // options={{
             //     // columns: columns,
@@ -327,7 +382,7 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
             //     // fixedHeader: true,
                 
             // }}
-            slots={slotes}
+            slots={slotes as any}
         // ref={table}
         >
 

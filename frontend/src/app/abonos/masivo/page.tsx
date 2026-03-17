@@ -7,17 +7,74 @@ import { fechaFormat } from "@/utils/js/utils";
 
 const defaultMode = "empresa";
 
+type ClienteOption = {
+  id?: number;
+  cedula?: number | string;
+  nombre?: string;
+  apellido?: string;
+};
+
+type EmpresaOption = {
+  id: number | string;
+  nombre?: string;
+  nit?: string;
+};
+
+type JornadaOption = {
+  id: number | string;
+  fecha?: string;
+  empresa__nombre?: string;
+  empresa_nombre?: string;
+  sucursal?: string;
+};
+
+type MedioPagoOption = {
+  id: number | string;
+  nombre?: string;
+};
+
+type PreviewRow = {
+  id: number | string;
+  cliente_id?: number | string;
+  empresaCliente?: string;
+  jornada_id?: number | string | null;
+  precio?: number;
+  total_abonos?: number;
+  saldo?: number;
+  saldoInicial?: number;
+  aplicar?: number;
+  saldoFinal?: number;
+  cuotas?: number | string | null;
+  numeroCuotas?: number | string | null;
+  compromisoPago?: number | string | null;
+  fecha?: string;
+};
+
+type ApplyPayload = {
+  tipo: string;
+  medioDePago: string;
+  descripcion: string;
+  fecha: string;
+  items: Array<{
+    venta_id: PreviewRow["id"];
+    monto: number | undefined;
+  }>;
+  empresa_id?: string;
+  jornada_id?: string;
+  cliente_id?: string;
+};
+
 function AbonosMasivosPage() {
   const [modo, setModo] = useState(defaultMode);
-  const [empresas, setEmpresas] = useState([]);
-  const [jornadas, setJornadas] = useState([]);
-  const [mediosPago, setMediosPago] = useState([]);
-  const [clientes, setClientes] = useState([]);
+  const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
+  const [jornadas, setJornadas] = useState<JornadaOption[]>([]);
+  const [mediosPago, setMediosPago] = useState<MedioPagoOption[]>([]);
+  const [clientes, setClientes] = useState<ClienteOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [previewRows, setPreviewRows] = useState([]);
-  const [selectedVentas, setSelectedVentas] = useState(new Set());
-  const [previewMonto, setPreviewMonto] = useState(null);
+  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+  const [selectedVentas, setSelectedVentas] = useState<Set<PreviewRow["id"]>>(new Set());
+  const [previewMonto, setPreviewMonto] = useState<number | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
@@ -33,24 +90,31 @@ function AbonosMasivosPage() {
   const [empresaForm, setEmpresaForm] = useState({
     empresaId: "",
     fecha: "",
-    monto: "",
+    monto: 0,
     medioPago: "",
     descripcion: "",
   });
   const [jornadaForm, setJornadaForm] = useState({
     jornadaId: "",
     fecha: "",
-    monto: "",
+    monto: 0,
     medioPago: "",
     descripcion: "",
   });
   const [clienteForm, setClienteForm] = useState({
     clienteId: "",
     fecha: "",
-    monto: "",
+    monto: 0,
     medioPago: "",
     descripcion: "",
   });
+
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+    return fallback;
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -68,9 +132,9 @@ function AbonosMasivosPage() {
         setJornadas(Array.isArray(data.jornadas) ? data.jornadas : []);
         setMediosPago(Array.isArray(data.mediosPago) ? data.mediosPago : []);
         setClientes(Array.isArray(data.clientes) ? data.clientes : []);
-      } catch (err) {
+      } catch (err: unknown) {
         if (!isMounted) return;
-        setError(err?.message || "Error al cargar la data.");
+        setError(getErrorMessage(err, "Error al cargar la data."));
       } finally {
         if (!isMounted) return;
         setLoading(false);
@@ -105,12 +169,16 @@ function AbonosMasivosPage() {
     return map;
   }, [clientes]);
 
-  const normalizeSaldoInicial = (row) => {
+  const normalizeSaldoInicial = (row: PreviewRow): number => {
     const rawSaldo = row.saldoInicial ?? row.saldo ?? 0;
     return Number(rawSaldo || 0);
   };
 
-  const buildSummary = (rows, selectedSet, montoTotal) => {
+  const buildSummary = (
+    rows: PreviewRow[],
+    selectedSet: Set<PreviewRow["id"]>,
+    montoTotal: number
+  ) => {
     const totalAsignado = rows.reduce((acc, row) => acc + (row.aplicar || 0), 0);
     const restante = Math.max((montoTotal || 0) - totalAsignado, 0);
     const pendiente = rows
@@ -124,7 +192,11 @@ function AbonosMasivosPage() {
     };
   };
 
-  const applyMontoToSelected = (rows, selectedSet, montoTotal) => {
+  const applyMontoToSelected = (
+    rows: PreviewRow[],
+    selectedSet: Set<PreviewRow["id"]>,
+    montoTotal: number
+  ) => {
     const selectedCount = selectedSet.size;
     const perVenta = selectedCount ? (montoTotal / selectedCount) : 0;
     const nextRows = rows.map((row) => {
@@ -151,7 +223,10 @@ function AbonosMasivosPage() {
     };
   };
 
-  const applyValorCuotaToSelected = (rows, selectedSet) => {
+  const applyValorCuotaToSelected = (
+    rows: PreviewRow[],
+    selectedSet: Set<PreviewRow["id"]>
+  ) => {
     const nextRows = rows.map((row) => {
       const saldo = normalizeSaldoInicial(row);
       if (!selectedSet.has(row.id)) {
@@ -181,7 +256,11 @@ function AbonosMasivosPage() {
     };
   };
 
-  const distributeEqual = (rows, selectedSet, montoTotal) => {
+  const distributeEqual = (
+    rows: PreviewRow[],
+    selectedSet: Set<PreviewRow["id"]>,
+    montoTotal: number
+  ) => {
     const selectedCount = selectedSet.size;
     if (!selectedCount) {
       const nextRows = rows.map((row) => ({
@@ -229,7 +308,7 @@ function AbonosMasivosPage() {
 
       while (restante > 0 && disponible.length > 0) {
         const extra = restante / disponible.length;
-        let newDisponible = [];
+        let newDisponible: Array<PreviewRow["id"]> = [];
         disponible.forEach((id) => {
           const idx = nextRows.findIndex((r) => r.id === id);
           if (idx < 0) return;
@@ -317,14 +396,14 @@ function AbonosMasivosPage() {
       setSelectedVentas(selected);
       setPreviewMonto(summary.monto);
       setPreviewSummary(summary);
-    } catch (err) {
-      setPreviewError(err?.message || "Error al previsualizar.");
+    } catch (err: unknown) {
+      setPreviewError(getErrorMessage(err, "Error al previsualizar."));
     } finally {
       setPreviewLoading(false);
     }
   };
 
-  const toggleSelectAll = (checked) => {
+  const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       const selected = new Set(previewRows.map((row) => row.id));
       setSelectedVentas(selected);
@@ -342,7 +421,7 @@ function AbonosMasivosPage() {
     }
   };
 
-  const toggleSelectRow = (ventaId) => {
+  const toggleSelectRow = (ventaId: PreviewRow["id"]) => {
     setSelectedVentas((prev) => {
       const next = new Set(prev);
       if (next.has(ventaId)) {
@@ -362,19 +441,19 @@ function AbonosMasivosPage() {
   const allSelected = previewRows.length > 0 && selectedVentas.size === previewRows.length;
   const selectedCount = selectedVentas.size;
 
-  const formatCurrency = (value) =>
+  const formatCurrency = (value: number | string | null | undefined) =>
     new Intl.NumberFormat("es-CO", {
       style: "currency",
       currency: "COP",
       maximumFractionDigits: 2,
     }).format(Number(value || 0));
 
-  const getNumeroCuotas = (row) => {
+  const getNumeroCuotas = (row: PreviewRow) => {
     const cuotas = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
     return cuotas ?? "—";
   };
 
-  const getValorCuota = (row) => {
+  const getValorCuota = (row: PreviewRow): number => {
     const saldo = normalizeSaldoInicial(row);
     const cuotasRaw = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
     const cuotas = Number(cuotasRaw || 0);
@@ -399,7 +478,7 @@ function AbonosMasivosPage() {
       return;
     }
 
-    let payload = {
+    let payload: ApplyPayload = {
       tipo: modo,
       medioDePago:
         modo === "empresa"
@@ -457,8 +536,8 @@ function AbonosMasivosPage() {
         throw new Error(data?.detail || "No se pudo aplicar el abono masivo.");
       }
       setApplySuccess("Abono masivo aplicado correctamente.");
-    } catch (err) {
-      setApplyError(err?.message || "Error al aplicar el abono masivo.");
+    } catch (err: unknown) {
+      setApplyError(getErrorMessage(err, "Error al aplicar el abono masivo."));
     } finally {
       setApplyLoading(false);
     }
@@ -916,11 +995,13 @@ function AbonosMasivosPage() {
                               const value = Number(e.value || 0);
                               const nextRows = previewRows.map((item) => {
                                 if (item.id !== row.id) return item;
-                                const aplicar = Math.min(Math.max(value, 0), item.saldoInicial);
+                                const saldoInicial = normalizeSaldoInicial(item);
+                                const aplicar = Math.min(Math.max(value, 0), saldoInicial);
                                 return {
                                   ...item,
+                                  saldoInicial,
                                   aplicar,
-                                  saldoFinal: item.saldoInicial - aplicar,
+                                  saldoFinal: saldoInicial - aplicar,
                                 };
                               });
                               const totalAsignado = nextRows.reduce(

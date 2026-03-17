@@ -1,8 +1,14 @@
 import React from 'react'
 import VentaUpdateForm from '@/components/ventas/VentaUpdateForm';
 
+interface VentaPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
 
-async function getVenta(id) {
+
+async function getVenta(id: string) {
   const res = await fetch(`http://localhost:8000/venta/${id}`, {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
@@ -25,9 +31,9 @@ async function getGeneralData() {
 }
 
 
-async function page(props) {
+async function page(props: VentaPageProps) {
 
-  const { id } = props.params
+  const { id } = await props.params
   const data = await getVenta(id);
 
   const generalData = await getGeneralData()

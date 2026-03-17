@@ -5,7 +5,7 @@ import 'react-phone-number-input/style.css'
 import { useState } from 'react';
 
 const MyPhoneInput = () => {
-  const [value, setValue] = useState()
+  const [value, setValue] = useState<string | undefined>(undefined)
 
   return (
     <div className="form-group col-sm-12 col-md-6 col-xl-3">
@@ -14,7 +14,7 @@ const MyPhoneInput = () => {
         international
         defaultCountry="CO"
         value={value}
-        onChange={setValue} // Actualiza el estado al cambiar el valor
+        onChange={(nextValue) => setValue(nextValue)} // Actualiza el estado al cambiar el valor
         className="form-control telefono" // Clase para mantener el estilo
         id="telefonoCliente"
         placeholder="xxx-xxx-xxxx" // Ajusta el placeholder

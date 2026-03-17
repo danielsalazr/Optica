@@ -5,12 +5,21 @@ import { fromMoneyToText, fromNumberToMoney } from '@/utils/js/utils.js';
 import 'boxicons';
 
 
-function FormulaLentes({data}) {
+type FormulaRow = {
+  precio: string | number;
+  total: string | number;
+};
+
+type FormulaLentesProps = {
+  data?: unknown;
+};
+
+function FormulaLentes({data}: FormulaLentesProps) {
   const [abonoTotal, setAbonoTotal] = useState(0)
-  const [rows, setRows] = useState([[{
+  const [rows, setRows] = useState<FormulaRow[]>([{
     precio: '$ 0',
     total: '$ 0',
-  }]]);
+  }]);
 
     useEffect(() => {
         // const loadUtils = async () => {
@@ -29,7 +38,7 @@ function FormulaLentes({data}) {
       
     }
 
-    const handlePrecioChange = (index, value) => {
+    const handlePrecioChange = (index: number, value: string | number) => {
 
       // const precio = value || 0;
       // Actualizar el precio y total de la fila correspondiente
@@ -40,11 +49,11 @@ function FormulaLentes({data}) {
        // Actualizar el estado
       //  executeUtils()
 
-      setAbonoTotal(rows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.total), 0));
+      setAbonoTotal(newRows.reduce((acumulador, item) => acumulador + fromMoneyToText(item.total), 0));
     };
 
-    const handleDeleteRow = (index) => {
-      const newRows = rows.filter((_, i) => i !== index);
+    const handleDeleteRow = (index: number) => {
+      const newRows = rows.filter((_, i: number) => i !== index);
       setRows(newRows);
   
       // Actualizar el total después de eliminar la fila
@@ -65,7 +74,7 @@ function FormulaLentes({data}) {
               <table className="table table-bordered">
                 <thead className="table-light">
                   <tr>
-                    <th rowspan="2"></th>
+                    <th rowSpan={2}></th>
                     <th>Ojo</th>
                     <th>Esferico</th>
                     <th>Cilindrico</th>
@@ -75,7 +84,7 @@ function FormulaLentes({data}) {
                 </thead>
                 <tbody>
                 <tr>
-                    <td className="section" rowspan="2">LEJOS</td>
+                    <td className="section" rowSpan={2}>LEJOS</td>
                     <td>DERECHO</td>
                     <td><input
                       className="form-control"
@@ -146,7 +155,7 @@ function FormulaLentes({data}) {
                     /></td>
                 </tr>
                 <tr>
-                    <td class="section" rowspan="2">CERCA</td>
+                    <td className="section" rowSpan={2}>CERCA</td>
                     <td>DERECHO</td>
                     <td><input
                       className="form-control"

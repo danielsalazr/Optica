@@ -5,19 +5,9 @@ import Link from "next/link";
 //import { useEffect } from 'react';
 import styles from "./page.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import TablaArticulos from "@/components/TablaArticulos";
 import Footer from "@/components/Footer";
 import SalesIndicator from "@/components/SalesIndicator";
 // import 'bootstrap/dist/js/bootstrap.bundle.min';
-
-
-async function getData() {
-  const res = await fetch("http://localhost:8000/articuloInfo/1", {
-    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
-  });
-  return res.json();
-}
-
 
 
 // Puedes usar revalidate: X para actualizar los datos cada X segundos:
@@ -30,8 +20,6 @@ async function getData() {
 // }
 
 export default async function Home() {
-const data = await getData();
-
   return (
     // <div className={styles.page}>
       <>

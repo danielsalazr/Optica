@@ -294,7 +294,9 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           dataKey="id"
           selectionMode="single"
           selection={selected}
-          onSelectionChange={handleSelectionChange}
+          onSelectionChange={(event) =>
+            handleSelectionChange(event as unknown as { value: PreparedRemisionRow | null })
+          }
           filters={filters}
           globalFilterFields={globalFilterFields}
           emptyMessage="No se encontraron remisiones."

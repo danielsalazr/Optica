@@ -7,7 +7,36 @@ import { Calendar } from 'primereact/calendar'
 import Button from 'react-bootstrap/Button'
 import 'boxicons'
 
-function Abonos(props) {
+type MedioPagoRow = {
+  precio: number | string;
+  descripcion?: string;
+  descripcionAbono?: string;
+  imagenMedioPago?: string;
+  medioDePago_id?: number | string;
+  medioPago?: string;
+  total?: number | string;
+};
+
+type AbonosProps = {
+  data?: {
+    mediosPago?: Array<{
+      id: number | string;
+      nombre: string;
+      imagen: string;
+    }>;
+    [key: string]: unknown;
+  };
+  ventaData?: MedioPagoRow[];
+  totalAbonoLoad?: number;
+  clear?: boolean;
+  changeClear: () => void;
+  condicionPagoInit?: string;
+  compromisoPagoInit?: number | string;
+  fechaInicioInit?: string;
+  fechaVencimientoInit?: string;
+};
+
+function Abonos(props: AbonosProps) {
   const {
     data,
     ventaData,
@@ -24,7 +53,7 @@ function Abonos(props) {
   console.log(data)
   console.log(totalAbonoLoad)
 
-  const [rows, setRows] = useState(
+  const [rows, setRows] = useState<MedioPagoRow[]>(
     ventaData
       ? ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio),
@@ -46,10 +75,10 @@ function Abonos(props) {
   const [totalVenta, setTotalVenta] = useState(0)
 
   const todayDate = new Date()
-  const [fechaInicioDate, setFechaInicioDate] = useState(todayDate)
+  const [fechaInicioDate, setFechaInicioDate] = useState<Date | null>(todayDate)
   const [condicionPago, setCondicionPago] = useState('quincenal')
   const [compromisoPago, setCompromisoPago] = useState(1)
-  const [fechaVencimientoDate, setFechaVencimientoDate] = useState(todayDate)
+  const [fechaVencimientoDate, setFechaVencimientoDate] = useState<Date | null>(todayDate)
 
   useEffect(() => {
     if (condicionPagoInit) {
@@ -66,7 +95,7 @@ function Abonos(props) {
     }
   }, [condicionPagoInit, compromisoPagoInit, fechaInicioInit, fechaVencimientoInit])
 
-  const toISODate = (value) => {
+  const toISODate = (value: Date | string | null | undefined) => {
     if (!value) return ""
     const date = value instanceof Date ? value : new Date(value)
     if (Number.isNaN(date.getTime())) return ""
@@ -76,7 +105,7 @@ function Abonos(props) {
     return `${yyyy}-${mm}-${dd}`
   }
 
-  const addDaysSkipping31 = (startDate, days) => {
+  const addDaysSkipping31 = (startDate: Date | null, days: number) => {
     if (!startDate || !days || days <= 0) return startDate
     const fecha = new Date(startDate)
     if (Number.isNaN(fecha.getTime())) return startDate
@@ -131,7 +160,7 @@ function Abonos(props) {
     ])
   }
 
-  const handlePrecioChange = (index, value) => {
+  const handlePrecioChange = (index: number, value: string | number) => {
     const newRows = [...rows]
     newRows[index].precio = value || 0
     newRows[index].total = newRows[index].precio
@@ -145,7 +174,7 @@ function Abonos(props) {
     )
   }
 
-  const handleDeleteRow = (index) => {
+  const handleDeleteRow = (index: number) => {
     const newRows = rows.filter((_, i) => i !== index)
     setRows(newRows)
 
@@ -184,7 +213,7 @@ function Abonos(props) {
           <Calendar
             inputId="fecha_inicio"
             value={fechaInicioDate}
-            onChange={(e) => setFechaInicioDate(e.value)}
+            onChange={(e) => setFechaInicioDate(e.value ?? null)}
             dateFormat="dd/mm/yy"
             showIcon
             showButtonBar
@@ -203,7 +232,7 @@ function Abonos(props) {
             name="compromisoPago"
             min={1}
             value={compromisoPago}
-            onChange={(e) => setCompromisoPago(e.target.value)}
+            onChange={(e) => setCompromisoPago(Number(e.target.value))}
             required
           />
         </div>
@@ -294,14 +323,17 @@ function Abonos(props) {
                     defaultValue={`$ 0`}
                   />
                 </td>
-                <box-icon
-                  type="solid"
-                  onClick={() => handleDeleteRow(index)}
-                  size="md"
-                  name="trash"
-                  style={{ display: 'table-cell', width: '4.2%' }}
-                  color="red"
-                ></box-icon>
+                <td style={{ width: '4.2%' }} className="text-center align-middle">
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-danger text-decoration-none"
+                    onClick={() => handleDeleteRow(index)}
+                    aria-label="Eliminar abono"
+                    title="Eliminar abono"
+                  >
+                    Eliminar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

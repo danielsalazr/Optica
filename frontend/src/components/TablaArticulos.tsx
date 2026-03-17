@@ -8,7 +8,6 @@ import '@/styles/selectizeTable.css';
 // import "selectize/dist/css/selectize.css";
 import { callApi, IP_URL } from "@/utils/js/api";
 import { addRow } from "@/utils/js/tablaArticulos.js"
-import { ejecutarSelectize } from "@/utils/js/selectizeElements"
 import ("@/utils/js/ventas");
 import { obtenerInfoArticulo } from '@/utils/js/ventas';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
@@ -16,7 +15,40 @@ import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumb
 import $ from 'jquery';
 import 'selectize';
 
-function TablaArticulos(props) {
+type ArticuloOption = {
+  id: number | string;
+  nombre: string;
+};
+
+type VentaArticuloRow = {
+  precio_articulo?: number | string;
+  totalArticulo?: number | string;
+  articulo_id?: number | string;
+  cantidad?: number;
+  descuento?: number | string;
+  tipo_descuento?: string;
+  foto?: string;
+};
+
+type TablaArticuloRow = {
+  precio: string | number;
+  total: string | number;
+  articuloId?: number | string;
+  cantidad?: number;
+  descuento?: number | string;
+  tipoDescuento?: string;
+  foto?: string;
+  tipo_descuento?: string;
+};
+
+type TablaArticulosProps = {
+  articulos: ArticuloOption[];
+  ventaData?: VentaArticuloRow[] | null;
+  clear?: boolean;
+  changeClear: () => void;
+};
+
+function TablaArticulos(props: TablaArticulosProps) {
 
   const {articulos, ventaData, clear, changeClear} = props;
 
@@ -24,17 +56,17 @@ function TablaArticulos(props) {
 
   // console.log(articulos)
   // console.log(ventaData)
-  const [dataVenta, setDataVenta] =  ventaData != undefined ? useState(ventaData) : useState(null);
+  const [dataVenta, setDataVenta] =  ventaData != undefined ? useState<VentaArticuloRow[] | null>(ventaData) : useState<VentaArticuloRow[] | null>(null);
   const [ventaTotal, setVentaTotal] = useState(0);
-  const selectRefs = useRef([]);
+  const selectRefs = useRef<Array<HTMLSelectElement | null>>([]);
   // const [rows, setRows] = useState([[{
   //   precio: '$ 0',
   //   total: '$ 0',
   // }]]);
 
-  const [rows, setRows] = useState(
+  const [rows, setRows] = useState<TablaArticuloRow[]>(
     ventaData 
-      ? ventaData.map(item => ({
+      ? ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio_articulo), // `$ ${item.precio_articulo}`,
           total: fromNumberToMoney(item.totalArticulo), // `$ ${item.totalArticulo}`,
           // Agrega aquí otros campos que necesites de ventaData
@@ -66,8 +98,9 @@ function TablaArticulos(props) {
         // console.log(totales)
     
         let total = 0
-        Array.from(totales).forEach(elemento => {
-            total += Number(Number(elemento.value.replace(/\D/g, "")))
+        Array.from(totales).forEach((elemento) => {
+            const input = elemento as HTMLInputElement;
+            total += Number(Number((input.value || '').replace(/\D/g, "")))
 
         })
     
@@ -77,7 +110,7 @@ function TablaArticulos(props) {
         // setVentaTotal(moneyformat(total))
       }
 
-    const initializeSelectize = (index) => {
+    const initializeSelectize = (index: number) => {
         const precio_articulo = $(`#precio_articulo-${index}`);
         const cantidadArticulo = $(`#cantidadArticulo-${index}`);
         const descuentoArticulo = $(`#descuentoArticulo-${index}`);
@@ -103,7 +136,7 @@ function TablaArticulos(props) {
 
           $(selectElement).selectize({
             hideSelected: true,
-            onChange: async function (value) {
+            onChange: async function (value: string) {
               if (value != 'Seleccione') {
                 const data = await obtenerInfoArticulo(value);
                 // Actualizar directamente los valores en la tabla
@@ -145,13 +178,13 @@ function TablaArticulos(props) {
 
     const addArticulo = () => {
       // Añadir una fila vacía al estado
-      setRows(prevRows => [...prevRows, { 
+      setRows((prevRows) => [...prevRows, { 
         precio: '$ 0',
         total: '$ 0', 
       }]);
     }
 
-    const handleDeleteRow = (index) => {
+    const handleDeleteRow = (index: number) => {
       const newRows = rows.filter((_, i) => i !== index);
       setRows(newRows);
   
@@ -220,11 +253,13 @@ function TablaArticulos(props) {
             </thead>
             <tbody>
             {rows.map((row, index) => (
-              <tr>
+              <tr key={`articulo-row-${index}`}>
                 <td className="bg-secondary-subtle">{index+1}</td>
                 <td className="" style={{width: '25%'}}>
                   <select 
-                    ref={(el) => (selectRefs.current[index] = el)}
+                    ref={(el) => {
+                      selectRefs.current[index] = el;
+                    }}
                     className="form-select border-0"
                     // onChange={obtenerInfoArticulo(this.key)}
                     name="numero_articulo" 
@@ -234,7 +269,7 @@ function TablaArticulos(props) {
                   >
                     <option key="" value="">Seleccione</option>
                     {
-                      articulos.map(element => (
+                      articulos.map((element) => (
                         <option 
                           key={element.id}
                           value={element.id}
@@ -313,7 +348,17 @@ function TablaArticulos(props) {
                     defaultValue={row.total} 
                   />
                 </td>
-                <box-icon type='solid' onClick={() => handleDeleteRow(index)} size="md" name='trash' style={{ display: "table-cell", width: "4.2%"}} color="red" ></box-icon>
+                <td style={{ width: "4.2%" }} className="text-center align-middle">
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-danger text-decoration-none"
+                    onClick={() => handleDeleteRow(index)}
+                    aria-label="Eliminar artículo"
+                    title="Eliminar artículo"
+                  >
+                    Eliminar
+                  </button>
+                </td>
               </tr> 
             ))}
             </tbody>

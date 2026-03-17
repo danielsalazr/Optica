@@ -15,11 +15,27 @@ import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import SideAction from '@/components/bootstrap/SideAction';
 
-function AbonosData(props) {
+type AbonoDataRow = {
+  cedula?: string | number;
+  cliente?: string;
+  factura_id?: string | number;
+  fecha?: string;
+  id?: string | number;
+  nombre?: string;
+  precio?: string | number;
+  [key: string]: unknown;
+};
+
+type AbonosDataProps = {
+  header?: React.ReactNode;
+  data?: AbonoDataRow[];
+};
+
+function AbonosData(props: AbonosDataProps) {
 
   
 
-  let { header, data } = props;
+  let { header, data = [] } = props;
   const [show, setShow] = useState(false);
 
   
@@ -49,7 +65,7 @@ function AbonosData(props) {
     //   });
 
 
-      const handleAction = (action, rowData) => {
+      const handleAction = (action: string, rowData: AbonoDataRow) => {
         switch (action) {
           case "eliminar":
             console.log("Eliminar:", rowData);
@@ -83,7 +99,7 @@ function AbonosData(props) {
 
 
       const slots = {
-        Acciones: (data, row) => (
+        Acciones: (_data: unknown, _row: AbonoDataRow) => (
           <div className='gap-2 d-flex justify-content-center flex-wrap'>
             <button 
                 className="btn-action btn btn-sm btn-danger" data-action="eliminar"

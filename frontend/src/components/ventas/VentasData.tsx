@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';

@@ -3,6 +3,12 @@ import React from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import AbonosData from '@/components/abonos/AbonosData';
 
+type AbonoRow = {
+  precio: number | string;
+  fecha: string;
+  [key: string]: unknown;
+};
+
 
 async function getDataAbonos() {
     const res = await fetch("http://localhost:8000/abono/", {
@@ -11,7 +17,7 @@ async function getDataAbonos() {
     if (!res.ok) {
         throw new Error(`HTTP error! Status: ${res.status}`);
     }
-    const data =  await res.json();
+    const data: AbonoRow[] =  await res.json();
     return data
   }
 
@@ -24,7 +30,7 @@ async function page() {
     let data = await getDataAbonos();
 
     // data.forEach(item => console.log(typeof(item.fecha)))
-    data = data.map(item => {
+    data = data.map((item: AbonoRow) => {
       // Eliminar el símbolo "$" y reemplazar "." por ","
       item.precio = moneyformat(item.precio)
       item.fecha = fechaFormat(item.fecha)

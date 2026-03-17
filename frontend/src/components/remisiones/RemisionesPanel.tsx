@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { IP_URL } from "@/utils/js/api";
-import { DataTable, DataTableExpandedRowsType, DataTableFilterMeta } from "primereact/datatable";
+import { DataTable, DataTableExpandedRows, DataTableFilterMeta } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { FilterMatchMode } from "primereact/api";
@@ -30,6 +30,7 @@ type RemisionItem = {
   restante: number;
   precioUnitario?: number;
   totalRemisionado?: number;
+  descuento?: number;
   articulo?: {
     id: number;
     nombre: string;
@@ -88,7 +89,7 @@ const RemisionesPanel: React.FC<Props> = ({
     global: { value: "", matchMode: FilterMatchMode.CONTAINS },
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
-  const [expandedRows, setExpandedRows] = useState<DataTableExpandedRowsType>(null);
+  const [expandedRows, setExpandedRows] = useState<DataTableExpandedRows | undefined>(undefined);
 
   useEffect(() => {
     setLocalItems(items || []);
@@ -500,7 +501,7 @@ const RemisionesPanel: React.FC<Props> = ({
             emptyMessage="No se encontraron remisiones."
             dataKey="id"
             expandedRows={expandedRows}
-            onRowToggle={(e) => setExpandedRows(e.data)}
+            onRowToggle={(e) => setExpandedRows(e.data as DataTableExpandedRows)}
             rowExpansionTemplate={renderRemisionItems}
             className="ventas-card remision-card"
           >

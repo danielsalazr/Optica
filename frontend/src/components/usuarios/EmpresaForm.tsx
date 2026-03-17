@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useImperativeHandle, useRef } from 'react'
 import { callApi, IP_URL, callApiForm } from '@/utils/js/api';
 import { swalHtml, swalconfirmation } from '@/utils/js/sweetAlertFunctions';

@@ -4,11 +4,23 @@ import { TrendingUp, DollarSign, CreditCard, XCircle, AlertCircle } from 'lucide
 import { TbBackground } from 'react-icons/tb';
 import { useState, useEffect } from 'react';
 
+type GeneralInfoCard = {
+    title: string;
+    value: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    textColor: string;
+    bgColor: string;
+    trend?: string;
+    percentage?: string;
+    suffix?: string;
+};
+
 const SalesIndicator = () => {
 
 
 
-    const formatCurrency = (amount) => {
+    const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
@@ -16,17 +28,17 @@ const SalesIndicator = () => {
         }).format(amount);
     };
 
-    const formatNumber = (num) => {
+    const formatNumber = (num: number) => {
         return new Intl.NumberFormat('es-CO').format(num);
     };
 
-    const calculatePercentage = (value, total) => {
+    const calculatePercentage = (value: number, total: number) => {
         return ((value / total) * 100).toFixed(1);
     };
 
     // const indicators = 
 
-    const [generalInfo, setGeneralInfo] = useState([]);
+    const [generalInfo, setGeneralInfo] = useState<GeneralInfoCard[]>([]);
 
     useEffect(() => {
 

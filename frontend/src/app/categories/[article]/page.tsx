@@ -3,17 +3,16 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 // import 'bootstrap/dist/js/bootstrap.bundle.min';
 
 interface ArticleProps {
-    params: {
+    params: Promise<{
         article: string,
-    }
+    }>
 }
 
-function Article(props: ArticleProps) {
-    console.log(props)
-    const { article } = props.params
+async function Article(props: ArticleProps) {
+    const { article } = await props.params
   return (
     <div>
-      sas sas sas sisas
+      {article}
     </div>
   )
 }

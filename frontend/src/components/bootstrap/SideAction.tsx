@@ -3,7 +3,16 @@ import React,{ useState } from 'react'
 import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
-function SideAction(props) {
+type SideActionProps = {
+    children?: React.ReactNode;
+    title?: React.ReactNode;
+    show?: boolean;
+    togglestate?: () => void;
+    data?: unknown;
+    [key: string]: unknown;
+};
+
+function SideAction(props: SideActionProps) {
     const {children, title, show, togglestate, data}  = props;
 
     // console.log(data)

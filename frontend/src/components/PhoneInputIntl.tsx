@@ -10,7 +10,7 @@ import "intl-tel-input/styles";
 import React, { useState } from "react";
 function PhoneInputIntl() {
     
-    const [value, setValue] = useState()
+    const [value, setValue] = useState<string>("")
   return (
     <div>
       <IntlTelInput

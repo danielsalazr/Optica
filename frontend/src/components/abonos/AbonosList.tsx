@@ -4,11 +4,34 @@ import Image from 'next/image';
 
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils';
 
-function AbonosList(props) {
+type AbonoListVenta = {
+  id?: number | string;
+  cedula?: number | string;
+  cliente?: string;
+  abono?: number | string;
+  precio?: number | string;
+  saldo?: number | string;
+  totalAbono?: number | string;
+};
+
+type AbonoListRow = {
+  fecha?: string;
+  imagenMedioPago?: string;
+  medioDePago?: string;
+  precio?: number | string;
+  [key: string]: unknown;
+};
+
+type AbonosListProps = {
+  data: AbonoListVenta;
+  generalData?: unknown;
+};
+
+function AbonosList(props: AbonosListProps) {
   const {data, generalData} = props;
   // console.log(data)
 
-  const [listaAbonos, setListaAbonos] = useState([{
+  const [listaAbonos, setListaAbonos] = useState<AbonoListRow[]>([{
     
       cedula :data.cedula, 
       cliente :data.cliente, 
@@ -65,8 +88,8 @@ function AbonosList(props) {
             </tr>
           </thead>
           <tbody>
-            {listaAbonos.map((abono) => (
-              <tr>
+            {listaAbonos.map((abono, index) => (
+              <tr key={`${abono.fecha || 'abono'}-${index}`}>
                 <td>{abono.fecha}</td>
                 <td> <img 
                     style={{borderRadius: '30px'}}

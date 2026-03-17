@@ -5,18 +5,41 @@ import { swalconfirmation, swalErr, swalHtml } from '@/utils/js/sweetAlertFuncti
 import { callApi, callApiForm } from '@/utils/js/api';
 import {eliminarElementosFormData, transformarFormDataValues} from '@/utils/js/utilsFormData.js';
 
-function AbonosForm(props) {
-    const formRef = useRef(null);
-    const [mediosPago, setMediosPago] = useState([])
+type AbonoFormVenta = {
+    id?: number | string;
+    cliente?: string;
+    cedula?: string | number;
+    precio?: number | string;
+    totalAbono?: number | string;
+    saldo?: number | string;
+    [key: string]: unknown;
+};
+
+type AbonosFormProps = {
+    data: AbonoFormVenta;
+    generalData?: {
+        mediosPago?: Array<{
+            id: number | string;
+            nombre: string;
+            imagen: string;
+        }>;
+        [key: string]: unknown;
+    };
+    fun: () => Promise<unknown> | unknown;
+};
+
+function AbonosForm(props: AbonosFormProps) {
+    const formRef = useRef<HTMLFormElement | null>(null);
+    const [mediosPago, setMediosPago] = useState<unknown[]>([])
 
     
     const {data, generalData, fun} = props;
     console.log(data)
     console.log(generalData)
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        console.log(props.ref);
+        if (!formRef.current) return;
         const formData = new FormData(formRef.current);
 
         
@@ -31,8 +54,8 @@ function AbonosForm(props) {
 
         const newFormData = transformarFormDataValues(formData,fromMoneyToText, ['precio', 'totalventa', 'totalAbono', 'saldo', ], 'string')         // console.log(req.res);
 
-        const saldo = parseInt(formData.get('saldo'));
-        const precio = parseInt(formData.get('precio'));
+        const saldo = parseInt(String(formData.get('saldo') ?? '0'));
+        const precio = parseInt(String(formData.get('precio') ?? '0'));
 
         console.log(precio)
         console.log(saldo)
@@ -43,7 +66,7 @@ function AbonosForm(props) {
         }
 
 
-        if (precio == '' || precio == null || precio == undefined || precio <= 0) {
+        if (Number.isNaN(precio) || precio <= 0) {
             await swalErr("Por favor ingrese un valor para abonar")
             return
         }

@@ -4,19 +4,19 @@
 
 //document.getElementById('fechaVenta').valueAsDate = new Date();
 
-if (typeof document === "undefined") {
-    return null; // Si se ejecuta en SSR, no hay cookies disponibles
-}
+// if (typeof document === "undefined") {
+//     return null; // Si se ejecuta en SSR, no hay cookies disponibles
+// }
 
-const fecha = new Date().toISOString().split('T')[0];
+// const fecha = new Date().toISOString().split('T')[0];
 // document.getElementById('fechaVenta').value = fecha;
 
 
 // Poner formato de moneda a campos de precios
 
-const inputPrecio = document.querySelectorAll(".precio");
-const inputNumerico = document.querySelectorAll(".numerico");
-const inputTelefono = document.querySelectorAll(".telefono");
+const inputPrecio = typeof document !== "undefined" ? document.querySelectorAll(".precio") : [];
+const inputNumerico = typeof document !== "undefined" ? document.querySelectorAll(".numerico") : [];
+// const inputTelefono = document.querySelectorAll(".telefono");
 
 for (let i = 0; i < inputPrecio.length; i++) {
 
@@ -66,54 +66,55 @@ export function separadorMiles(numero) {
 }
 
 
-function formatPhone() {
-    let phoneInput = document.getElementById('phone-input');
-    let phoneNumber = phoneInput.value.replace(/\D/g, ''); // Eliminar todos los caracteres que no sean dígitos
-    let formattedPhoneNumber = '';
+// function formatPhone() {
+//     let phoneInput = document.getElementById('phone-input');
+//     let phoneNumber = phoneInput.value.replace(/\D/g, ''); // Eliminar todos los caracteres que no sean dígitos
+//     let formattedPhoneNumber = '';
 
-    if (phoneNumber.length > 0) {
-        formattedPhoneNumber += phoneNumber.substring(0, 3);
-    }
-    if (phoneNumber.length > 3) {
-        formattedPhoneNumber += '-' + phoneNumber.substring(3, 6);
-    }
-    if (phoneNumber.length > 6) {
-        formattedPhoneNumber += '-' + phoneNumber.substring(6, 10);
-    }
+//     if (phoneNumber.length > 0) {
+//         formattedPhoneNumber += phoneNumber.substring(0, 3);
+//     }
+//     if (phoneNumber.length > 3) {
+//         formattedPhoneNumber += '-' + phoneNumber.substring(3, 6);
+//     }
+//     if (phoneNumber.length > 6) {
+//         formattedPhoneNumber += '-' + phoneNumber.substring(6, 10);
+//     }
 
-    phoneInput.value = formattedPhoneNumber;
-}
-
-
-function phoneFormat(input) {
-    input = input.replace(/\D/g, '');
-
-    // Formatea el número a xxx-xxx-xxxx
-    // Si el número tiene más de 10 dígitos, se asume que tiene código de país
-    if (input.length > 10) {
-        let countryCodeLength = Math.min(input.length - 10, 3); // El código de país tiene un máximo de 3 dígitos
-        let countryCode = input.slice(0, countryCodeLength); // Obtener los primeros 1, 2 o 3 dígitos como código de país
-        let restOfNumber = input.slice(countryCodeLength); // El resto del número
-
-        // Formateamos el número con el código de país
-        input = `+${countryCode} ${restOfNumber.slice(0, 3)}-${restOfNumber.slice(3, 6)}-${restOfNumber.slice(6, 10)}`;
-    } else {
-        // Si el número tiene 10 o menos dígitos, formateamos como número local
-        if (input.length <= 3) {
-            input = input.slice(0, 3); // Solo los primeros 3 dígitos
-        } else if (input.length <= 6) {
-            input = input.slice(0, 3) + '-' + input.slice(3, 6); // 3 primeros y luego 3 más con guion
-        } else {
-            input = input.slice(0, 3) + '-' + input.slice(3, 6) + '-' + input.slice(6, 10); // 3-3-4 formato
-        }
-    }
-
-    return input;
-
-}
+//     phoneInput.value = formattedPhoneNumber;
+// }
 
 
+// function phoneFormat(input) {
+//     input = input.replace(/\D/g, '');
 
+//     // Formatea el número a xxx-xxx-xxxx
+//     // Si el número tiene más de 10 dígitos, se asume que tiene código de país
+//     if (input.length > 10) {
+//         let countryCodeLength = Math.min(input.length - 10, 3); // El código de país tiene un máximo de 3 dígitos
+//         let countryCode = input.slice(0, countryCodeLength); // Obtener los primeros 1, 2 o 3 dígitos como código de país
+//         let restOfNumber = input.slice(countryCodeLength); // El resto del número
+
+//         // Formateamos el número con el código de país
+//         input = `+${countryCode} ${restOfNumber.slice(0, 3)}-${restOfNumber.slice(3, 6)}-${restOfNumber.slice(6, 10)}`;
+//     } else {
+//         // Si el número tiene 10 o menos dígitos, formateamos como número local
+//         if (input.length <= 3) {
+//             input = input.slice(0, 3); // Solo los primeros 3 dígitos
+//         } else if (input.length <= 6) {
+//             input = input.slice(0, 3) + '-' + input.slice(3, 6); // 3 primeros y luego 3 más con guion
+//         } else {
+//             input = input.slice(0, 3) + '-' + input.slice(3, 6) + '-' + input.slice(6, 10); // 3-3-4 formato
+//         }
+//     }
+
+//     return input;
+
+// }
+
+
+
+if (typeof document !== "undefined") {
 document.addEventListener('DOMContentLoaded', function() {
     
     const inputs = document.querySelectorAll('input.precio');
@@ -153,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarInputs();
 });
+}
 
 
 export function formatMoneyInput (input) {
@@ -203,7 +205,7 @@ export function fromTextToMoney(input) {
 
 export function fromNumberToMoney(input) {
 
-  let value = input;
+//   let value = input;
 
   // Limpia el valor quitando caracteres no numéricos
   let numericValue = parseFloat(input) || 0;

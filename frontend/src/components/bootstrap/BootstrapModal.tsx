@@ -3,34 +3,42 @@ import React, { useEffect, useRef } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 
-export default function BootstrapModal(props) {
-    const formRef = useRef(null);
-    const { onHide, title, children, onSubmit, submitBtn } = props;
+type BootstrapModalProps = {
+    onHide: () => void;
+    title?: React.ReactNode;
+    children: React.ReactElement<{ ref?: React.Ref<unknown> }>;
+    onSubmit: (value: unknown) => void;
+    submitBtn?: React.ReactNode;
+    [key: string]: unknown;
+};
+
+export default function BootstrapModal(props: BootstrapModalProps) {
+    const formRef = useRef<{ submit?: () => Promise<unknown> | unknown } | null>(null);
+    const { onHide, title, children, onSubmit, submitBtn, ...modalProps } = props;
   
 
       const handleSubmit = async () => {
         console.log('Se activo')
         if (formRef.current) {
             console.log(formRef.current)
-            console.log(formRef.current.current)
-            const consulta = await formRef.current.submit();
+            const consulta = await formRef.current.submit?.();
             console.log(consulta)
             // console.log(formRef.telefono.getInstance().getNumber(telefono))
             if (consulta != false)  {
               
                 onSubmit(consulta);
-              onHide(); // Cerrar el modal
+              onHide();
               }      
         }
     
       };
 
       useEffect(() => {
-        console.log(formRef.current?.current)
+        console.log(formRef.current)
       },[])
   return (
     <Modal
-      {...props}
+      {...modalProps}
       size="lg"
       aria-labelledby="contained-modal-title-vcenter"
       centered

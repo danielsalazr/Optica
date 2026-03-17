@@ -10,6 +10,9 @@ async function obtenerInfoArticulo(value) {
     return req.data
   }
 
+export { obtenerInfoArticulo };
+
+if (typeof window !== 'undefined') {
 
   const medioDePago = $('#medioDePago').selectize();
 
@@ -102,3 +105,4 @@ function calcularTotales(){
     calcularTotales()
     
   });
+}

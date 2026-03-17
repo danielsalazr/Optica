@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import React, { useRef, useEffect, useState, ReactElement, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';

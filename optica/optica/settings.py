@@ -237,9 +237,10 @@ CORS_ALLOW_HEADERS = [
 
 LANGUAGE_CODE = 'es-co'
 
-TIME_ZONE = 'America/bogota'
+TIME_ZONE = 'America/Bogota'
 
 USE_I18N = True
+
 
 USE_L10N = True
 

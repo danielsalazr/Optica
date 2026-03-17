@@ -9,7 +9,16 @@ import { moneyformat } from '@/utils/js/utils';
 import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
 
-
+type VentaRow = {
+  precio?: number | string;
+  totalAbono?: number | string;
+  saldo?: number | string;
+  estado_pedido_id?: number | null;
+  estado_pedido_nombre?: string;
+  estado_pedido_detalle?: string;
+  estado_pedido_actualizado?: string | null;
+  [key: string]: unknown;
+};
 
 async function getDataVentas() {
   const res = await fetch("http://localhost:8000/venta/", {
@@ -18,7 +27,7 @@ async function getDataVentas() {
   if (!res.ok) {
       throw new Error(`HTTP error! Status: ${res.status}`);
   }
-  const data =  await res.json();
+  const data: VentaRow[] =  await res.json();
   return data
 }
 
@@ -42,7 +51,7 @@ async function page() {
     // console.log(generalData)
 
     // Modificar la propiedad "precio" de cada objeto en la lista
-    table = table.map(item => {
+    table = table.map((item: VentaRow) => {
       const precioRaw = item.precio ?? 0;
       const totalAbonoRaw = item.totalAbono ?? 0;
       const saldoRaw = item.saldo ?? 0;

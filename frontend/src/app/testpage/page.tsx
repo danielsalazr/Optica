@@ -1,12 +1,21 @@
 "use client";
 
 import React, { useRef } from "react";
-import DataTable from "datatables.net-react";
-import DT from "datatables.net-dt";
+import dynamic from "next/dynamic";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-DataTable.use(DT);
+const DataTable = dynamic(async () => {
+  const DataTableComponentModule = await import("datatables.net-react");
+  const DataTableComponent = DataTableComponentModule.default ?? DataTableComponentModule;
+
+  const DataTablesLibModule = await import("datatables.net-dt");
+  const DataTablesLib = DataTablesLibModule.default ?? DataTablesLibModule;
+
+  DataTableComponent.use(DataTablesLib);
+
+  return DataTableComponent;
+}, { ssr: false });
 
 export default function Page() {
 
