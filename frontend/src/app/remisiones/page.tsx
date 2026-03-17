@@ -1,4 +1,5 @@
 import RemisionesData from "@/components/remisiones/RemisionesData";
+import { buildBackendUrl } from "@/utils/js/env";
 
 
 async function getRemisiones() {

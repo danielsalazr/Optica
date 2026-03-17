@@ -1,5 +1,6 @@
 import React from 'react'
 import DataTables from '@/components/Datatables'
+import { buildBackendUrl } from '@/utils/js/env';
 
 
 async function getDataVentas() {
