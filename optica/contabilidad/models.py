@@ -199,6 +199,7 @@ class Ventas(models.Model):
         null=True,
     )
     estado_pedido_detalle = models.TextField(max_length=500, blank=True, null=True)
+    motivo_sin_anticipo = models.TextField(max_length=500, blank=True, null=True)
     estado_pedido_actualizado = models.DateTimeField(blank=True, null=True)
     fecha = models.DateField(verbose_name="Fecha de Venta", default=timezone.now)
     fechaCreacion = models.DateTimeField(verbose_name="Fecha de Venta", default=timezone.now)

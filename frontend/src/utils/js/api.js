@@ -71,10 +71,10 @@ async function fetchJson(endPoint, options = {}) {
   }
 
   const config = {
+    ...options,
     credentials: 'include',
     method,
     headers,
-    ...options,
   };
   const response = await fetch(url, config);
   const data = await response.json();

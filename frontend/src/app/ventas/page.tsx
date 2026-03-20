@@ -16,7 +16,7 @@ type VentaRow = {
   saldo?: number | string;
   estado_pedido_id?: number | null;
   estado_pedido_nombre?: string;
-  estado_pedido_detalle?: string;
+  motivo_sin_anticipo?: string;
   estado_pedido_actualizado?: string | null;
   [key: string]: unknown;
 };
@@ -66,7 +66,7 @@ async function page() {
         saldo: moneyformat(saldoRaw),
         estadoPedidoId: item.estado_pedido_id ?? null,
         estadoPedidoNombre: item.estado_pedido_nombre ?? '',
-        estadoPedidoDetalle: item.estado_pedido_detalle ?? '',
+        motivoSinAnticipo: item.motivo_sin_anticipo ?? '',
         estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
       };
     });

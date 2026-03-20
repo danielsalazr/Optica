@@ -111,6 +111,16 @@ function Header() {
             <NavDropdown.Item href="#action/3.4">
               Separated link
             </NavDropdown.Item>
+            </NavDropdown>
+        </li>
+        <li>
+          <NavDropdown title="Reportes" id="reportes-nav-dropdown"
+            menuVariant="dark"
+            data-bs-theme="dark"
+            className="success"
+            style={{color: "white"}}
+          >
+            <NavDropdown.Item href="/reportes">Centro de reportes</NavDropdown.Item>
           </NavDropdown>
         </li>
         

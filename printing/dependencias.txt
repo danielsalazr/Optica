@@ -1,5 +1,0 @@
-npm install express cors escpos escpos-usb pdf-to-printer
-npm install pdf-to-printer pdfkit
-
-npm i esc-pos-encoder
-

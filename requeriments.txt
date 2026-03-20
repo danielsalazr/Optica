@@ -9,3 +9,9 @@ mysqlclient
 pillow
 rich
 setuptools
+
+pyusb
+pywin32
+uvicorn
+fastapi
+pyinstaller

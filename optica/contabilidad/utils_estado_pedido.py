@@ -9,27 +9,34 @@ from django.utils import timezone
 
 from .models import EstadoPedidoVenta, ItemsVenta
 
-ESTADOS_PEDIDO_DEFINICIONES: Sequence[Tuple[str, str]] = (
-    ("creado", "Pedido tomado"),
-    ("para_fabricacion", "Para enviar a fabricacion"),
-    ("en_fabricacion", "Enviado a Fabricar"),
-    ("listo_entrega", "Listo para entrega"),
-    ("entregado", "Entregado"),
+ESTADOS_PEDIDO_DEFINICIONES: Sequence[Tuple[int, str, str]] = (
+    (1, "creado", "Pedido tomado"),
+    (2, "para_fabricacion", "Para enviar a Fabricar"),
+    (3, "en_fabricacion", "Enviado a Fabricar"),
+    (4, "listo_entrega", "Listo Para Entrega"),
+    (5, "entregado", "Entregado"),
 )
 
-ESTADO_PEDIDO_ORDER = {slug: idx for idx, (slug, _) in enumerate(ESTADOS_PEDIDO_DEFINICIONES)}
-ESTADO_PEDIDO_NOMBRE = {slug: nombre for slug, nombre in ESTADOS_PEDIDO_DEFINICIONES}
+ESTADO_PEDIDO_ORDER = {slug: idx for idx, (_, slug, _) in enumerate(ESTADOS_PEDIDO_DEFINICIONES)}
+ESTADO_PEDIDO_NOMBRE = {slug: nombre for _, slug, nombre in ESTADOS_PEDIDO_DEFINICIONES}
+ESTADO_PEDIDO_ID = {slug: estado_id for estado_id, slug, _ in ESTADOS_PEDIDO_DEFINICIONES}
 
 
 def ensure_estado_pedido_defaults() -> None:
-    for _, nombre in ESTADOS_PEDIDO_DEFINICIONES:
-        EstadoPedidoVenta.objects.get_or_create(nombre=nombre)
+    for estado_id, _, nombre in ESTADOS_PEDIDO_DEFINICIONES:
+        EstadoPedidoVenta.objects.update_or_create(
+            id=estado_id,
+            defaults={"nombre": nombre},
+        )
 
 
 def get_estado_pedido_by_slug(slug: str) -> EstadoPedidoVenta:
     ensure_estado_pedido_defaults()
     nombre = ESTADO_PEDIDO_NOMBRE[slug]
-    estado, _ = EstadoPedidoVenta.objects.get_or_create(nombre=nombre)
+    estado, _ = EstadoPedidoVenta.objects.update_or_create(
+        id=ESTADO_PEDIDO_ID[slug],
+        defaults={"nombre": nombre},
+    )
     return estado
 
 
@@ -52,7 +59,7 @@ def _save_estado(
     venta,
     slug: str,
     *,
-    detalle: Optional[str] = None,
+    motivo_sin_anticipo: Optional[str] = None,
     clear_detalle: bool = False,
 ) -> bool:
     estado = get_estado_pedido_by_slug(slug)
@@ -62,13 +69,13 @@ def _save_estado(
         venta.estado_pedido = estado
         updated_fields.append("estado_pedido")
 
-    if detalle is not None:
-        if detalle != venta.estado_pedido_detalle:
-            venta.estado_pedido_detalle = detalle
-            updated_fields.append("estado_pedido_detalle")
-    elif clear_detalle and venta.estado_pedido_detalle:
-        venta.estado_pedido_detalle = None
-        updated_fields.append("estado_pedido_detalle")
+    if motivo_sin_anticipo is not None:
+        if motivo_sin_anticipo != venta.motivo_sin_anticipo:
+            venta.motivo_sin_anticipo = motivo_sin_anticipo
+            updated_fields.append("motivo_sin_anticipo")
+    elif clear_detalle and venta.motivo_sin_anticipo:
+        venta.motivo_sin_anticipo = None
+        updated_fields.append("motivo_sin_anticipo")
 
     if not updated_fields:
         return False
@@ -97,11 +104,22 @@ def maybe_mark_para_fabricacion(venta) -> bool:
     return _save_estado(venta, "para_fabricacion", clear_detalle=True)
 
 
-def mark_estado_pedido(venta, target_slug: str, *, detalle: Optional[str] = None, clear_detalle: bool = False) -> bool:
+def mark_estado_pedido(
+    venta,
+    target_slug: str,
+    *,
+    motivo_sin_anticipo: Optional[str] = None,
+    clear_detalle: bool = False,
+) -> bool:
     actual = identify_estado_pedido_slug(getattr(venta.estado_pedido, "nombre", None))
     if ESTADO_PEDIDO_ORDER[target_slug] < ESTADO_PEDIDO_ORDER.get(actual, 0):
         return False
-    return _save_estado(venta, target_slug, detalle=detalle, clear_detalle=clear_detalle)
+    return _save_estado(
+        venta,
+        target_slug,
+        motivo_sin_anticipo=motivo_sin_anticipo,
+        clear_detalle=clear_detalle,
+    )
 
 
 def mark_entregado_si_corresponde(venta) -> bool:

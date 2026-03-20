@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { IP_URL } from "@/utils/js/api";
+import { callApi } from "@/utils/js/api";
 import { DataTable, DataTableExpandedRows, DataTableFilterMeta } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
@@ -326,21 +326,19 @@ const RemisionesPanel: React.FC<Props> = ({
 
     try {
       setLoading(true);
-      const response = await fetch(`${IP_URL()}remisiones/`, {
+      const req = await callApi("remisiones/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const detalle = await response.json().catch(() => ({}));
-        throw new Error(construirMensajeError(detalle));
+      if (!req.res.ok) {
+        throw new Error(construirMensajeError(req.data));
       }
 
-      const data: Remision = await response.json();
+      const data: Remision = req.data;
 
       setLocalRemisiones((prev) => [data, ...prev]);
       actualizarItemsDesdeRemision(data);

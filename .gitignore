@@ -82,6 +82,7 @@ typings/
 .nuxt
 dist
 
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and *not* Next.js
@@ -402,3 +403,6 @@ yarn-error.log*
 next-env.d.ts
 
 # End of https://www.toptal.com/developers/giti
+
+
+.exe

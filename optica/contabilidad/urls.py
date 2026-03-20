@@ -22,18 +22,21 @@ urlpatterns = [
     path('abonar/<int:factura>', views.abonar, name="abonar"),
     # path('admin/', views.AbonosP.as_view(), name="admin"),
     path('reportes/', views.ReportesP.as_view(), name="reportes"),
+    path('reportes/data/', views.ReportesDataView.as_view(), name="reportes-data"),
     path('informacionGeneral/', views.informacionGeneral, name="informacionGeneral"),
     # informacionGeneral
 
     
     path('venta/', views.Venta.as_view(), name="venta"),
     path('venta/<int:id>', views.Venta.as_view(), name="ventanum"),
+    path('venta/estado-pedido/masivo/', views.VentaEstadoPedidoMasivoView.as_view(), name="venta-estado-pedido-masivo"),
     path('venta/<int:venta_id>/estado-pedido/', views.VentaEstadoPedidoView.as_view(), name="venta-estado-pedido"),
     
     path('abono/', views.Abono.as_view(), name="abono"),
     path('abono/<factura>', views.Abono.as_view(), name="abono"),
     path('abonos/masivo/preview/', views.AbonoMasivoPreview.as_view(), name="abonos-masivo-preview"),
     path('abonos/masivo/aplicar/', views.AbonoMasivoApply.as_view(), name="abonos-masivo-aplicar"),
+    path('abonos/masivo/<int:abono_masivo_id>/', views.AbonoMasivoDetail.as_view(), name="abonos-masivo-detail"),
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),
 
     path('remisiones/', views.RemisionView.as_view(), name="remisiones"),

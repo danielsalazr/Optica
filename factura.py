@@ -78,12 +78,12 @@ pdf.cell(0, 5, f'Total: {total:,.0f}', ln=True, align='R')
 # Guardar archivo
 pdf.output('Factura_Termal.pdf')
 
-from escpos.printer import Usb
+# from escpos.printer import Usb
 
-# Configura la impresora USB (VendorID, ProductID)
-# Busca estos IDs con "lsusb" en Linux
-p = Usb(0x04b8, 0x0e15)  # IDs para Epson TM-T20II (pueden variar)
+# # Configura la impresora USB (VendorID, ProductID)
+# # Busca estos IDs con "lsusb" en Linux
+# p = Usb(0x04b8, 0x0e15)  # IDs para Epson TM-T20II (pueden variar)
 
-# Envía texto a la impresora
-p.text("Hola Mundo!\n")
-p.cut()
+# # Envía texto a la impresora
+# p.text("Hola Mundo!\n")
+# p.cut()

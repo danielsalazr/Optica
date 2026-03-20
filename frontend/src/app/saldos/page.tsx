@@ -1,26 +1,29 @@
-import React from 'react'
-import DataTables from '@/components/Datatables'
+import React from 'react';
+
+import SaldosModule from '@/components/saldos/SaldosModule';
 import { buildBackendUrl } from '@/utils/js/env';
 
-
-async function getDataVentas() {
-  const res = await fetch(buildBackendUrl("venta/"), {
-    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+async function getSaldosData() {
+  const res = await fetch(buildBackendUrl("reportes/data/"), {
+    cache: "no-store",
   });
   if (!res.ok) {
-      throw new Error(`HTTP error! Status: ${res.status}`);
+    throw new Error(`HTTP error! Status: ${res.status}`);
   }
-  const data =  await res.json();
-  return data
+  return res.json();
 }
 
-function page() {
-  return (
-    <div>
-      {/* <DataTables /> */}
-      Saldos
-    </div>
-  )
+async function page() {
+  let data = { informe_cartera: [] };
+  let fetchError = null;
+
+  try {
+    data = await getSaldosData();
+  } catch (error) {
+    fetchError = error instanceof Error ? error.message : 'Error desconocido';
+  }
+
+  return <SaldosModule rows={data?.informe_cartera ?? []} fetchError={fetchError} />;
 }
 
-export default page
+export default page;

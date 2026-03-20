@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
-import { swalErr, swalHtml, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
+import { swalErr, swalHtmlCreation, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
 import Link from 'next/link'
 
@@ -17,13 +17,14 @@ import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import Modal from 'react-bootstrap/Modal';
 import Spinner from 'react-bootstrap/Spinner';
-import '@/styles/style.css';
+
 import { callApi, IP_URL } from '@/utils/js/api';
 import { buildBackendUrl } from '@/utils/js/env';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Tooltip } from 'primereact/tooltip';
+import '@/styles/style.css';
 
 
 
@@ -37,9 +38,9 @@ import { Row } from 'react-bootstrap';
 const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
 const ESTADO_PEDIDO_LABELS = {
   creado: 'Pedido tomado',
-  para_fabricacion: 'Para fabricar',
+  para_fabricacion: 'Para enviar a Fabricar',
   en_fabricacion: 'Enviado a Fabricar',
-  listo_entrega: 'Listo para entrega',
+  listo_entrega: 'Listo Para Entrega',
   entregado: 'Entregado',
 };
 
@@ -48,13 +49,13 @@ const identifyEstadoPedidoKey = (nombre?: string): string => {
   if (value.includes('pendiente') || value.includes('pedido tomado') || value.includes('creado')) {
     return 'creado';
   }
-  if (value.includes('enviar a fabric')) {
+  if (value.includes('para enviar a fabricar') || value.includes('enviar a fabric')) {
     return 'para_fabricacion';
   }
-  if (value.includes('en fabric')) {
+  if (value.includes('enviado a fabricar') || value.includes('en fabric')) {
     return 'en_fabricacion';
   }
-  if (value.includes('listo')) {
+  if (value.includes('listo para entrega') || value.includes('listo')) {
     return 'listo_entrega';
   }
   if (value.includes('garantia') || value.includes('entregado')) {
@@ -66,17 +67,17 @@ const identifyEstadoPedidoKey = (nombre?: string): string => {
 const estadoPedidoBadgeClass = (key: string): string => {
   switch (key) {
     case 'creado':
-      return 'bg-secondary';
+      return 'badge-estado-creado';
     case 'para_fabricacion':
-      return 'bg-info text-dark';
+      return 'badge-estado-para-fabricacion';
     case 'en_fabricacion':
-      return 'bg-warning text-dark';
+      return 'badge-estado-en-fabricacion';
     case 'listo_entrega':
-      return 'bg-primary';
+      return 'badge-estado-listo-entrega';
     case 'entregado':
-      return 'bg-success';
+      return 'badge-estado-entregado';
     default:
-      return 'bg-secondary';
+      return 'badge-estado-creado';
   }
 };
 
@@ -108,6 +109,10 @@ function VentasData(props) {
   const [estadoPagoFilter, setEstadoPagoFilter] = useState('todos');
   const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
   const [globalFilter, setGlobalFilter] = useState('');
+  const [selectedVentas, setSelectedVentas] = useState([]);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkMotivoSinAnticipo, setBulkMotivoSinAnticipo] = useState('');
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -230,7 +235,6 @@ function VentasData(props) {
       return {
         slug: 'en_fabricacion',
         label: 'Enviar a fabricación',
-        requiresDetail: true,
       };
     }
     if (key === 'en_fabricacion') {
@@ -243,6 +247,13 @@ function VentasData(props) {
   };
 
   const normalize = (value) => (value ?? '').toString().toLowerCase().trim();
+
+  const renderEstadoPedidoBadge = (nombre) => {
+    const value = (nombre ?? '').toString().trim() || 'Pedido tomado';
+    const key = identifyEstadoPedidoKey(value);
+    const badge = estadoPedidoBadgeClass(key);
+    return <span className={`badge ${badge} badge-estado-pedido`}>{value}</span>;
+  };
 
   const filteredData = useMemo(() => {
     return (dataTablee ?? []).filter((row) => {
@@ -283,6 +294,89 @@ function VentasData(props) {
     });
   }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter]);
 
+  const bulkEstadoKeys = useMemo(
+    () => [...new Set((selectedVentas ?? []).map((row) => identifyEstadoPedidoKey(row?.estadoPedidoNombre)))],
+    [selectedVentas]
+  );
+
+  const bulkMixedStates = bulkEstadoKeys.length > 1;
+  const bulkBaseRow = selectedVentas?.[0] ?? null;
+  const bulkActionConfig = !bulkMixedStates && bulkBaseRow ? buildEstadoAction(bulkBaseRow) : null;
+  const bulkRowsRequiringMotivo = useMemo(() => {
+    if (!bulkActionConfig || bulkActionConfig.slug !== 'para_fabricacion') return [];
+    return (selectedVentas ?? []).filter((row) => !ventaPerteneceAJornada(row) && !cumpleMitadPago(row));
+  }, [selectedVentas, bulkActionConfig]);
+  const bulkRowsWithoutMotivo = useMemo(() => {
+    const requiringIds = new Set(bulkRowsRequiringMotivo.map((row) => row.id));
+    return (selectedVentas ?? []).filter((row) => !requiringIds.has(row.id));
+  }, [selectedVentas, bulkRowsRequiringMotivo]);
+  const bulkCanConfirm =
+    Boolean(selectedVentas?.length) &&
+    !bulkMixedStates &&
+    Boolean(bulkActionConfig) &&
+    (bulkRowsRequiringMotivo.length === 0 || Boolean(bulkMotivoSinAnticipo.trim()));
+
+  const handleOpenBulkModal = async () => {
+    if (!selectedVentas?.length) {
+      await swalErr('Selecciona al menos una venta.');
+      return;
+    }
+    setBulkMotivoSinAnticipo('');
+    setBulkModalOpen(true);
+  };
+
+  const handleBulkEstadoSubmit = async () => {
+    if (!bulkActionConfig) {
+      await swalErr('La selección no permite un cambio masivo.');
+      return;
+    }
+    if (bulkRowsRequiringMotivo.length > 0 && !bulkMotivoSinAnticipo.trim()) {
+      await swalErr('Debes indicar un motivo para las ventas sin anticipo suficiente.');
+      return;
+    }
+
+    setBulkLoading(true);
+    try {
+      const req = await callApi('venta/estado-pedido/masivo/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          venta_ids: selectedVentas.map((row) => row.id),
+          estado: bulkActionConfig.slug,
+          ...(bulkRowsRequiringMotivo.length > 0
+            ? { motivo_sin_anticipo: bulkMotivoSinAnticipo.trim() }
+            : {}),
+        }),
+      });
+
+      if (!req.res.ok) {
+        await swalErr(req.data?.detail || 'No fue posible aplicar el cambio masivo.');
+        return;
+      }
+
+      const errores = req.data?.errores ?? [];
+      if (errores.length > 0) {
+        const detalle = errores
+          .map((item) => `Venta ${item.venta_id}: ${item.detail}`)
+          .join('<br>');
+        await swalHtmlCreation('Resultado del cambio masivo', `Se actualizaron ${req.data?.procesadas ?? 0} ventas.<br><br>${detalle}`);
+      } else {
+        await swalconfirmation(`Se actualizaron ${req.data?.procesadas ?? 0} ventas correctamente.`);
+      }
+
+      setBulkModalOpen(false);
+      setSelectedVentas([]);
+      await handleFetchVentas(false);
+    } catch (error) {
+      console.error(error);
+      await swalErr('Ocurrio un error al aplicar el cambio masivo.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
 
 
   const handleFetchVentas = async (withToggle = true) => {
@@ -312,7 +406,7 @@ function VentasData(props) {
         saldo: moneyformat(saldoRaw),
         estadoPedidoId: item.estadoPedidoId ?? item.estado_pedido_id ?? null,
         estadoPedidoNombre: item.estadoPedidoNombre ?? item.estado_pedido_nombre ?? '',
-        estadoPedidoDetalle: item.estadoPedidoDetalle ?? item.estado_pedido_detalle ?? '',
+        motivoSinAnticipo: item.motivoSinAnticipo ?? item.motivo_sin_anticipo ?? '',
         estadoPedidoFecha: item.estadoPedidoFecha ?? item.estado_pedido_actualizado ?? null,
       };
     });
@@ -387,13 +481,13 @@ function VentasData(props) {
     const requiereDetallePorPago =
       !esVentaJornada && !cumpleMitad && (Boolean(config.requiresDetail) || faltaMitadPago);
 
-    let detalle = null;
+    let motivoSinAnticipo = null;
     if (requiereDetallePorPago) {
-      detalle = await swalInput('Estas enviando a fabricar sin cumplir con la mitad del pago. Cual es el motivo?');
-      if (detalle === null) {
+      motivoSinAnticipo = await swalInput('Estas enviando a fabricar sin cumplir con la mitad del pago. Cual es el motivo?');
+      if (motivoSinAnticipo === null) {
         return;
       }
-      if (!detalle.trim()) {
+      if (!motivoSinAnticipo.trim()) {
         await swalErr('Debe ingresar un motivo valido.');
         return;
       }
@@ -408,7 +502,7 @@ function VentasData(props) {
         },
         body: JSON.stringify({
           estado: config.slug,
-          ...(detalle ? { detalle } : {}),
+          ...(motivoSinAnticipo ? { motivo_sin_anticipo: motivoSinAnticipo } : {}),
         }),
       });
 
@@ -575,7 +669,7 @@ function VentasData(props) {
     const remisiones = detalle?.remisiones ?? [];
     const observacion = detalle?.observacion ?? '';
     const estadoPedido = detalle?.estadoPedidoNombre ?? detalle?.estado_pedido_nombre ?? '';
-    const estadoDetalle = detalle?.estadoPedidoDetalle ?? detalle?.estado_pedido_detalle ?? '';
+    const motivoSinAnticipo = detalle?.motivoSinAnticipo ?? detalle?.motivo_sin_anticipo ?? '';
     const tieneFormula = Boolean(
       detalle?.foto_formula ||
       detalle?.fotoFormula ||
@@ -594,7 +688,7 @@ function VentasData(props) {
               {tieneFormula ? 'Formula asociada' : 'Sin formula'}
             </span>
           </div>
-          {estadoDetalle && <div className="text-muted small">Detalle: {estadoDetalle}</div>}
+          {motivoSinAnticipo && <div className="text-muted small">Motivo sin anticipo: {motivoSinAnticipo}</div>}
           {observacion && <div className="text-muted small">Observación: {observacion}</div>}
         </div>
         <div className="table-modern table-responsive">
@@ -764,6 +858,104 @@ function VentasData(props) {
         </Modal.Body>
       </Modal>
 
+      <Modal size="lg" show={bulkModalOpen} onHide={() => !bulkLoading && setBulkModalOpen(false)} centered>
+        <Modal.Header closeButton={!bulkLoading}>
+          <Modal.Title>Cambio masivo de estado</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {!selectedVentas?.length ? (
+            <div className="alert alert-warning mb-0">No hay ventas seleccionadas.</div>
+          ) : (
+            <>
+              <div className="mb-3">
+                <div className="fw-semibold">Ventas seleccionadas: {selectedVentas.length}</div>
+                {bulkActionConfig && !bulkMixedStates && (
+                  <div className="text-muted small mt-1">
+                    Siguiente estado: {ESTADO_PEDIDO_LABELS[bulkActionConfig.slug]}
+                  </div>
+                )}
+              </div>
+
+              {bulkMixedStates && (
+                <div className="alert alert-danger">
+                  No puedes mezclar ventas con diferentes estados de pedido en una misma acción.
+                </div>
+              )}
+
+              <div className="table-responsive mb-3">
+                <table className="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Pedido</th>
+                      <th>Cliente</th>
+                      <th>Estado actual</th>
+                      <th>Requiere motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedVentas ?? []).map((row) => {
+                      const requiereMotivo =
+                        bulkActionConfig?.slug === 'para_fabricacion' &&
+                        !ventaPerteneceAJornada(row) &&
+                        !cumpleMitadPago(row);
+                      return (
+                        <tr key={row.id}>
+                          <td className="fw-semibold">#{row.id}</td>
+                          <td>{row.cliente || 'Sin cliente'}</td>
+                          <td>{renderEstadoPedidoBadge(row?.estadoPedidoNombre)}</td>
+                          <td>
+                            {requiereMotivo ? (
+                              <span className="badge bg-warning text-dark">Sí</span>
+                            ) : (
+                              <span className="badge bg-success">No</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {bulkRowsWithoutMotivo.length > 0 && (
+                <div className="mb-3">
+                  <div className="fw-semibold">Pueden avanzar sin motivo</div>
+                  <div className="text-muted small">
+                    {bulkRowsWithoutMotivo.map((row) => `#${row.id}`).join(', ')}
+                  </div>
+                </div>
+              )}
+
+              {bulkRowsRequiringMotivo.length > 0 && (
+                <div className="mb-3">
+                  <div className="fw-semibold">Requieren motivo sin anticipo</div>
+                  <div className="text-muted small mb-2">
+                    {bulkRowsRequiringMotivo.map((row) => `#${row.id}`).join(', ')}
+                  </div>
+                  <label className="form-label">Motivo sin anticipo</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={bulkMotivoSinAnticipo}
+                    onChange={(event) => setBulkMotivoSinAnticipo(event.target.value)}
+                    placeholder="Motivo general para las ventas seleccionadas que no cumplen el 50%..."
+                    disabled={bulkLoading}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setBulkModalOpen(false)} disabled={bulkLoading}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={handleBulkEstadoSubmit} disabled={!bulkCanConfirm || bulkLoading}>
+            {bulkLoading ? 'Aplicando...' : 'Confirmar cambio masivo'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
 
 
       <div className="data-table-shell">
@@ -783,7 +975,17 @@ function VentasData(props) {
           <button type="button" className={`btn ${estadoPedidoFilter === 'listo_entrega' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('listo_entrega')}>{ESTADO_PEDIDO_LABELS.listo_entrega}</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'entregado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('entregado')}>{ESTADO_PEDIDO_LABELS.entregado}</button>
         </div>
-        <div className="d-flex justify-content-end mb-3">
+        <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              disabled={!selectedVentas?.length}
+              onClick={handleOpenBulkModal}
+            >
+              Cambiar estado masivamente ({selectedVentas?.length || 0})
+            </button>
+          </div>
           <span className="p-input-icon-left">
             <i className="pi pi-search" />
             <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
@@ -805,11 +1007,14 @@ function VentasData(props) {
           expandedRows={expandedRows}
           onRowToggle={onRowToggle}
           onRowExpand={onRowExpand}
+          selection={selectedVentas}
+          onSelectionChange={(e) => setSelectedVentas(e.value)}
           rowExpansionTemplate={rowExpansionTemplate}
           className="ventas-table p-datatable-sm"
           paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
         >
+          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
           <Column expander style={{ width: '3rem' }} />
           <Column field="id" header="Pedido" sortable style={{ width: '7rem' }} />
           <Column field="cedula" header="Cedula" sortable />
@@ -820,12 +1025,7 @@ function VentasData(props) {
           <Column field="saldo" header="Saldo" sortable />
           <Column
             header="Estado"
-            body={(row) => {
-              const value = (row?.estadoPedidoNombre ?? '').toString().trim() || 'Pedido tomado';
-              const key = identifyEstadoPedidoKey(value);
-              const badge = estadoPedidoBadgeClass(key);
-              return <span className={`badge ${badge} badge-estado-pedido`}>{value}</span>;
-            }}
+            body={(row) => renderEstadoPedidoBadge(row?.estadoPedidoNombre)}
           />
           <Column
             header="Estado pago"
