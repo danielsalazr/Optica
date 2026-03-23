@@ -1,0 +1,10 @@
+<service>
+  <id>OpticaPrintAgent</id>
+  <name>Optica Print Agent</name>
+  <description>Servicio local de impresion para remisiones, constancias y facturas.</description>
+  <executable>%BASE%\OpticaPrintAgent.exe</executable>
+  <arguments></arguments>
+  <log mode="roll" />
+  <onfailure action="restart" delay="10 sec" />
+  <startmode>Automatic</startmode>
+</service>

@@ -1,0 +1,104 @@
+correr proyecto 
+    -py run.py
+
+
+generar instalador 
+
+    -python -m PyInstaller --onefile --name OpticaPrintAgent run.py
+
+descargar innosetup
+    https://jrsoftware.org/isdl.php
+
+descargar  WinSW-x64.exe
+    -https://github.com/winsw/winsw/releases
+
+
+
+compilar instalador con iss en powershell:
+
+    -"& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "c:\Users\Administrador\Documents\desarrollos\optica\print_agent\installer\setup.iss"
+
+
+
+ber como puedo hacer el instalador
+
+si entonces dejemoslo asi como esta, ahora quiero sa
+Sí. Con lo que ya tienes, el instalador se hace en 3 capas:
+
+convertir el agente Python en .exe
+registrarlo como servicio de Windows
+empaquetar todo en un instalador .exe
+Flujo recomendado
+
+1. Generar el ejecutable
+Usa PyInstaller.
+
+Instala:
+
+python -m pip install --user pyinstaller
+Desde la raíz del proyecto:
+
+cd c:\Users\Administrador\Documents\desarrollos\optica\print_agent
+pyinstaller --onefile --name OpticaPrintAgent run.py
+Eso te genera algo como:
+
+print_agent\dist\OpticaPrintAgent.exe
+2. Preparar el servicio Windows
+Para que arranque al iniciar el equipo, necesitas un wrapper de servicio. La opción práctica es WinSW.
+
+Debes descargar WinSW-x64.exe y ponerlo en:
+
+print_agent\dist\WinSW-x64.exe
+También debes renombrarlo o dejarlo referenciado correctamente junto con:
+
+OpticaPrintAgent.xml
+Ese XML ya es la base del servicio, pero ahora mismo hay un detalle importante:
+
+el XML apunta a %BASE%\OpticaPrintAgent.exe
+el instalador también espera WinSW-x64.exe
+ese binario todavía no está incluido automáticamente
+3. Crear el instalador
+La plantilla ya existe en:
+
+setup.iss
+Para compilarla necesitas Inno Setup.
+
+Instálalo y luego compila:
+
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" c:\Users\Administrador\Documents\desarrollos\optica\print_agent\installer\setup.iss
+Eso te genera un instalador en:
+
+print_agent\installer\output\optica-print-agent-setup.exe
+Qué te falta hoy para que funcione de punta a punta
+Tu base ya está, pero faltan estas piezas para un instalador funcional real:
+
+agregar WinSW-x64.exe al paquete
+asegurar que el ejecutable final quede en print_agent\dist\OpticaPrintAgent.exe
+ajustar el servicio para que arranque con el directorio correcto
+definir dónde guardar ProgramData\OpticaPrintAgent
+opcional: crear firewall rule, logs y desinstalación limpia
+Proceso manual completo
+Quedaría así:
+
+python -m pip install --user pyinstaller
+cd c:\Users\Administrador\Documents\desarrollos\optica\print_agent
+pyinstaller --onefile --name OpticaPrintAgent run.py
+Luego:
+
+copiar WinSW-x64.exe a print_agent\dist\
+verificar que installer\setup.iss apunte bien al ejecutable
+Después:
+
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" c:\Users\Administrador\Documents\desarrollos\optica\print_agent\installer\setup.iss
+Recomendación
+Antes de compilar el instalador final, prueba primero:
+
+ejecutar dist\OpticaPrintAgent.exe
+verificar http://127.0.0.1:7719/health
+luego registrar el servicio manualmente con WinSW
+y solo después generar el instalador
+Eso te evita depurar a ciegas dentro del instalador.
+
+Si quieres, el siguiente paso lo hago yo: te dejo el empaquetado listo, ajustando setup.iss, agregando un .spec de PyInstaller y dejando preparado el servicio Windows para que solo te falte poner el binario de WinSW.
+
+
