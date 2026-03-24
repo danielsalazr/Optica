@@ -1,7 +1,6 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import { swalErr, swalHtmlCreation, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
 import Link from 'next/link'
@@ -31,9 +30,10 @@ import '@/styles/style.css';
 
 
 
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import { title } from 'process';
 import { Row } from 'react-bootstrap';
+
+const moneyformat = (amount: unknown) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(amount || 0));
 
 const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
 const ESTADO_PEDIDO_LABELS = {
@@ -127,7 +127,7 @@ function VentasData(props) {
     try {
       const req = await callApi(`venta/${ventaId}`);
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || 'No fue posible obtener la información de remisiones.');
+        throw new Error(req.data?.detail || 'No fue posible obtener la informaciÃ³n de remisiones.');
       }
       setRemisionContext(req.data);
     } catch (error) {
@@ -164,7 +164,7 @@ function VentasData(props) {
     try {
       const req = await callApi(`venta/${rowData.id}`);
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || 'No fue posible obtener la fórmula.');
+        throw new Error(req.data?.detail || 'No fue posible obtener la fÃ³rmula.');
       }
       const data = req.data || {};
       const candidates: string[] = [];
@@ -181,11 +181,11 @@ function VentasData(props) {
         .filter(Boolean) as string[];
 
       if (!resolved.length) {
-        setFormulaError('No hay fórmulas asociadas a esta venta.');
+        setFormulaError('No hay fÃ³rmulas asociadas a esta venta.');
       }
       setFormulaImages(resolved);
     } catch (error) {
-      setFormulaError(error instanceof Error ? error.message : 'Error al cargar la fórmula.');
+      setFormulaError(error instanceof Error ? error.message : 'Error al cargar la fÃ³rmula.');
     } finally {
       setFormulaLoading(false);
     }
@@ -227,14 +227,14 @@ function VentasData(props) {
     if (key === 'creado') {
       return {
         slug: 'para_fabricacion',
-        label: 'Marcar para enviar a fabricación',
+        label: 'Marcar para enviar a fabricaciÃ³n',
         needsHalfPayment: true,
       };
     }
     if (key === 'para_fabricacion') {
       return {
         slug: 'en_fabricacion',
-        label: 'Enviar a fabricación',
+        label: 'Enviar a fabricaciÃ³n',
       };
     }
     if (key === 'en_fabricacion') {
@@ -327,7 +327,7 @@ function VentasData(props) {
 
   const handleBulkEstadoSubmit = async () => {
     if (!bulkActionConfig) {
-      await swalErr('La selección no permite un cambio masivo.');
+      await swalErr('La selecciÃ³n no permite un cambio masivo.');
       return;
     }
     if (bulkRowsRequiringMotivo.length > 0 && !bulkMotivoSinAnticipo.trim()) {
@@ -383,7 +383,7 @@ function VentasData(props) {
     //etLoading(true);
 
     const res = await fetch(buildBackendUrl("venta/"), {
-      cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+      cache: "no-store", // ðŸ”¥ Equivalente a getServerSideProps (sin cachÃ©)
     });
     if (!res.ok) {
       throw new Error(`HTTP error! Status: ${res.status}`);
@@ -425,7 +425,7 @@ function VentasData(props) {
         setOverrideData(rowData.id)
         setModalAnularShow(!modalAnularShow)
 
-        // const question = await swalQuestion("¿Esta seguro de eliminar el abono?")
+        // const question = await swalQuestion("Â¿Esta seguro de eliminar el abono?")
 
         // if (!question) {
         //   return false
@@ -463,7 +463,7 @@ function VentasData(props) {
         break;
 
       default:
-        console.log("Acción no reconocida:", action);
+        console.log("AcciÃ³n no reconocida:", action);
     }
   };
 
@@ -590,7 +590,7 @@ function VentasData(props) {
         </button>
         <button
           className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver fórmula"
+          data-pr-tooltip="Ver fÃ³rmula"
           data-pr-position="top"
           onClick={() => handleFormulaModal(row)}
         >
@@ -607,7 +607,7 @@ function VentasData(props) {
 
         <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver histórico de abonos"
+          data-pr-tooltip="Ver histÃ³rico de abonos"
           data-pr-position="top"
           onClick={() => handleAction("verAbonos", row)}
         >
@@ -660,7 +660,7 @@ function VentasData(props) {
     if (!detalle) {
       return (
         <div className="px-3 py-2 text-muted">
-          {detailLoading[rowData.id] ? 'Cargando detalle…' : 'No hay detalle disponible.'}
+          {detailLoading[rowData.id] ? 'Cargando detalleâ€¦' : 'No hay detalle disponible.'}
         </div>
       );
     }
@@ -682,20 +682,20 @@ function VentasData(props) {
     return (
       <div className="ventas-card my-2">
         <div className="mb-3">
-          <div className="fw-semibold">Estado pedido: {estadoPedido || '—'}</div>
+          <div className="fw-semibold">Estado pedido: {estadoPedido || 'â€”'}</div>
           <div className="mt-2">
             <span className={`badge ${tieneFormula ? 'bg-success' : 'bg-secondary'}`}>
               {tieneFormula ? 'Formula asociada' : 'Sin formula'}
             </span>
           </div>
           {motivoSinAnticipo && <div className="text-muted small">Motivo sin anticipo: {motivoSinAnticipo}</div>}
-          {observacion && <div className="text-muted small">Observación: {observacion}</div>}
+          {observacion && <div className="text-muted small">ObservaciÃ³n: {observacion}</div>}
         </div>
         <div className="table-modern table-responsive">
           <table className="table table-sm align-middle mb-0">
             <thead>
               <tr>
-                <th>Artículo</th>
+                <th>ArtÃ­culo</th>
                 <th className="text-center">Cantidad</th>
                 <th className="text-end">Precio</th>
                 <th className="text-center">Descuento</th>
@@ -706,7 +706,7 @@ function VentasData(props) {
               {ventasItems.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center text-muted">
-                    Sin ítems
+                    Sin Ã­tems
                   </td>
                 </tr>
               ) : (
@@ -727,7 +727,7 @@ function VentasData(props) {
           <table className="table table-sm align-middle mb-0">
             <thead>
               <tr>
-                <th>Remisión</th>
+                <th>RemisiÃ³n</th>
                 <th>Fecha</th>
                 <th className="text-end">Total</th>
               </tr>
@@ -766,8 +766,8 @@ function VentasData(props) {
 
       >
         <AnularVentaForm factura={overrideData} onSuccess={() => {
-          handleFetchVentas();   // 🔥 refresca la tabla
-          setModalAnularShow(false); // 🔥 cierra el modal
+          handleFetchVentas();   // ðŸ”¥ refresca la tabla
+          setModalAnularShow(false); // ðŸ”¥ cierra el modal
         }} />
         {/* <AnularVentaForm /> */}
       </BootstrapModal>
@@ -788,14 +788,14 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            Remisiones · Venta #{remisionRowContext?.id ?? '--'}
+            Remisiones Â· Venta #{remisionRowContext?.id ?? '--'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {remisionLoading && (
             <div className="py-5 text-center">
               <Spinner animation="border" role="status" />
-              <p className="text-muted mt-3 mb-0">Cargando información de remisiones…</p>
+              <p className="text-muted mt-3 mb-0">Cargando informaciÃ³n de remisionesâ€¦</p>
             </div>
           )}
 
@@ -829,14 +829,14 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            Fórmula · Venta #{formulaVentaId ?? '--'}
+            FÃ³rmula Â· Venta #{formulaVentaId ?? '--'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {formulaLoading && (
             <div className="py-4 text-center">
               <Spinner animation="border" role="status" />
-              <p className="text-muted mt-3 mb-0">Cargando fórmula…</p>
+              <p className="text-muted mt-3 mb-0">Cargando fÃ³rmulaâ€¦</p>
             </div>
           )}
           {formulaError && !formulaLoading && (
@@ -878,7 +878,7 @@ function VentasData(props) {
 
               {bulkMixedStates && (
                 <div className="alert alert-danger">
-                  No puedes mezclar ventas con diferentes estados de pedido en una misma acción.
+                  No puedes mezclar ventas con diferentes estados de pedido en una misma acciÃ³n.
                 </div>
               )}
 
@@ -905,7 +905,7 @@ function VentasData(props) {
                           <td>{renderEstadoPedidoBadge(row?.estadoPedidoNombre)}</td>
                           <td>
                             {requiereMotivo ? (
-                              <span className="badge bg-warning text-dark">Sí</span>
+                              <span className="badge bg-warning text-dark">SÃ­</span>
                             ) : (
                               <span className="badge bg-success">No</span>
                             )}
@@ -1039,3 +1039,4 @@ function VentasData(props) {
 }
 
 export default VentasData
+

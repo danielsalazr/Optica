@@ -21,6 +21,12 @@ type SaldoRow = {
 
 type FilterKey = "todos" | "con_vencimiento" | "vencidos" | "sin_vencimiento";
 
+type FilterDefinition = {
+  key: FilterKey;
+  label: string;
+  description: string;
+};
+
 const currencyFormatter = new Intl.NumberFormat("es-CO", {
   style: "currency",
   currency: "COP",
@@ -100,15 +106,23 @@ function SaldosModule({
   const [globalFilter, setGlobalFilter] = useState("");
   const [conditionFilter, setConditionFilter] = useState<FilterKey>("todos");
 
-  const filterDefinitions: Array<{
-    key: FilterKey;
-    label: string;
-    description: string;
-  }> = [
+  const filterDefinitions: FilterDefinition[] = [
     { key: "todos", label: "Todos", description: "Muestra toda la cartera pendiente." },
-    { key: "con_vencimiento", label: "Con vencimiento", description: "Solo ventas con fecha de vencimiento." },
-    { key: "vencidos", label: "Vencidos", description: "Saldos cuya fecha ya venció." },
-    { key: "sin_vencimiento", label: "Sin vencimiento", description: "Ventas sin fecha límite configurada." },
+    {
+      key: "con_vencimiento",
+      label: "Con vencimiento",
+      description: "Solo ventas con fecha de vencimiento.",
+    },
+    {
+      key: "vencidos",
+      label: "Vencidos",
+      description: "Saldos cuya fecha ya vencio.",
+    },
+    {
+      key: "sin_vencimiento",
+      label: "Sin vencimiento",
+      description: "Ventas sin fecha limite configurada.",
+    },
   ];
 
   const activeFilterDefinition =
@@ -149,13 +163,23 @@ function SaldosModule({
     return { totalSaldo, totalVentas, vencidas };
   }, [filteredRows]);
 
+  const countsByFilter = useMemo<Record<FilterKey, number>>(() => {
+    const sourceRows = rows ?? [];
+    return {
+      todos: sourceRows.length,
+      con_vencimiento: sourceRows.filter((row) => Boolean(row.fecha_vencimiento)).length,
+      vencidos: sourceRows.filter((row) => isOverdue(row.fecha_vencimiento)).length,
+      sin_vencimiento: sourceRows.filter((row) => !row.fecha_vencimiento).length,
+    };
+  }, [rows]);
+
   return (
-    <div className="page-shell">
+    <div className="page-shell page-shell-narrow">
       <div className="ventas-toolbar mb-3">
         <div>
           <h1 className="ventas-page-title mb-1">Saldos pendientes</h1>
           <p className="text-muted mb-0">
-            Consulta las ventas con cartera pendiente, abonos acumulados y vencimientos.
+            Consulta consolidada de cartera pendiente, abonos acumulados y vencimientos.
           </p>
         </div>
       </div>
@@ -168,20 +192,20 @@ function SaldosModule({
 
       <div className="abonos-summary">
         <div className="abonos-summary-card">
-          <span className="label">Filtro activo</span>
+          <span className="label">Vista activa</span>
           <span className="value">{activeFilterDefinition.label}</span>
         </div>
         <div className="abonos-summary-card">
-          <span className="label">Ventas con saldo</span>
+          <span className="label">Registros visibles</span>
           <span className="value">{summary.totalVentas}</span>
         </div>
         <div className="abonos-summary-card">
-          <span className="label">Saldo total</span>
-          <span className="value">{formatCurrency(summary.totalSaldo)}</span>
-        </div>
-        <div className="abonos-summary-card">
-          <span className="label">Vencidas</span>
-          <span className="value">{summary.vencidas}</span>
+          <span className="label">Total relevante</span>
+          <span className="value">
+            {conditionFilter === "vencidos"
+              ? `${summary.vencidas} registro(s)`
+              : formatCurrency(summary.totalSaldo)}
+          </span>
         </div>
       </div>
 
@@ -194,6 +218,7 @@ function SaldosModule({
             onClick={() => setConditionFilter(filter.key)}
           >
             <span className="method">{filter.label}</span>
+            <span className="amount">{countsByFilter[filter.key]}</span>
           </button>
         ))}
       </div>
@@ -202,7 +227,10 @@ function SaldosModule({
         <div className="abonos-header d-flex w-100 justify-content-between align-items-center gap-2 flex-wrap mb-3">
           <div className="d-flex flex-column">
             <span className="fw-semibold">{activeFilterDefinition.label}</span>
-            <span className="text-muted small">{activeFilterDefinition.description}</span>
+            <span className="text-muted small">
+              {activeFilterDefinition.description}
+              {conditionFilter === "vencidos" ? " Revisa estos saldos para priorizar cobro." : ""}
+            </span>
           </div>
           <div className="d-flex gap-2 flex-wrap align-items-center">
             <span className="p-input-icon-left abonos-search">
@@ -210,7 +238,7 @@ function SaldosModule({
               <InputText
                 value={globalFilter}
                 onChange={(event) => setGlobalFilter(event.target.value)}
-                placeholder="Buscar saldos..."
+                placeholder="Filtrar reporte..."
               />
             </span>
             <button
@@ -238,15 +266,52 @@ function SaldosModule({
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
           emptyMessage="No hay saldos pendientes para los filtros seleccionados."
         >
-          <Column field="venta_id" header="Venta" sortable body={(row: SaldoRow) => <span className="fw-semibold">#{row.venta_id}</span>} />
-          <Column field="fecha" header="Fecha" sortable body={(row: SaldoRow) => formatDate(row.fecha)} />
+          <Column
+            field="venta_id"
+            header="Venta"
+            sortable
+            body={(row: SaldoRow) => <span className="fw-semibold">#{row.venta_id}</span>}
+          />
+          <Column
+            field="fecha"
+            header="Fecha"
+            sortable
+            body={(row: SaldoRow) => formatDate(row.fecha)}
+          />
           <Column field="cliente" header="Cliente" sortable />
           <Column field="empresa" header="Empresa" sortable />
-          <Column field="precio" header="Total" sortable body={(row: SaldoRow) => formatCurrency(row.precio)} />
-          <Column field="totalAbono" header="Abonado" sortable body={(row: SaldoRow) => formatCurrency(row.totalAbono)} />
-          <Column field="saldo" header="Saldo pendiente" sortable body={(row: SaldoRow) => <span className="fw-semibold text-danger">{formatCurrency(row.saldo)}</span>} />
-          <Column field="condicion_pago" header="Condición" sortable body={(row: SaldoRow) => row.condicion_pago || "-"} />
-          <Column field="cuotas" header="Cuotas" sortable body={(row: SaldoRow) => row.cuotas || "-"} />
+          <Column
+            field="precio"
+            header="Total"
+            sortable
+            body={(row: SaldoRow) => formatCurrency(row.precio)}
+          />
+          <Column
+            field="totalAbono"
+            header="Abonado"
+            sortable
+            body={(row: SaldoRow) => formatCurrency(row.totalAbono)}
+          />
+          <Column
+            field="saldo"
+            header="Saldo pendiente"
+            sortable
+            body={(row: SaldoRow) => (
+              <span className="fw-semibold text-danger">{formatCurrency(row.saldo)}</span>
+            )}
+          />
+          <Column
+            field="condicion_pago"
+            header="Condicion"
+            sortable
+            body={(row: SaldoRow) => row.condicion_pago || "-"}
+          />
+          <Column
+            field="cuotas"
+            header="Cuotas"
+            sortable
+            body={(row: SaldoRow) => row.cuotas || "-"}
+          />
           <Column
             field="fecha_vencimiento"
             header="Vencimiento"
@@ -273,7 +338,11 @@ function SaldosModule({
                   : estado === "con abono"
                     ? "bg-info text-dark"
                     : "bg-warning text-dark";
-              return <span className={`badge ${badge} badge-estado-pedido`}>{row.estado_pago || "Sin pago"}</span>;
+              return (
+                <span className={`badge ${badge} badge-estado-pedido`}>
+                  {row.estado_pago || "Sin pago"}
+                </span>
+              );
             }}
           />
         </DataTable>

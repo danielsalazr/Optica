@@ -82,71 +82,6 @@ from .utils_estado_pedido import (
 console = Console()
 
 # Create your views here.
-def process_estado_pedido_transition(venta, estado_slug: str, motivo_sin_anticipo: str = ''):
-    motivo_sin_anticipo = (motivo_sin_anticipo or '').strip()
-
-    if estado_slug not in ESTADO_PEDIDO_ORDER:
-        raise ValueError('Estado solicitado no es valido.')
-
-    if estado_slug == 'entregado':
-        raise ValueError('El estado Entregado se actualiza automaticamente luego de la remision completa.')
-
-    actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
-    if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
-        raise ValueError('No es posible retroceder el estado del pedido.')
-
-    def _get_minimo_abono():
-        precio = venta.precio or 0
-        if precio <= 0:
-            return 0
-        return math.ceil(precio / 2)
-
-    def _sync_total_abono():
-        total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
-            total=Coalesce(Sum('precio'), 0)
-        ).get('total') or 0
-        total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
-        if total_abono_actual != (venta.totalAbono or 0):
-            venta.totalAbono = total_abono_actual
-            venta.save(update_fields=['totalAbono'])
-        return total_abono_actual
-
-    if estado_slug == 'para_fabricacion':
-        minimo = _get_minimo_abono()
-        total_abono_actual = _sync_total_abono()
-        pertenece_jornada = venta.jornada_id is not None
-        if not pertenece_jornada and minimo > 0 and total_abono_actual < minimo:
-            if not motivo_sin_anticipo:
-                raise ValueError('Indique el motivo por el cual se envia a fabricacion sin cumplir el abono minimo.')
-            updated = mark_estado_pedido(
-                venta,
-                estado_slug,
-                motivo_sin_anticipo=motivo_sin_anticipo,
-            )
-        else:
-            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-    elif estado_slug == 'en_fabricacion':
-        if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
-            raise ValueError('Debe marcar el pedido Para enviar a fabricacion antes de continuar.')
-        updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-    elif estado_slug == 'listo_entrega':
-        if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
-            raise ValueError('Debe marcar el pedido En fabricacion antes de continuar.')
-        updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-    else:
-        updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-
-    venta.refresh_from_db(fields=['estado_pedido', 'motivo_sin_anticipo', 'estado_pedido_actualizado'])
-    return {
-        'venta_id': venta.id,
-        'estado': venta.estado_pedido.nombre if venta.estado_pedido else None,
-        'estado_slug': identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)),
-        'motivo_sin_anticipo': venta.motivo_sin_anticipo,
-        'actualizado': venta.estado_pedido_actualizado,
-        'updated': updated,
-    }
-
-
 class MainP(APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
@@ -265,11 +200,7 @@ class VentasP(APIView):
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
         vendedores = Vendedor.objects.all().values()
-        estados_pedido = (
-            EstadoPedidoVenta.objects.filter(id__in=[1, 2, 3, 4, 5])
-            .order_by('id')
-            .values('id', 'nombre')
-        )
+        estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
         jornadas = Jornada.objects.select_related('empresa').filter(
             estado__in=['planned', 'in_progress']
         ).order_by('-fecha', '-id').values(
@@ -665,7 +596,7 @@ class Venta(APIView):
                 T3.nombre as estado,
                 T5.id as estado_pedido_id,
                 T5.nombre as estado_pedido_nombre,
-                T0.motivo_sin_anticipo,
+                T0.estado_pedido_detalle,
                 T0.estado_pedido_actualizado,
                 T6.id as jornada_id,
                 T6.estado as jornada_estado,
@@ -1216,56 +1147,68 @@ class VentaEstadoPedidoView(APIView):
     def post(self, request, venta_id):
         venta = get_object_or_404(Ventas, pk=venta_id)
         estado_slug = (request.data.get('estado') or '').strip()
-        motivo_sin_anticipo = request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or ''
-        try:
-            data = process_estado_pedido_transition(venta, estado_slug, motivo_sin_anticipo)
-        except ValueError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        motivo_sin_anticipo = (request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or '').strip()
+
+        if estado_slug not in ESTADO_PEDIDO_ORDER:
+            return Response({'detail': 'Estado solicitado no es valido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if estado_slug == 'entregado':
+            return Response({'detail': 'El estado Entregado se actualiza automaticamente luego de la remision completa.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+        if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
+            return Response({'detail': 'No es posible retroceder el estado del pedido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        def _get_minimo_abono():
+            precio = venta.precio or 0
+            if precio <= 0:
+                return 0
+            return math.ceil(precio / 2)
+
+        def _sync_total_abono():
+            total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+                total=Coalesce(Sum('precio'), 0)
+            ).get('total') or 0
+            total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
+            if total_abono_actual != (venta.totalAbono or 0):
+                venta.totalAbono = total_abono_actual
+                venta.save(update_fields=['totalAbono'])
+            return total_abono_actual
+
+        if estado_slug == 'para_fabricacion':
+            minimo = _get_minimo_abono()
+            total_abono_actual = _sync_total_abono()
+            pertenece_jornada = venta.jornada_id is not None
+            if not pertenece_jornada and minimo > 0 and total_abono_actual < minimo:
+                if not motivo_sin_anticipo:
+                    return Response(
+                        {'detail': 'Indique el motivo por el cual se envia a fabricacion sin cumplir el abono minimo.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                updated = mark_estado_pedido(venta, estado_slug, motivo_sin_anticipo=motivo_sin_anticipo)
+            else:
+                updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        elif estado_slug == 'en_fabricacion':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        elif estado_slug == 'listo_entrega':
+            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
+                return Response({'detail': 'Debe marcar el pedido En fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+        else:
+            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
+
+        data = {
+            'estado': venta.estado_pedido.nombre if venta.estado_pedido else None,
+            'estado_slug': identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)),
+            'detalle': venta.estado_pedido_detalle,
+            'motivo_sin_anticipo': venta.motivo_sin_anticipo,
+            'actualizado': venta.estado_pedido_actualizado,
+            'updated': updated,
+        }
+
         return Response(data, status=status.HTTP_200_OK)
-
-
-class VentaEstadoPedidoMasivoView(APIView):
-    def post(self, request):
-        venta_ids = request.data.get('venta_ids') or []
-        estado_slug = (request.data.get('estado') or '').strip()
-        motivo_sin_anticipo = request.data.get('motivo_sin_anticipo') or ''
-
-        if not isinstance(venta_ids, list) or not venta_ids:
-            return Response({'detail': 'Debe indicar al menos una venta.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        ventas = list(Ventas.objects.filter(id__in=venta_ids).select_related('estado_pedido'))
-        if len(ventas) != len(set(venta_ids)):
-            encontrados = {venta.id for venta in ventas}
-            faltantes = [venta_id for venta_id in venta_ids if venta_id not in encontrados]
-            return Response(
-                {'detail': 'Algunas ventas no existen.', 'faltantes': faltantes},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        estados_actuales = {identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)) for venta in ventas}
-        if len(estados_actuales) > 1:
-            return Response(
-                {'detail': 'No puede mezclar ventas con diferentes estados de pedido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        resultados = []
-        errores = []
-        for venta in ventas:
-            try:
-                resultados.append(process_estado_pedido_transition(venta, estado_slug, motivo_sin_anticipo))
-            except ValueError as exc:
-                errores.append({'venta_id': venta.id, 'detail': str(exc)})
-
-        return Response(
-            {
-                'estado_objetivo': estado_slug,
-                'procesadas': len(resultados),
-                'errores': errores,
-                'ventas': resultados,
-            },
-            status=status.HTTP_200_OK if not errores else status.HTTP_207_MULTI_STATUS,
-        )
 
 class AbonoMasivoPreview(APIView):
     def get(self, request):
@@ -1539,3 +1482,5 @@ class Pedidos(APIView):
 
         # query = 
         # Se debe hacer que al hacer la mitad del pago se ponga la fecha de inicio de fabricacion y la fecha de entrega
+
+

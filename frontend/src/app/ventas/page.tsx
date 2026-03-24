@@ -1,11 +1,10 @@
-// "use client"; 
+﻿export const dynamic = 'force-dynamic';
+
 import React from 'react'
 import Link from "next/link";
 
 import VentasData from '@/components/ventas/VentasData';
 import { buildBackendUrl } from '@/utils/js/env';
-import DataTables from '@/components/Datatables';
-import { moneyformat } from '@/utils/js/utils';
 
 import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
@@ -21,58 +20,67 @@ type VentaRow = {
   [key: string]: unknown;
 };
 
+const currencyFormatter = new Intl.NumberFormat('es-CO', {
+  style: 'currency',
+  currency: 'COP',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+const formatMoney = (value: unknown) => currencyFormatter.format(Number(value || 0));
+
 async function getDataVentas() {
   const res = await fetch(buildBackendUrl("venta/"), {
-    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+    cache: "no-store",
   });
   if (!res.ok) {
-      throw new Error(`HTTP error! Status: ${res.status}`);
+    throw new Error(`HTTP error! Status: ${res.status}`);
   }
-  const data: VentaRow[] =  await res.json();
-  return data
+  const data: VentaRow[] = await res.json();
+  return data;
 }
 
 async function getGeneralData() {
   const res = await fetch(buildBackendUrl("ventas/"), {
-    cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
+    cache: "no-store",
   });
   if (!res.ok) {
-      throw new Error(`HTTP error! Status: ${res.status}`);
+    throw new Error(`HTTP error! Status: ${res.status}`);
   }
-  const data =  await res.json();
-  return data
+  return res.json();
 }
 
-
 async function page() {
-    let table = await getDataVentas();
+  let table: VentaRow[] = [];
+  let generalData = {};
 
-    const generalData = await getGeneralData()
-    // console.log(table)
-    // console.log(generalData)
+  try {
+    const [ventas, general] = await Promise.all([getDataVentas(), getGeneralData()]);
+    table = ventas;
+    generalData = general;
+  } catch (error) {
+    console.error('Error cargando /ventas:', error);
+  }
 
-    // Modificar la propiedad "precio" de cada objeto en la lista
-    table = table.map((item: VentaRow) => {
-      const precioRaw = item.precio ?? 0;
-      const totalAbonoRaw = item.totalAbono ?? 0;
-      const saldoRaw = item.saldo ?? 0;
-      return {
-        ...item,
-        precioRaw,
-        totalAbonoRaw,
-        saldoRaw,
-        precio: moneyformat(precioRaw),
-        totalAbono: moneyformat(totalAbonoRaw),
-        saldo: moneyformat(saldoRaw),
-        estadoPedidoId: item.estado_pedido_id ?? null,
-        estadoPedidoNombre: item.estado_pedido_nombre ?? '',
-        motivoSinAnticipo: item.motivo_sin_anticipo ?? '',
-        estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
-      };
-    });
+  const formattedTable = table.map((item: VentaRow) => {
+    const precioRaw = item.precio ?? 0;
+    const totalAbonoRaw = item.totalAbono ?? 0;
+    const saldoRaw = item.saldo ?? 0;
+    return {
+      ...item,
+      precioRaw,
+      totalAbonoRaw,
+      saldoRaw,
+      precio: formatMoney(precioRaw),
+      totalAbono: formatMoney(totalAbonoRaw),
+      saldo: formatMoney(saldoRaw),
+      estadoPedidoId: item.estado_pedido_id ?? null,
+      estadoPedidoNombre: item.estado_pedido_nombre ?? '',
+      motivoSinAnticipo: item.motivo_sin_anticipo ?? '',
+      estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
+    };
+  });
 
-    
-    
   return (
     <div className="page-shell">
       <div className="ventas-toolbar">
@@ -86,10 +94,11 @@ async function page() {
       </div>
 
       <div className="ventas-card">
-        <VentasData data={table} generalData={generalData} />
+        <VentasData data={formattedTable} generalData={generalData} />
       </div>
     </div>
   )
 }
 
 export default page
+

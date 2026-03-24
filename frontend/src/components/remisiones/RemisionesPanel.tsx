@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { callApi } from "@/utils/js/api";
@@ -7,6 +7,7 @@ import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
+import { swalconfirmation } from "@/utils/js/sweetAlertFunctions";
 
 type ArticuloCatalogo = {
   id: number;
@@ -66,7 +67,7 @@ type Props = {
   remisiones: Remision[];
   articulos: ArticuloCatalogo[];
   cliente?: ClienteInfo;
-  onCreated?: (payload: Remision) => void;
+  onCreated?: (payload: Remision) => void | Promise<void>;
 };
 
 const RemisionesPanel: React.FC<Props> = ({
@@ -153,7 +154,7 @@ const RemisionesPanel: React.FC<Props> = ({
             const nombre = item.articulo?.nombre ?? `Item ${item.itemVenta}`;
             return `${nombre} (${item.cantidad})`;
           })
-          .join(" · ") ?? "";
+          .join(" Â· ") ?? "";
 
       const totalItems = remision.items?.reduce((acc, item) => acc + (item.cantidad ?? 0), 0) ?? 0;
 
@@ -275,7 +276,7 @@ const RemisionesPanel: React.FC<Props> = ({
 
   const construirMensajeError = (respuesta: any): string => {
     if (!respuesta || typeof respuesta !== "object") {
-      return "No fue posible crear la remisión. Intenta nuevamente.";
+      return "No fue posible crear la remision. Intenta nuevamente.";
     }
 
     const mensajes: string[] = [];
@@ -297,7 +298,7 @@ const RemisionesPanel: React.FC<Props> = ({
 
     return mensajes.length > 0
       ? mensajes.join(" | ")
-      : "No fue posible crear la remisión. Revisa la información ingresada.";
+      : "No fue posible crear la remision. Revisa la informacion ingresada.";
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -313,7 +314,7 @@ const RemisionesPanel: React.FC<Props> = ({
       }));
 
     if (itemsSeleccionados.length === 0) {
-      setError("Selecciona al menos un artículo y una cantidad para remisionar.");
+      setError("Selecciona al menos un articulo y una cantidad para remisionar.");
       return;
     }
 
@@ -343,13 +344,14 @@ const RemisionesPanel: React.FC<Props> = ({
       setLocalRemisiones((prev) => [data, ...prev]);
       actualizarItemsDesdeRemision(data);
       limpiarFormulario();
-      setSuccess(`Remisión #${data.id} generada correctamente.`);
+      setSuccess(`Remision #${data.id} generada correctamente.`);
+      await swalconfirmation(`Remisión #${data.id} generada correctamente.`);
 
       if (onCreated) {
-        onCreated(data);
+        await onCreated(data);
       }
     } catch (err: any) {
-      setError(err?.message || "No fue posible crear la remisión.");
+      setError(err?.message || "No fue posible crear la remision.");
     } finally {
       setLoading(false);
     }
@@ -381,7 +383,7 @@ const RemisionesPanel: React.FC<Props> = ({
           <div className="row g-3 mb-3">
             <div className="col-sm-6 col-md-4">
               <label className="form-label" htmlFor="fechaRemision">
-                Fecha de remisión
+                Fecha de remision
               </label>
               <input
                 id="fechaRemision"
@@ -400,7 +402,7 @@ const RemisionesPanel: React.FC<Props> = ({
                 id="observacionRemision"
                 type="text"
                 className="form-control"
-                placeholder="Notas sobre esta remisión"
+                placeholder="Notas sobre esta remision"
                 value={observacion}
                 onChange={(event) => setObservacion(event.target.value)}
               />
@@ -411,7 +413,7 @@ const RemisionesPanel: React.FC<Props> = ({
             <table className="table align-middle">
               <thead>
                 <tr>
-                  <th>Artículo</th>
+                  <th>Articulo</th>
                   <th className="text-center">Factura</th>
                   <th className="text-center">Despachado</th>
                   <th className="text-center">Pendiente</th>
@@ -476,7 +478,7 @@ const RemisionesPanel: React.FC<Props> = ({
               className="btn btn-success"
               disabled={loading || totalSeleccionado === 0}
             >
-              {loading ? "Creando..." : "Generar remisión"}
+              {loading ? "Creando..." : "Generar remision"}
             </button>
           </div>
         </form>
@@ -505,7 +507,7 @@ const RemisionesPanel: React.FC<Props> = ({
           >
             <Column expander style={{ width: "3rem" }} />
             <Column
-              header="Remisión"
+              header="Remision"
               body={(row: RemisionTableRow) => <span className="fw-semibold">#{row.id}</span>}
               style={{ width: "8rem" }}
             />
@@ -518,19 +520,19 @@ const RemisionesPanel: React.FC<Props> = ({
             <Column field="creadoLegible" header="Creada" style={{ minWidth: "10rem" }} />
             <Column
               field="totalItems"
-              header="Ítems"
+              header="Items"
               body={(row: RemisionTableRow) => <span className="text-center d-block">{row.totalItems}</span>}
               style={{ width: "6rem" }}
             />
             <Column
-              header="Artículos"
+              header="Articulos"
               body={(row: RemisionTableRow) =>
-                row.articulosResumen ? row.articulosResumen : <span className="text-muted">Sin artículos</span>
+                row.articulosResumen ? row.articulosResumen : <span className="text-muted">Sin arti­culos</span>
               }
               style={{ minWidth: "16rem" }}
             />
             <Column
-              header="Observación"
+              header="Observacion"
               body={(row: RemisionTableRow) =>
                 row.observacion ? row.observacion : <span className="text-muted">Sin nota</span>
               }
@@ -544,3 +546,6 @@ const RemisionesPanel: React.FC<Props> = ({
 };
 
 export default RemisionesPanel;
+
+
+

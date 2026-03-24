@@ -29,7 +29,6 @@ urlpatterns = [
     
     path('venta/', views.Venta.as_view(), name="venta"),
     path('venta/<int:id>', views.Venta.as_view(), name="ventanum"),
-    path('venta/estado-pedido/masivo/', views.VentaEstadoPedidoMasivoView.as_view(), name="venta-estado-pedido-masivo"),
     path('venta/<int:venta_id>/estado-pedido/', views.VentaEstadoPedidoView.as_view(), name="venta-estado-pedido"),
     
     path('abono/', views.Abono.as_view(), name="abono"),
