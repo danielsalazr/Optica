@@ -788,7 +788,7 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            Remisiones Â· Venta #{remisionRowContext?.id ?? '--'}
+            Remisiones Â- Venta #{remisionRowContext?.id ?? '--'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -829,7 +829,7 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            FÃ³rmula Â· Venta #{formulaVentaId ?? '--'}
+            FÃ³rmula Â- Venta #{formulaVentaId ?? '--'}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>

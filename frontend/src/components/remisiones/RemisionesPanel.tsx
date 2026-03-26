@@ -154,7 +154,7 @@ const RemisionesPanel: React.FC<Props> = ({
             const nombre = item.articulo?.nombre ?? `Item ${item.itemVenta}`;
             return `${nombre} (${item.cantidad})`;
           })
-          .join(" Â· ") ?? "";
+          .join(" Â- ") ?? "";
 
       const totalItems = remision.items?.reduce((acc, item) => acc + (item.cantidad ?? 0), 0) ?? 0;
 

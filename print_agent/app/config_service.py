@@ -15,6 +15,11 @@ DEFAULT_CONFIG = {
     "printer.recibo": "",
     "printer.abono": "",
     "printer.pedido": "",
+    "company.name": "",
+    "company.document": "",
+    "company.phone": "",
+    "company.address": "",
+    "company.footer": "",
 }
 
 
@@ -65,12 +70,31 @@ def set_printer_mapping(document_type: str, printer_name: str) -> None:
     set_value(f"printer.{document_type}", printer_name)
 
 
+def get_company_config() -> dict[str, str]:
+    return {
+        "name": get_value("company.name"),
+        "document": get_value("company.document"),
+        "phone": get_value("company.phone"),
+        "address": get_value("company.address"),
+        "footer": get_value("company.footer"),
+    }
+
+
+def set_company_config(data: dict[str, str]) -> None:
+    set_value("company.name", str(data.get("name", "")))
+    set_value("company.document", str(data.get("document", "")))
+    set_value("company.phone", str(data.get("phone", "")))
+    set_value("company.address", str(data.get("address", "")))
+    set_value("company.footer", str(data.get("footer", "")))
+
+
 def build_runtime_config() -> dict[str, object]:
     return {
         "host": get_value("server.host", DEFAULT_CONFIG["server.host"]),
         "port": int(get_value("server.port", DEFAULT_CONFIG["server.port"])),
         "api_token": get_value("server.api_token"),
         "printers": get_printer_mapping(),
+        "company": get_company_config(),
     }
 
 

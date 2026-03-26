@@ -1,10 +1,10 @@
-# Optica Print Agent
+﻿# Optica Print Agent
 
-Agente local para Windows que expone una API REST en `127.0.0.1:7719`, detecta impresoras, guarda configuración local y procesa trabajos de impresión.
+Agente local para Windows que expone una API REST en `127.0.0.1:7719`, detecta impresoras, guarda configuraciÃ³n local y procesa trabajos de impresiÃ³n.
 
 ## Swagger / OpenAPI
 
-Cuando el servicio está arriba, FastAPI publica automáticamente:
+Cuando el servicio estÃ¡ arriba, FastAPI publica automÃ¡ticamente:
 
 - Swagger UI: `http://127.0.0.1:7719/docs`
 - ReDoc: `http://127.0.0.1:7719/redoc`
@@ -26,11 +26,12 @@ python export_openapi.py
 - `POST /printers/test`
 - `GET /config`
 - `PUT /config/printers`
+- `PUT /config/company`
 - `POST /jobs/print`
 - `GET /jobs`
 - `GET /jobs/{id}`
 
-## Instalación de dependencias
+## InstalaciÃ³n de dependencias
 
 Si tu Python no trae `pip`, primero:
 
@@ -39,21 +40,21 @@ python -m ensurepip --upgrade
 python -m pip install -r print_agent\requirements.txt
 ```
 
-## Ejecución en desarrollo
+## EjecuciÃ³n en desarrollo
 
 ```powershell
 cd print_agent
 python run.py
 ```
 
-También puedes usar:
+TambiÃ©n puedes usar:
 
 ```powershell
 cd print_agent
 uvicorn app.main:app --host 127.0.0.1 --port 7719
 ```
 
-## Prueba rápida
+## Prueba rÃ¡pida
 
 Listar impresoras:
 
@@ -81,6 +82,22 @@ Invoke-RestMethod `
   -Uri http://127.0.0.1:7719/config/printers `
   -ContentType "application/json" `
   -Body '{"document_type":"constancia","printer_name":"EPSON TM-T20II Receipt"}'
+```
+
+Guardar informacion de la empresa para el encabezado:
+
+```powershell
+Invoke-RestMethod `
+  -Method Put `
+  -Uri http://127.0.0.1:7719/config/company `
+  -ContentType "application/json" `
+  -Body '{
+    "name":"Bienestar Optica",
+    "document":"NIT 900123456-7",
+    "phone":"3001234567",
+    "address":"Calle 10 # 20-30",
+    "footer":"Gracias por su compra"
+  }'
 ```
 
 Enviar constancia:
@@ -127,7 +144,7 @@ Invoke-RestMethod `
           "valor_total":300000
         },
         {
-          "descripcion":"Estuche",
+          "descripcion":"Estuche premium",
           "cantidad":1,
           "valor_unitario":50000,
           "valor_total":50000
@@ -136,6 +153,18 @@ Invoke-RestMethod `
       "valor_venta":350000,
       "abonado":150000,
       "saldo":200000,
+      "abonos":[
+        {
+          "medio_pago":"Efectivo",
+          "fecha":"2026-03-18",
+          "valor":100000
+        },
+        {
+          "medio_pago":"Transferencia",
+          "fecha":"2026-03-19",
+          "valor":50000
+        }
+      ],
       "observaciones":"Entrega parcial"
     }
   }'
@@ -145,15 +174,22 @@ Invoke-RestMethod `
 
 Este MVP ya hace:
 
-- detección de impresoras Windows
-- configuración persistente en SQLite
-- cola básica de trabajos
-- impresión de `constancia`
-- impresión de `remision` en formato texto
+- detecciÃ³n de impresoras Windows
+- configuraciÃ³n persistente en SQLite
+- cola bÃ¡sica de trabajos
+- impresiÃ³n de `constancia`
+- impresiÃ³n de `remision` en formato texto
 
 Pendiente para la siguiente etapa:
 
 - PDFs reales para facturas
-- reintentos asíncronos
+- reintentos asÃ­ncronos
 - empaquetado con PyInstaller
 - servicio Windows completo con WinSW incluido
+
+
+Notas del ticket de remision:
+
+- La fecha de impresion se genera automaticamente.
+- El total ahora se imprime como `Abonos` en lugar de `Abonado`.
+- El encabezado usa la configuracion guardada en `PUT /config/company`.

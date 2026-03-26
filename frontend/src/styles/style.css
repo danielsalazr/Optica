@@ -846,3 +846,13 @@ body {
     width: 100%;
   }
 }
+
+.page-shell.page-shell-print-agent {
+  width: min(1120px, 100%);
+}
+
+@media (max-width: 992px) {
+  .page-shell.page-shell-print-agent {
+    width: min(100%, 980px);
+  }
+}

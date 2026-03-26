@@ -1,12 +1,14 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import require_token
 from .config_service import (
     build_runtime_config,
     get_printer_mapping,
     seed_defaults,
+    set_company_config,
     set_printer_mapping,
 )
 from .db import init_db
@@ -20,6 +22,8 @@ from .printer_service import (
 )
 from .schemas import (
     AgentConfigResponse,
+    CompanyConfig,
+    CompanyConfigRequest,
     PrintJobRequest,
     PrintJobResponse,
     PrinterInfo,
@@ -47,6 +51,14 @@ app = FastAPI(
         {"name": "config", "description": "Configuracion persistente del agente."},
         {"name": "jobs", "description": "Creacion y consulta de trabajos de impresion."},
     ],
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -124,6 +136,7 @@ def get_config() -> AgentConfigResponse:
         host=str(config["host"]),
         port=int(config["port"]),
         printers=dict(config["printers"]),
+        company=CompanyConfig(**dict(config["company"])),
     )
 
 
@@ -139,6 +152,21 @@ def set_default_printer(payload: PrinterSelectionRequest) -> dict[str, str]:
         "status": "saved",
         "document_type": payload.document_type,
         "printer_name": payload.printer_name,
+    }
+
+
+@app.put(
+    "/config/company",
+    dependencies=[Depends(require_token)],
+    tags=["config"],
+    summary="Guardar informacion de la empresa para encabezados",
+)
+def set_company(payload: CompanyConfigRequest) -> dict[str, object]:
+    data = payload.model_dump()
+    set_company_config(data)
+    return {
+        "status": "saved",
+        "company": data,
     }
 
 

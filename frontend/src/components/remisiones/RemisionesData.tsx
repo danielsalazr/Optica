@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useMemo, useState, useCallback } from "react";
 import { DataTable, DataTableFilterMeta } from "primereact/datatable";
@@ -7,6 +7,8 @@ import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
+import { buildPrintAgentUrl } from "@/utils/js/env";
+import { swalErr, swalconfirmation } from "@/utils/js/sweetAlertFunctions";
 import { callApi, IP_URL } from "@/utils/js/api";
 import { Dialog } from "primereact/dialog";
 
@@ -102,6 +104,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [formulaOpen, setFormulaOpen] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [formulaLoading, setFormulaLoading] = useState(false);
   const [formulaError, setFormulaError] = useState<string | null>(null);
   const [formulaImages, setFormulaImages] = useState<string[]>([]);
@@ -125,7 +128,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     try {
       const req = await callApi(`venta/${selected.venta}`);
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || "No fue posible obtener la fórmula.");
+        throw new Error(req.data?.detail || "No fue posible obtener la fÃ³rmula.");
       }
       const data = req.data || {};
       const candidates: string[] = [];
@@ -142,15 +145,86 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         .filter(Boolean) as string[];
 
       if (!resolved.length) {
-        setFormulaError("No hay fórmulas asociadas a esta venta.");
+        setFormulaError("No hay fÃ³rmulas asociadas a esta venta.");
       }
       setFormulaImages(resolved);
     } catch (error) {
-      setFormulaError(error instanceof Error ? error.message : "Error al cargar la fórmula.");
+      setFormulaError(error instanceof Error ? error.message : "Error al cargar la fÃ³rmula.");
     } finally {
       setFormulaLoading(false);
     }
   }, [selected]);
+
+  const handlePrintRemision = useCallback(async () => {
+    if (!selected) return;
+
+    setPrinting(true);
+    try {
+      const token = typeof window !== "undefined" ? window.localStorage.getItem("optica_print_agent_token") || "" : "";
+      const agentHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token.trim()) {
+        agentHeaders.Authorization = `Bearer ${token.trim()}`;
+      }
+
+      const ventaReq = await callApi(`venta/${selected.venta}`);
+      if (!ventaReq.res.ok) {
+        throw new Error(ventaReq.data?.detail || "No fue posible obtener el detalle de la venta para imprimir.");
+      }
+
+      const ventaData = ventaReq.data || {};
+      const abonos = Array.isArray(selected.abonos) ? selected.abonos : [];
+      const abonado = ventaData.totalAbonoRaw ?? ventaData.totalAbono ?? abonos.reduce((acc: number, abono: Abono) => acc + Number(abono.precio || 0), 0);
+      const valorVenta = ventaData.precioRaw ?? ventaData.precio ?? 0;
+      const saldo = ventaData.saldoRaw ?? ventaData.saldo ?? Math.max(Number(valorVenta || 0) - Number(abonado || 0), 0);
+
+      const payload = {
+        document_type: "remision",
+        format: "pos",
+        copies: 1,
+        data: {
+          numero: `REM-${selected.id}` ,
+          fecha: selected.fecha,
+          cliente: selected.clienteNombre,
+          items: (selected.items || []).map((item) => ({
+            descripcion: item.articulo?.nombre ?? `Item ${item.itemVenta}` ,
+            cantidad: item.cantidad,
+            valor_unitario: item.precioUnitario ?? 0,
+            valor_total: item.totalRemisionado ?? ((item.precioUnitario ?? 0) * (item.cantidad ?? 0)),
+          })),
+          valor_venta: valorVenta,
+          abonado: abonado,
+          saldo: saldo,
+          abonos: abonos.map((abono) => ({
+            medio_pago: abono.medioPagoNombre ?? String(abono.medioDePago ?? "N/A"),
+            fecha: abono.fecha ?? "",
+            valor: abono.precio ?? 0,
+          })),
+          observaciones: selected.observacion ?? "",
+        },
+      };
+
+      const response = await fetch(buildPrintAgentUrl("jobs/print"), {
+        method: "POST",
+        headers: agentHeaders,
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(responseData?.detail || "No fue posible enviar la remisión al servicio de impresión.");
+      }
+
+      await swalconfirmation(`Remisión #${selected.id} enviada a impresión.`);
+    } catch (error) {
+      console.error(error);
+      await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remisión.");
+    } finally {
+      setPrinting(false);
+    }
+  }, [selected]);
+
 
   const preparedData = useMemo<PreparedRemisionRow[]>(() => {
     return (data ?? []).map((remision) => {
@@ -188,7 +262,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
-      { field: "id", header: "Remisión", sortable: true },
+      { field: "id", header: "RemisiÃ³n", sortable: true },
       { field: "venta", header: "Venta", sortable: true },
       { field: "clienteNombre", header: "Cliente", sortable: true },
       { field: "clienteCedula", header: "Documento" },
@@ -197,7 +271,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
       { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
       { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center" },
-      { field: "totalRemision", header: "Total remisión", bodyClassName: "text-end" },
+      { field: "totalRemision", header: "Total remisiÃ³n", bodyClassName: "text-end" },
     ],
     []
   );
@@ -228,7 +302,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         <div className="d-flex flex-column">
           {/* <span className="fw-semibold">Listado de remisiones</span> */}
           <span className="text-muted small">
-            Consulta rápida por cliente, fecha o documento.
+            Consulta rÃ¡pida por cliente, fecha o documento.
           </span>
         </div>
         <span className="p-input-icon-left remisiones-search">
@@ -472,34 +546,42 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         <div className="ventas-card ">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
-              <h4 className="mb-1">Detalle remisión #{selected.id}</h4>
+              <h4 className="mb-1">Detalle remisiÃ³n #{selected.id}</h4>
               <div className="text-muted small">
-                Venta #{selected.venta} · {selected.fechaFormateada}
+                Venta #{selected.venta} Â- {selected.fechaFormateada}
               </div>
               {selected.observacion && (
                 <div className="text-muted small mt-1">
-                  Observación: {selected.observacion}
+                  ObservaciÃ³n: {selected.observacion}
                 </div>
               )}
             </div>
             <div className="text-end">
               <div className="fw-semibold">Cliente</div>
               <div className="text-muted small">
-                {selected.clienteNombre} · {selected.clienteCedula}
+                {selected.clienteNombre} Â- {selected.clienteCedula}
               </div>
               <div className="mt-2">
-                <div className="text-muted small">Total remisión</div>
+                <div className="text-muted small">Total remisiÃ³n</div>
                 <div className="fw-semibold">
                   {moneyformat(totalRemisionSeleccionada)}
                 </div>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 d-flex gap-2 justify-content-end flex-wrap">
                 <button
                   type="button"
                   className="btn btn-sm btn-outline-primary"
                   onClick={handleFormulaModal}
                 >
-                  Ver fórmula
+                  Ver f?rmula
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={handlePrintRemision}
+                  disabled={printing}
+                >
+                  {printing ? "Imprimiendo..." : "Imprimir ticket"}
                 </button>
               </div>
             </div>
@@ -509,7 +591,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             <table className="table table-sm align-middle mb-0">
               <thead>
                 <tr>
-                  <th>Artículo</th>
+                  <th>ArtÃ­culo</th>
                   <th className="text-center">Remitido</th>
                   <th className="text-center">Precio</th>
                   <th className="text-center">Descuento</th>
@@ -554,7 +636,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     <tr>
                       <th>Fecha</th>
                       <th>Medio de pago</th>
-                      <th>Descripción</th>
+                      <th>DescripciÃ³n</th>
                       <th className="text-end">Valor</th>
                     </tr>
                   </thead>
@@ -562,8 +644,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     {(selected.abonos ?? []).map((abono) => (
                       <tr key={abono.id}>
                         <td>{formatDate(abono.fecha)}</td>
-                        <td>{abono.medioPagoNombre ?? abono.medioDePago ?? "—"}</td>
-                        <td>{abono.descripcion ?? "—"}</td>
+                        <td>{abono.medioPagoNombre ?? abono.medioDePago ?? "â€”"}</td>
+                        <td>{abono.descripcion ?? "â€”"}</td>
                         <td className="text-end fw-semibold">
                           {moneyformat(abono.precio ?? 0)}
                         </td>
@@ -589,9 +671,9 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               </div>
             )}
             <div className="mt-3 text-muted small">
-              <div>Condición de pago: <strong>{selected.condicionPago ?? "—"}</strong></div>
-              <div>Compromiso de pago: <strong>{selected.compromisoPago ?? "—"}</strong></div>
-              <div>Número de cuotas: <strong>{selected.numeroCuotas ?? "—"}</strong></div>
+              <div>CondiciÃ³n de pago: <strong>{selected.condicionPago ?? "â€”"}</strong></div>
+              <div>Compromiso de pago: <strong>{selected.compromisoPago ?? "â€”"}</strong></div>
+              <div>NÃºmero de cuotas: <strong>{selected.numeroCuotas ?? "â€”"}</strong></div>
               <div>Valor por cuota: <strong>{moneyformat(selected.valorCuota ?? 0)}</strong></div>
               <div>Cuotas pagadas: <strong>{selected.cuotasPagadas ?? 0}</strong></div>
             </div>
@@ -601,13 +683,13 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       )}
 
       <Dialog
-        header={`Fórmula · Venta #${selected?.venta ?? "--"}`}
+        header={`FÃ³rmula Â- Venta #${selected?.venta ?? "--"}`}
         visible={formulaOpen}
         style={{ width: "70vw", maxWidth: "900px" }}
         onHide={() => setFormulaOpen(false)}
       >
         {formulaLoading && (
-          <div className="py-3 text-center text-muted">Cargando fórmula…</div>
+          <div className="py-3 text-center text-muted">Cargando fÃ³rmulaâ€¦</div>
         )}
         {formulaError && !formulaLoading && (
           <div className="text-danger mb-2">{formulaError}</div>
@@ -618,7 +700,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               <div key={`${src}-${idx}`} className="border rounded p-2 bg-light">
                 <img
                   src={src}
-                  alt={`Fórmula ${idx + 1}`}
+                  alt={`FÃ³rmula ${idx + 1}`}
                   style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain" }}
                 />
               </div>
@@ -631,3 +713,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 };
 
 export default RemisionesData;
+
+
+

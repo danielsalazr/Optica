@@ -31,11 +31,28 @@ class PrinterSelectionRequest(BaseModel):
     printer_name: str = Field(..., examples=["EPSON TM-T20II Receipt"])
 
 
+class CompanyConfig(BaseModel):
+    name: str = ""
+    document: str = ""
+    phone: str = ""
+    address: str = ""
+    footer: str = ""
+
+
+class CompanyConfigRequest(BaseModel):
+    name: str = ""
+    document: str = ""
+    phone: str = ""
+    address: str = ""
+    footer: str = ""
+
+
 class AgentConfigResponse(BaseModel):
     api_token_configured: bool
     host: str
     port: int
     printers: dict[str, str]
+    company: CompanyConfig
 
 
 class PrintJobRequest(BaseModel):

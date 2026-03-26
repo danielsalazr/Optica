@@ -1,3 +1,25 @@
-#collapsible-nav-dropdown{
-  color: white;
+﻿header.text-bg-dark .nav-link,
+header.text-bg-dark .nav-link.dropdown-toggle,
+header.text-bg-dark .nav-link.dropdown-toggle.btn,
+header.text-bg-dark .dropdown-toggle,
+header.text-bg-dark .show > .nav-link.dropdown-toggle {
+  color: #fff !important;
+}
+
+header.text-bg-dark .nav-link:hover,
+header.text-bg-dark .nav-link:focus,
+header.text-bg-dark .nav-link.dropdown-toggle:hover,
+header.text-bg-dark .nav-link.dropdown-toggle:focus,
+header.text-bg-dark .nav-link.dropdown-toggle.show {
+  color: #fff !important;
+}
+
+header.text-bg-dark .dropdown-menu .dropdown-item {
+  color: #fff !important;
+}
+
+header.text-bg-dark .dropdown-menu .dropdown-item:hover,
+header.text-bg-dark .dropdown-menu .dropdown-item:focus {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.12);
 }

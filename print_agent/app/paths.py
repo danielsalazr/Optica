@@ -1,10 +1,25 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 
 APP_NAME = "OpticaPrintAgent"
+
+
+def _local_runtime_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "runtime"
+
+
+def _is_writable(directory: Path) -> bool:
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=directory, delete=True):
+            pass
+        return True
+    except OSError:
+        return False
 
 
 def get_base_dir() -> Path:
@@ -14,9 +29,11 @@ def get_base_dir() -> Path:
 
     program_data = os.getenv("PROGRAMDATA")
     if program_data:
-        return Path(program_data) / APP_NAME
+        candidate = Path(program_data) / APP_NAME
+        if _is_writable(candidate):
+            return candidate
 
-    return Path(__file__).resolve().parents[1] / "runtime"
+    return _local_runtime_dir()
 
 
 BASE_DIR = get_base_dir()
