@@ -6,7 +6,8 @@ from .db import get_connection
 
 
 DEFAULT_CONFIG = {
-    "server.host": "127.0.0.1",
+    # "server.host": "127.0.0.1",
+    "server.host": "0.0.0.0",
     "server.port": "7719",
     "server.api_token": "",
     "printer.constancia": "",

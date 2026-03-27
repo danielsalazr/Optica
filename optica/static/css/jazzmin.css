@@ -1,5 +1,15 @@
-.login-logo > h1 >picture >img {
-    width: 400px;
-    height: auto;
-    margin-bottom: 24px;
+.login-logo img,
+.login-logo .logo-light,
+.login-logo .logo-dark {
+    width: 320px !important;
+    max-width: 70% !important;
+    height: auto !important;
+    max-height: 180px !important;
+    object-fit: contain;
+    margin-bottom: 16px;
+}
+
+.brand-image {
+    max-height: 32px !important;
+    width: auto !important;
 }

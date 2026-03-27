@@ -56,7 +56,7 @@ INSTALLED_APPS = [
 
 JAZZMIN_SETTINGS = {
     'site_title': 'Bienestar Optica',
-    'site_header': '<img src="/images/BIENESTAR OPTICA.png"  height="30">',  # Logo para la barra de navegación
+    'site_header': 'Bienestar Optica',
     'site_logo': '/images/BIENESTAR OPTICA.png',
     'site_brand_small': False,
     'custom_css': 'css/jazzmin.css',  # Mantén solo esta línea
@@ -203,12 +203,17 @@ CORS_ALLOWED_ORIGINS = [
     'http://192.168.130.22:3000', 'http://127.0.0.1:3000', 'http://localhost:3000',
     'http://192.168.130.22:3001', 'http://127.0.0.1:3001', 'http://localhost:3001',
     'http://127.0.0.1',
+    'https://api.bienestaroptica.com', 'https://console.bienestaroptica.com',
+    'https://bienestaroptica.com'
     
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000','http://192.168.130.22:3000',
-    'http://localhost:3001','http://192.168.130.22:3001'
+    'http://localhost:3001','http://192.168.130.22:3001',
+    'https://api.bienestaroptica.com', 'https://console.bienestaroptica.com',
+    'https://bienestaroptica.com'
+    
 ]
 
 
