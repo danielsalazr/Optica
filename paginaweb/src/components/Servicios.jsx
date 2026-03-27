@@ -1,9 +1,11 @@
 import React from "react";
 
 // Imagenes
-import examen from "@brigadas/examen.jpeg";
+// import examen from "@brigadas/examen.jpeg";
+import examen from "@brigadas/IMG_7113.JPG";
 import brigada from "@brigadas/brigada.jpg";
-import lentes from "@brigadas/lentes.jpg";
+// import lentes from "@brigadas/lentes.jpg";
+import lentes from "@brigadas/IMG_6966.png";
 import gotas_para_ojos from "@brigadas/gotas_para_ojos.jpg";
 import lentes_industriales from "@brigadas/lentes_industriales.png";
 import lentes_de_contacto from "@brigadas/lentes_de_contacto.png";

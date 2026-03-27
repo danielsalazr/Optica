@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin =  require('mini-css-extract-plugin');
+const Dotenv = require('dotenv-webpack');
 
 
 module.exports = {
@@ -64,6 +65,7 @@ module.exports = {
         ]
     },
     plugins:[
+        new Dotenv(),
         new HtmlWebpackPlugin({
             template: './public/index.html',
             filename: './index.html'
@@ -80,6 +82,7 @@ module.exports = {
         port: 3080,
         open: true,
         hot: false, // optional, but you must not set both hot and liveReload to true
-        liveReload: true
+        liveReload: true,
+        historyApiFallback: true,
     }
 }

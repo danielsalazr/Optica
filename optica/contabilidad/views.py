@@ -18,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 # from .serializers import InventorySerializer
 
@@ -33,7 +33,9 @@ from .serializers import (
     RemisionSerializer,
     RemisionItemSerializer,
     JornadaSerializer,
- )
+    CitaAgendaSerializer,
+    CitaAgendaRegistroSerializer,
+)
 
 import math
 
@@ -53,6 +55,8 @@ from .models import (
     EstadoPedidoVenta,
     Jornada,
     Vendedor,
+    CitaAgenda,
+    CitaAgendaRegistro,
 )
 from usuarios.models import Clientes, Empresa
 
@@ -67,7 +71,9 @@ from db.request import (
 from collections import defaultdict
 import json
 import os
-from datetime import datetime
+from datetime import datetime, date
+from django.utils import timezone
+from django.conf import settings
 from rich.console import Console
 
 from .utils_estado_pedido import (
@@ -884,6 +890,44 @@ class Venta(APIView):
 
 
 
+class UpcomingAppointmentsView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        if getattr(settings, "USE_TZ", False):
+            today = timezone.localdate()
+        else:
+            today = date.today()
+        citas = CitaAgenda.objects.filter(
+            fecha__gte=today,
+            is_active=True,
+        ).order_by('fecha', 'hora_inicio')
+        serializer = CitaAgendaSerializer(
+            citas,
+            many=True,
+            context={'request': request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AppointmentRegistrationView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = CitaAgendaRegistroSerializer(data=request.data)
+        if serializer.is_valid():
+            registro = serializer.save()
+            return Response(
+                {
+                    "message": "Registro recibido",
+                    "registro_id": registro.id,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class Abono(APIView):
     def _actualizar_totales_venta(self, venta):
         total_abono = (
@@ -1483,5 +1527,3 @@ class Pedidos(APIView):
 
         # query = 
         # Se debe hacer que al hacer la mitad del pago se ponga la fecha de inicio de fabricacion y la fecha de entrega
-
-

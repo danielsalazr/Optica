@@ -18,6 +18,8 @@ from .models import (
     RemisionItem,
     Jornada,
     Vendedor,
+    CitaAgenda,
+    CitaAgendaRegistro,
 )
 from django.forms import NumberInput
 from django.utils.html import mark_safe
@@ -292,6 +294,63 @@ class JornadaAdmin(admin.ModelAdmin):
     list_display = ('id', 'empresa', 'sucursal', 'fecha', 'estado', 'responsable')
     list_filter = ('estado', 'fecha', 'empresa', 'sucursal')
     search_fields = ('empresa__nombre', 'sucursal')
+@admin.register(CitaAgenda)
+class CitaAgendaAdmin(admin.ModelAdmin):
+    list_display = ("title", "fecha", "time_window", "is_active")
+    list_filter = ("is_active", "fecha")
+    search_fields = ("title", "nota")
+    readonly_fields = ("hero_preview", "hero_image", "created_at", "updated_at")
+    fieldsets = (
+        (
+            "Información de la cita",
+            {
+                "fields": (
+                    "title",
+                    "nota",
+                    ("fecha", "hora_inicio", "hora_fin"),
+                    "is_active",
+                )
+            },
+        ),
+        (
+            "Imagen de presentación",
+            {
+                "fields": (
+                    "background_image",
+                    "hero_preview",
+                    "hero_image",
+                )
+            },
+        ),
+    )
+
+    def time_window(self, obj):
+        return obj.time_range
+
+    time_window.short_description = "Horario"
+
+    def hero_preview(self, obj):
+        if obj.hero_image:
+            return mark_safe(
+                f'<img src="{obj.hero_image.url}" style="max-width:320px;border-radius:18px;" />'
+            )
+        return "Se generará automáticamente al guardar."
+
+    hero_preview.short_description = "Vista previa"
+
+
+@admin.register(CitaAgendaRegistro)
+class CitaAgendaRegistroAdmin(admin.ModelAdmin):
+    list_display = (
+        "nombre_completo",
+        "identificacion",
+        "celular",
+        "cita",
+        "hora_confirmada",
+        "created_at",
+    )
+    list_filter = ("cita", "created_at")
+    search_fields = ("nombre_completo", "identificacion", "celular")
 # @admin.register(MediosDePago)
 # class MediosDePagoAdmin(admin.ModelAdmin):
 #     list_display = (

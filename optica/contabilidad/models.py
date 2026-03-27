@@ -3,10 +3,39 @@ from django.utils import timezone
 from usuarios.models import Clientes, Empresa
 from django.conf import settings
 from django.db.models.deletion import DO_NOTHING
-from PIL import Image
+from django.conf import settings
+from django.core.files.base import ContentFile
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+import os
 
 from rich.console import Console
 console = Console()
+
+MONTHS_ES = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+]
+
+WEEKDAYS_ES = [
+    "lunes",
+    "martes",
+    "miércoles",
+    "jueves",
+    "viernes",
+    "sábado",
+    "domingo",
+]
 
 class MediosDePago(models.Model):
     id = models.AutoField(primary_key=True)
@@ -544,3 +573,155 @@ class ItemsPEdidoVenta(models.Model):
     def __str__(self):
         return f"{self.articulo}"
     
+
+RESAMPLE_STRATEGY = Image.Resampling.LANCZOS if hasattr(Image, "Resampling") else Image.LANCZOS
+
+
+class CitaAgenda(models.Model):
+    title = models.CharField(max_length=160, default="Jornada de bienestar")
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+    nota = models.CharField(max_length=255, blank=True, default="")
+    background_image = models.ImageField(upload_to="citas/backgrounds/", blank=True, null=True)
+    hero_image = models.ImageField(
+        upload_to="citas/generated/",
+        blank=True,
+        null=True,
+        editable=False,
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["fecha", "hora_inicio"]
+        verbose_name = "Cita programada"
+        verbose_name_plural = "Citas programadas"
+
+    def __str__(self):
+        return f"{self.title} · {self.display_date}"
+
+    @property
+    def time_range(self):
+        return f"{self.hora_inicio.strftime('%H:%M')} - {self.hora_fin.strftime('%H:%M')}"
+
+    @property
+    def display_date(self):
+        weekday = WEEKDAYS_ES[self.fecha.weekday()].capitalize()
+        month = MONTHS_ES[self.fecha.month - 1]
+        return f"{weekday} {self.fecha.day:02d} de {month.capitalize()}"
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        bypass_overlay = update_fields and set(update_fields) == {"hero_image"}
+        if bypass_overlay:
+            return super().save(*args, **kwargs)
+
+        should_refresh = self.pk is None
+        if self.pk:
+            previous = type(self).objects.filter(pk=self.pk).first()
+            if previous:
+                should_refresh = any(
+                    [
+                        previous.fecha != self.fecha,
+                        previous.hora_inicio != self.hora_inicio,
+                        previous.hora_fin != self.hora_fin,
+                        previous.nota != self.nota,
+                        previous.background_image != self.background_image,
+                        previous.is_active != self.is_active,
+                    ]
+                )
+
+        result = super().save(*args, **kwargs)
+        if should_refresh:
+            self._generate_overlay_image()
+        return result
+
+    def ensure_overlay_image(self):
+        if not self.hero_image or not self.hero_image.storage.exists(self.hero_image.name):
+            self._generate_overlay_image()
+        return self.hero_image
+
+    def _generate_overlay_image(self):
+        if self.background_image and self.background_image.name:
+            try:
+                extension = os.path.splitext(self.background_image.name)[1].lower() or ".jpg"
+                valid_ext = extension if extension in {".jpg", ".jpeg", ".png", ".webp"} else ".jpg"
+                with self.background_image.open("rb") as source_file:
+                    content = source_file.read()
+                file_name = f"citas/generated/cita_{self.pk}{valid_ext}"
+                if self.hero_image and self.hero_image.name and self.hero_image.storage.exists(self.hero_image.name):
+                    self.hero_image.storage.delete(self.hero_image.name)
+                self.hero_image.save(file_name, ContentFile(content), save=False)
+                super().save(update_fields=["hero_image"])
+                return
+            except (FileNotFoundError, OSError, ValueError):
+                pass
+
+        width, height = 1280, 640
+        base = self._compose_background(width, height)
+        buffer = BytesIO()
+        base.save(buffer, format="JPEG", quality=90)
+
+        file_name = f"citas/generated/cita_{self.pk}.jpg"
+        if self.hero_image and self.hero_image.name and self.hero_image.storage.exists(self.hero_image.name):
+            self.hero_image.storage.delete(self.hero_image.name)
+        self.hero_image.save(file_name, ContentFile(buffer.getvalue()), save=False)
+        super().save(update_fields=["hero_image"])
+
+    def _compose_background(self, width, height):
+        base = Image.new("RGB", (width, height), "#0f172a")
+        if self.background_image and self.background_image.name:
+            try:
+                with Image.open(self.background_image.path) as bg:
+                    bg = bg.convert("RGB").resize((width, height), RESAMPLE_STRATEGY)
+                    base.paste(bg)
+                    return base
+            except (FileNotFoundError, OSError):
+                pass
+
+        gradient = Image.new("RGB", (width, height), "#0f172a")
+        grad_draw = ImageDraw.Draw(gradient)
+        for y in range(height):
+            intensity = int(15 + (60 * (y / height)))
+            grad_draw.line(
+                [(0, y), (width, y)],
+                fill=(intensity, int(23 + (40 * (y / height))), 80),
+            )
+        return gradient
+
+    def _resolve_font(self, size, bold=False):
+        preferred = [
+            os.path.join(settings.BASE_DIR, "static", "fonts", "Manrope-Bold.ttf") if bold else os.path.join(settings.BASE_DIR, "static", "fonts", "Manrope-Regular.ttf"),
+            os.path.join(settings.BASE_DIR, "static", "fonts", "Montserrat-Bold.ttf") if bold else os.path.join(settings.BASE_DIR, "static", "fonts", "Montserrat-Regular.ttf"),
+            os.path.join(settings.BASE_DIR, "static", "fonts", "Poppins-SemiBold.ttf") if bold else os.path.join(settings.BASE_DIR, "static", "fonts", "Poppins-Regular.ttf"),
+            "arialbd.ttf" if bold else "arial.ttf",
+        ]
+        for path in preferred:
+            try:
+                return ImageFont.truetype(path, size)
+            except (IOError, OSError):
+                continue
+        return ImageFont.load_default()
+
+
+class CitaAgendaRegistro(models.Model):
+    cita = models.ForeignKey(
+        CitaAgenda,
+        on_delete=models.CASCADE,
+        related_name="registros",
+    )
+    identificacion = models.CharField(max_length=50)
+    nombre_completo = models.CharField(max_length=150)
+    celular = models.CharField(max_length=50)
+    hora_confirmada = models.CharField(max_length=40, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Registro de cita"
+        verbose_name_plural = "Registros de citas"
+
+    def __str__(self):
+        return f"{self.nombre_completo} - {self.cita.display_date}"

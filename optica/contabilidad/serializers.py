@@ -26,6 +26,10 @@ from .utils_estado_pedido import (
     get_estado_pedido_by_slug,
     identify_estado_pedido_slug,
     maybe_mark_para_fabricacion,
+    CitaAgenda,
+    CitaAgendaRegistro,
+    # EstadoVenta,
+    # MediosDePago,
 )
 from usuarios.models import Clientes, Empresa
 
@@ -622,3 +626,56 @@ class RemisionSerializer(serializers.ModelSerializer):
             RemisionItem.objects.create(remision=remision, **item)
 
         return remision
+class CitaAgendaSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    display_date = serializers.SerializerMethodField()
+    time_range = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CitaAgenda
+        fields = [
+            'id',
+            'title',
+            'fecha',
+            'hora_inicio',
+            'hora_fin',
+            'nota',
+            'display_date',
+            'time_range',
+            'image_url',
+        ]
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        hero = obj.ensure_overlay_image()
+        if hero:
+            url = hero.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
+
+    def get_display_date(self, obj):
+        return obj.display_date
+
+    def get_time_range(self, obj):
+        return obj.time_range
+
+
+class CitaAgendaRegistroSerializer(serializers.ModelSerializer):
+    cita = serializers.PrimaryKeyRelatedField(
+        queryset=CitaAgenda.objects.filter(is_active=True)
+    )
+
+    class Meta:
+        model = CitaAgendaRegistro
+        fields = [
+            "id",
+            "cita",
+            "identificacion",
+            "nombre_completo",
+            "celular",
+            "hora_confirmada",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
