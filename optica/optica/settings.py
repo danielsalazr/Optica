@@ -93,7 +93,7 @@ JAZZMIN_SETTINGS = {
     'default_icon_children': 'fas fa-circle',
     'related_modal_active': True,
     'custom_js': None,
-    'show_ui_builder': True,
+    'show_ui_builder': False,
     'changeform_format': 'horizontal_tabs',
     'changeform_format_overrides': {'auth.user': 'collapsible', 'auth.group': 'vertical_tabs'},
 }
@@ -130,7 +130,7 @@ JAZZMIN_UI_TWEAKS = {
         "danger": "btn-outline-danger",
         "success": "btn-outline-success"
     },
-    "show_ui_builder": True
+    "show_ui_builder": False
 }
 
 MIDDLEWARE = [

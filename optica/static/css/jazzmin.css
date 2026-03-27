@@ -13,3 +13,60 @@
     max-height: 32px !important;
     width: auto !important;
 }
+
+
+/* Ajuste de formularios Jazzmin: reduce el corrimiento hacia la derecha */
+@media (min-width: 992px) {
+    .content .col-lg-9 .card-body .form-group.row > label,
+    .content .col-lg-9 .card-body .form-group.row > .col-form-label {
+        flex: 0 0 18%;
+        max-width: 18%;
+        text-align: left;
+        padding-right: 12px;
+    }
+
+    .content .col-lg-9 .card-body .form-group.row > div,
+    .content .col-lg-9 .card-body .form-group.row > .controls,
+    .content .col-lg-9 .card-body .form-group.row > .fieldBox {
+        flex: 0 0 82%;
+        max-width: 82%;
+    }
+
+    .content .col-lg-9 .card-body .form-group.row .related-widget-wrapper,
+    .content .col-lg-9 .card-body .form-group.row input,
+    .content .col-lg-9 .card-body .form-group.row select,
+    .content .col-lg-9 .card-body .form-group.row textarea {
+        max-width: 100%;
+    }
+}
+
+
+/* Formularios del admin: acercar el contenido al sidebar */
+@media (min-width: 992px) {
+    .app-content #content-main form > .row > .col-lg-9 {
+        flex: 0 0 83.333333%;
+        max-width: 83.333333%;
+    }
+
+    .app-content #content-main form > .row > .col-lg-3 {
+        flex: 0 0 16.666667%;
+        max-width: 16.666667%;
+    }
+
+    .app-content #content-main .tab-content .card .p-5 {
+        padding: 1.5rem !important;
+    }
+
+    .app-content #content-main .form-group .row > label.col-sm-3 {
+        flex: 0 0 22%;
+        max-width: 22%;
+        text-align: left;
+        padding-right: 12px;
+        margin-bottom: 0;
+    }
+
+    .app-content #content-main .form-group .row > div.col-sm-9 {
+        flex: 0 0 78%;
+        max-width: 78%;
+    }
+}

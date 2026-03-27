@@ -31,7 +31,7 @@ async function fetchEmpresas() {
   }
 
   const data = await response.json();
-  return data?.empresas ?? [];
+  return data.empresas ?? [];
 }
 
 async function JornadasPage() {

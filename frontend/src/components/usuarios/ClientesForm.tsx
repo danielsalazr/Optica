@@ -58,8 +58,8 @@ function ClientesForm(props) {
 
           const handleTelefonoChange = () => {
             
-            setTelefono(telefonoRef.current?.getInstance().getNumber());
-            console.log((telefonoRef.current?.getInstance().getNumber()))
+            setTelefono(telefonoRef.current.getInstance().getNumber());
+            console.log((telefonoRef.current.getInstance().getNumber()))
             
           };
   return (

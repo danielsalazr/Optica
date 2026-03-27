@@ -7,16 +7,16 @@ import { InputText } from "primereact/inputtext";
 
 type SaldoRow = {
   venta_id: number;
-  fecha?: string;
-  cliente?: string;
-  empresa?: string;
-  precio?: number;
-  totalAbono?: number;
-  saldo?: number;
-  fecha_vencimiento?: string | null;
-  condicion_pago?: string | null;
-  cuotas?: number | null;
-  estado_pago?: string | null;
+  fecha: string;
+  cliente: string;
+  empresa: string;
+  precio: number;
+  totalAbono: number;
+  saldo: number;
+  fecha_vencimiento: string | null;
+  condicion_pago: string | null;
+  cuotas: number | null;
+  estado_pago: string | null;
 };
 
 type FilterKey = "todos" | "con_vencimiento" | "vencidos" | "sin_vencimiento";
@@ -42,7 +42,7 @@ const formatDate = (value: unknown) => {
   return date.toLocaleDateString("es-CO");
 };
 
-const normalize = (value: unknown) => (value ?? "").toString().toLowerCase().trim();
+const normalize = (value: unknown) => String(value ?? "").toLowerCase().trim();
 const formatText = (value: unknown) => (value == null || value === "" ? "-" : String(value));
 
 const exportRowsToExcel = (rows: SaldoRow[]) => {
@@ -101,7 +101,7 @@ function SaldosModule({
   fetchError,
 }: {
   rows: SaldoRow[];
-  fetchError?: string | null;
+  fetchError: string | null;
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [conditionFilter, setConditionFilter] = useState<FilterKey>("todos");
@@ -126,7 +126,7 @@ function SaldosModule({
   ];
 
   const activeFilterDefinition =
-    filterDefinitions.find((item) => item.key === conditionFilter) ?? filterDefinitions[0];
+    filterDefinitions.find((item) => item.key === conditionFilter) - filterDefinitions[0];
 
   const filteredRows = useMemo(() => {
     return (rows ?? []).filter((row) => {
@@ -203,7 +203,7 @@ function SaldosModule({
           <span className="label">Total relevante</span>
           <span className="value">
             {conditionFilter === "vencidos"
-              ? `${summary.vencidas} registro(s)`
+                ? `${summary.vencidas} registro(s)`
               : formatCurrency(summary.totalSaldo)}
           </span>
         </div>

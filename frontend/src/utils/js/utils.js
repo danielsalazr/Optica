@@ -62,7 +62,7 @@ export  function moneyformat(amount) {
 
 // funcion para hacer separador de miles en texto
 export function separadorMiles(numero) {
-    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return numero.toString().replace(/\B(=(\d{3})+(!\d))/g, ".");
 }
 
 
@@ -237,7 +237,7 @@ export function separadorDeMiles(input){
     let value = input.replace(/\D/g, '');
 
                 // Aplica el formato con separadores de miles
-    let formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let formattedValue = value.replace(/\B(=(\d{3})+(!\d))/g, '.');
 
     // Establece el valor formateado en el input
     return formattedValue;
@@ -400,7 +400,7 @@ for (let i = 0; i < inputPrecio.length; i++) {
 
 // funcion para hacer separador de miles en texto
 function separadorMiles(numero) {
-    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return numero.toString().replace(/\B(=(\d{3})+(!\d))/g, ".");
 }
 
 
@@ -565,7 +565,7 @@ function fromNumberToMoney(input) {
     let value = input.replace(/\D/g, '');
 
                 // Aplica el formato con separadores de miles
-    let formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let formattedValue = value.replace(/\B(=(\d{3})+(!\d))/g, '.');
 
     // Establece el valor formateado en el input
     return formattedValue;

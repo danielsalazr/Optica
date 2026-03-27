@@ -7,19 +7,19 @@ import "@/styles/style.css";
 
 type PrinterInfo = {
   name: string;
-  port?: string;
-  driver?: string;
-  is_default?: boolean;
+  port: string;
+  driver: string;
+  is_default: boolean;
 };
 
 type PrinterStatus = {
   name: string;
   installed: boolean;
   online: boolean;
-  port?: string | null;
-  driver?: string | null;
-  is_default?: boolean;
-  status?: string;
+  port: string | null;
+  driver: string | null;
+  is_default: boolean;
+  status: string;
 };
 
 type CompanyConfig = {
@@ -213,7 +213,7 @@ function PrinterConfigModule() {
       <div className="abonos-summary">
         <div className="abonos-summary-card">
           <span className="label">Servicio</span>
-          <span className="value">{serviceOnline ? "Conectado" : "Sin conexión"}</span>
+          <span className="value">{serviceOnline ? "Conectado" : "Sin conexi?n"}</span>
         </div>
         <div className="abonos-summary-card">
           <span className="label">Impresoras</span>
@@ -232,7 +232,7 @@ function PrinterConfigModule() {
             <span className="text-muted small">Usa el token solo si el print agent lo tiene configurado.</span>
           </div>
           <button type="button" className="btn btn-outline-primary" onClick={loadAgentData} disabled={loading}>
-            {loading ? "Consultando..." : "Validar conexión"}
+            {loading ? "Consultando..." : "Validar conexi?n"}
           </button>
         </div>
 
@@ -309,7 +309,7 @@ function PrinterConfigModule() {
                         <span className="badge bg-danger">Offline</span>
                       )}
                     </td>
-                    <td>{printerStatus?.port || "-"}</td>
+                    <td>{printerStatus.port || "-"}</td>
                     <td className="text-end">
                       <button
                         type="button"

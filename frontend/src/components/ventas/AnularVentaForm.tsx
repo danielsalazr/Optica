@@ -10,7 +10,7 @@ function AnularVentaForm(props) {
 
   const handleSubmit = async  () => {
 
-            const question = await swalQuestion("¿Esta seguro de anular la factura?")
+            const question = await swalQuestion("¿Esta seguro de anular la factura")
             console.log(question)
             if (question != true) {
               return false;

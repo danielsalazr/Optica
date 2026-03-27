@@ -590,6 +590,7 @@ class Venta(APIView):
                 T0.precio,
                 T0.empresaCliente,
                 T0.totalAbono,
+                T0.cuotas,
                 #sum(T2.precio) as abono,
                 T4.saldo,
                 #T0.precio - sum(T2.precio) as saldo, 

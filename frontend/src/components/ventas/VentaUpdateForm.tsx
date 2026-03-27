@@ -138,11 +138,11 @@ function VentaUpdateForm(props) {
               
           },[])
 
-    const ventaId = dataVenta?.id ?? dataVenta?.pedido ?? ventaData?.id ?? ventaData?.pedido ?? 0;
+    const ventaId = dataVenta.id - dataVenta.pedido - ventaData.id - ventaData.pedido - 0;
 
     const clienteInfo = useMemo(() => {
-        const clienteEncontrado = clientes?.find(
-            (elemento) => Number(elemento.cedula) === Number(dataVenta?.cliente_id)
+        const clienteEncontrado = clientes.find(
+            (elemento) => Number(elemento.cedula) === Number(dataVenta.cliente_id)
         );
 
         if (clienteEncontrado) {
@@ -154,9 +154,9 @@ function VentaUpdateForm(props) {
         }
 
         return {
-            cedula: dataVenta?.cliente_id,
+            cedula: dataVenta.cliente_id,
         };
-    }, [clientes, dataVenta?.cliente_id]);
+    }, [clientes, dataVenta.cliente_id]);
 
     const handleRemisionCreated = useCallback((remision: any) => {
         setDataVenta((prev) => {
@@ -167,9 +167,9 @@ function VentaUpdateForm(props) {
             const remisionesPrevias = Array.isArray(prev.remisiones) ? prev.remisiones : [];
             const ventasActualizadas = Array.isArray(prev.ventas)
                 ? prev.ventas.map((item) => {
-                      const detalle = remision.items.find(
-                          (detalleItem: any) => detalleItem.itemVenta === item.id
-                      );
+                    const detalle = remision.items.find(
+                        (detalleItem: any) => detalleItem.itemVenta === item.id
+                    );
                       if (!detalle) {
                           return item;
                       }
@@ -179,7 +179,7 @@ function VentaUpdateForm(props) {
                           remisionado: detalle.cantidadDespachada,
                           pendienteRemision: detalle.restante,
                       };
-                  })
+                })
                 : prev.ventas;
 
             return {
@@ -312,13 +312,13 @@ function VentaUpdateForm(props) {
                         className="form-select"
                         id="vendedor"
                         name="vendedor"
-                        defaultValue={dataVenta.vendedor ?? dataVenta.vendedor_id ?? ''}
+                        defaultValue={dataVenta.vendedor - dataVenta.vendedor_id - ''}
                         required
                     >
                         <option value="">--</option>
                         {vendedores.map((vendedor) => (
                             <option key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nombre} {vendedor.celular ? `· ${vendedor.celular}` : ''}
+                                {vendedor.nombre} {vendedor.celular ? `? ${vendedor.celular}` : ""}
                             </option>
                         ))}
                     </select>
@@ -384,9 +384,9 @@ function VentaUpdateForm(props) {
         <div className="container-md px-0 mt-5">
             <RemisionesPanel
                 ventaId={Number(ventaId)}
-                items={dataVenta?.ventas ?? []}
-                remisiones={dataVenta?.remisiones ?? []}
-                articulos={data.articulos ?? []}
+                items={dataVenta.ventas - []}
+                remisiones={dataVenta.remisiones - []}
+                articulos={data.articulos - []}
                 cliente={clienteInfo}
                 onCreated={handleRemisionCreated}
             />

@@ -175,7 +175,7 @@ function VentasForm({data}) {
 
         //   const handleTelefonoChange = () => {
             
-        //     telefonoRef.current?.getInstance().getNumber(telefono);
+        //     telefonoRef.current.getInstance().getNumber(telefono);
         //   };
 
         const handleNuevoCliente = (nuevoCliente) => {
@@ -309,11 +309,11 @@ function VentasForm({data}) {
                         <option value="">Sin jornada</option>
                         {jornadasFiltradas.map((jornada) => {
                             const fechaLegible = formatFecha(jornada.fecha) || jornada.fecha;
-                            const estadoLegible = estadoJornadaLabels[jornada.estado] ?? jornada.estado;
+                            const estadoLegible = estadoJornadaLabels[jornada.estado] - jornada.estado;
                             return (
                                 <option key={jornada.id} value={jornada.id}>
                                     {jornada.empresa__nombre}
-                                    {jornada.sucursal ? ` · ${jornada.sucursal}` : ''}
+                                    {jornada.sucursal ? ` ? ${jornada.sucursal}` : ""}
                                     {` · ${fechaLegible} (${estadoLegible})`}
                                 </option>
                             );
@@ -332,7 +332,7 @@ function VentasForm({data}) {
                         <option value="">--</option>
                         {vendedores.map((vendedor) => (
                             <option key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nombre} {vendedor.celular ? `· ${vendedor.celular}` : ''}
+                                {vendedor.nombre} {vendedor.celular ? `? ${vendedor.celular}` : ""}
                             </option>
                         ))}
                     </select>
@@ -353,7 +353,7 @@ function VentasForm({data}) {
                     <label htmlFor="valor">Metodo de Pago</label>
                     <div className="custom-select">
                     <div className="selectedPayment form-select">
-                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s" alt="Default" />
+                        <img src="https://encrypted-tbn0.gstatic.com/imagesq=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s" alt="Default" />
                         <span id="valorSelect">Seleccione una opción</span>
                     </div>
                     <div className="dropdown form-select">

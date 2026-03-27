@@ -25,7 +25,7 @@ export async function addRow() {
   row.innerHTML = `
         <td class="bg-secondary-subtle">${numeroFila + 1}</td>
         <td class="" style="width: 25%">
-            <select class="form-select border-0" id="articulo${numeroFila}" name="numero_articulo" id="articulo${numeroFila? numeroFila + 1 : 1}">
+            <select class="form-select border-0" id="articulo${numeroFila}" name="numero_articulo" id="articulo${numeroFila numeroFila + 1 : 1}">
                 <option value="">Seleccione</option>
                 ${articulos.data.articulos.map(
                   (item) => `         

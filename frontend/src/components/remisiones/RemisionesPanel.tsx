@@ -18,8 +18,8 @@ type VentaItem = {
   id: number;
   articulo_id: number;
   cantidad: number;
-  remisionado?: number;
-  pendienteRemision?: number;
+  remisionado: number;
+  pendienteRemision: number;
 };
 
 type RemisionItem = {
@@ -29,10 +29,10 @@ type RemisionItem = {
   cantidadFactura: number;
   cantidadDespachada: number;
   restante: number;
-  precioUnitario?: number;
-  totalRemisionado?: number;
-  descuento?: number;
-  articulo?: {
+  precioUnitario: number;
+  totalRemisionado: number;
+  descuento: number;
+  articulo: {
     id: number;
     nombre: string;
   };
@@ -43,7 +43,7 @@ type Remision = {
   venta: number;
   cliente_id: number;
   fecha: string;
-  observacion?: string | null;
+  observacion: string | null;
   creado_en: string;
   items: RemisionItem[];
 };
@@ -56,9 +56,9 @@ type RemisionTableRow = Remision & {
 };
 
 type ClienteInfo = {
-  cedula?: number;
-  nombre?: string;
-  telefono?: string;
+  cedula: number;
+  nombre: string;
+  telefono: string;
 };
 
 type Props = {
@@ -66,8 +66,8 @@ type Props = {
   items: VentaItem[];
   remisiones: Remision[];
   articulos: ArticuloCatalogo[];
-  cliente?: ClienteInfo;
-  onCreated?: (payload: Remision) => void | Promise<void>;
+  cliente: ClienteInfo;
+  onCreated: (payload: Remision) => void | Promise<void>;
 };
 
 const RemisionesPanel: React.FC<Props> = ({
@@ -102,8 +102,8 @@ const RemisionesPanel: React.FC<Props> = ({
 
   const articulosMap = useMemo(() => {
     const mapa = new Map<number, string>();
-    articulos?.forEach((elemento) => {
-      if (elemento?.id != null) {
+    articulos.forEach((elemento) => {
+      if (elemento.id != null) {
         mapa.set(Number(elemento.id), elemento.nombre);
       }
     });
@@ -112,7 +112,7 @@ const RemisionesPanel: React.FC<Props> = ({
 
   const handleCantidadChange = useCallback(
     (itemId: number, value: string) => {
-      const maximo = localItems.find((elemento) => elemento.id === itemId)?.pendienteRemision ?? 0;
+      const maximo = localItems.find((elemento) => elemento.id === itemId).pendienteRemision - 0;
       let cantidad = parseInt(value, 10);
       if (Number.isNaN(cantidad) || cantidad < 0) {
         cantidad = 0;
@@ -150,13 +150,13 @@ const RemisionesPanel: React.FC<Props> = ({
     return (localRemisiones || []).map((remision) => {
       const articulosResumen =
         remision.items
-          ?.map((item) => {
-            const nombre = item.articulo?.nombre ?? `Item ${item.itemVenta}`;
+          .map((item) => {
+            const nombre = item.articulo?.nombre || `Item ${item.itemVenta}`;
             return `${nombre} (${item.cantidad})`;
           })
-          .join(" Â- ") ?? "";
+          .join(" Â- ") - "";
 
-      const totalItems = remision.items?.reduce((acc, item) => acc + (item.cantidad ?? 0), 0) ?? 0;
+      const totalItems = remision.items.reduce((acc, item) => acc + (item.cantidad - 0), 0) - 0;
 
       return {
         ...remision,
@@ -171,7 +171,7 @@ const RemisionesPanel: React.FC<Props> = ({
   const handleGlobalFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setFilters((prev) => {
-      const globalFilter = prev?.global ?? { value: "", matchMode: FilterMatchMode.CONTAINS };
+      const globalFilter = prev.global - { value: "", matchMode: FilterMatchMode.CONTAINS };
       return {
         ...prev,
         global: {
@@ -223,16 +223,16 @@ const RemisionesPanel: React.FC<Props> = ({
             <tbody>
               {remision.items.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.articulo?.nombre ?? `Item ${item.itemVenta}`}</td>
+                  <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
                   <td className="text-center fw-semibold">{item.cantidad}</td>
-                  <td className="text-center">{moneyformat(item.precioUnitario ?? 0)}</td>
+                  <td className="text-center">{moneyformat(item.precioUnitario - 0)}</td>
                   <td className="text-center">
-                    {item.descuento ? `${item.descuento}%` : "0%"}
+                    {item.descuento  `${item.descuento}%` : "0%"}
                   </td>
                   <td className="text-center fw-semibold">
                     {moneyformat(
-                      item.totalRemisionado ??
-                        (item.precioUnitario ?? 0) * (item.cantidad ?? 0)
+                      item.totalRemisionado -
+                        (item.precioUnitario - 0) * (item.cantidad - 0)
                     )}
                   </td>
                   <td className="text-center text-primary">{item.cantidadDespachada}</td>
@@ -297,7 +297,7 @@ const RemisionesPanel: React.FC<Props> = ({
     }
 
     return mensajes.length > 0
-      ? mensajes.join(" | ")
+       mensajes.join(" | ")
       : "No fue posible crear la remision. Revisa la informacion ingresada.";
   };
 
@@ -351,7 +351,7 @@ const RemisionesPanel: React.FC<Props> = ({
         await onCreated(data);
       }
     } catch (err: any) {
-      setError(err?.message || "No fue posible crear la remision.");
+      setError(err.message || "No fue posible crear la remision.");
     } finally {
       setLoading(false);
     }
@@ -366,7 +366,7 @@ const RemisionesPanel: React.FC<Props> = ({
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <h2 className="venta-section-title mb-0">Remisiones</h2>
         <div className="remision-client-info text-muted small">
-          {cliente?.nombre ? (
+          {cliente.nombre  (
             <>
               <strong>{cliente.nombre}</strong>
               {cliente.cedula && <span className="ms-2">CC {cliente.cedula}</span>}
@@ -422,10 +422,10 @@ const RemisionesPanel: React.FC<Props> = ({
               </thead>
               <tbody>
                 {localItems.map((item) => {
-                  const pendiente = item.pendienteRemision ?? Math.max((item.cantidad || 0) - (item.remisionado || 0), 0);
-                  const seleccionado = cantidades[item.id] ?? 0;
+                  const pendiente = item.pendienteRemision - Math.max((item.cantidad || 0) - (item.remisionado || 0), 0);
+                  const seleccionado = cantidades[item.id] - 0;
                   const nombreArticulo =
-                    articulosMap.get(item.articulo_id) ??
+                    articulosMap.get(item.articulo_id) -
                     `Articulo #${item.articulo_id}`;
 
                   return (
@@ -439,7 +439,7 @@ const RemisionesPanel: React.FC<Props> = ({
                         </div>
                       </td>
                       <td className="text-center">{item.cantidad}</td>
-                      <td className="text-center text-primary">{item.remisionado ?? 0}</td>
+                      <td className="text-center text-primary">{item.remisionado - 0}</td>
                       <td className="text-center text-danger">{pendiente}</td>
                       <td className="text-center" style={{ maxWidth: 120 }}>
                         <input
@@ -485,7 +485,7 @@ const RemisionesPanel: React.FC<Props> = ({
       </div>
 
       <div className="remision-list">
-        {localRemisiones.length === 0 ? (
+        {localRemisiones.length === 0  (
           <div className="text-muted fst-italic">Aun no hay remisiones asociadas a esta venta.</div>
         ) : (
           <DataTable
@@ -527,14 +527,14 @@ const RemisionesPanel: React.FC<Props> = ({
             <Column
               header="Articulos"
               body={(row: RemisionTableRow) =>
-                row.articulosResumen ? row.articulosResumen : <span className="text-muted">Sin arti­culos</span>
+                row.articulosResumen  row.articulosResumen : <span className="text-muted">Sin arti­culos</span>
               }
               style={{ minWidth: "16rem" }}
             />
             <Column
               header="Observacion"
               body={(row: RemisionTableRow) =>
-                row.observacion ? row.observacion : <span className="text-muted">Sin nota</span>
+                row.observacion  row.observacion : <span className="text-muted">Sin nota</span>
               }
               style={{ minWidth: "14rem" }}
             />

@@ -22,30 +22,30 @@ type ArticuloOption = {
 };
 
 type VentaArticuloRow = {
-  precio_articulo?: number | string;
-  totalArticulo?: number | string;
-  articulo_id?: number | string;
-  cantidad?: number;
-  descuento?: number | string;
-  tipo_descuento?: string;
-  foto?: string;
+  precio_articulo: number | string;
+  totalArticulo: number | string;
+  articulo_id: number | string;
+  cantidad: number;
+  descuento: number | string;
+  tipo_descuento: string;
+  foto: string;
 };
 
 type TablaArticuloRow = {
   precio: string | number;
   total: string | number;
-  articuloId?: number | string;
-  cantidad?: number;
-  descuento?: number | string;
-  tipoDescuento?: string;
-  foto?: string;
-  tipo_descuento?: string;
+  articuloId: number | string;
+  cantidad: number;
+  descuento: number | string;
+  tipoDescuento: string;
+  foto: string;
+  tipo_descuento: string;
 };
 
 type TablaArticulosProps = {
   articulos: ArticuloOption[];
-  ventaData?: VentaArticuloRow[] | null;
-  clear?: boolean;
+  ventaData: VentaArticuloRow[] | null;
+  clear: boolean;
   changeClear: () => void;
 };
 
@@ -57,7 +57,7 @@ function TablaArticulos(props: TablaArticulosProps) {
 
   // console.log(articulos)
   // console.log(ventaData)
-  const [dataVenta, setDataVenta] =  ventaData != undefined ? useState<VentaArticuloRow[] | null>(ventaData) : useState<VentaArticuloRow[] | null>(null);
+  const [dataVenta, setDataVenta] =  ventaData != undefined  useState<VentaArticuloRow[] | null>(ventaData) : useState<VentaArticuloRow[] | null>(null);
   const [ventaTotal, setVentaTotal] = useState(0);
   const selectRefs = useRef<Array<HTMLSelectElement | null>>([]);
   // const [rows, setRows] = useState([[{
@@ -67,7 +67,7 @@ function TablaArticulos(props: TablaArticulosProps) {
 
   const [rows, setRows] = useState<TablaArticuloRow[]>(
     ventaData 
-      ? ventaData.map((item) => ({
+       ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio_articulo), // `$ ${item.precio_articulo}`,
           total: fromNumberToMoney(item.totalArticulo), // `$ ${item.totalArticulo}`,
           // Agrega aquí otros campos que necesites de ventaData
@@ -144,8 +144,8 @@ function TablaArticulos(props: TablaArticulosProps) {
                 precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
                 totalArticulo.val(`$ ${data.precio}`);
                 cantidadArticulo.prop('disabled', false);
-                data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
-                // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
+                data.fotos.length > 0  imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
+                // console.log(data.fotos.length > 0  data.fotos[0].foto : '')
                 await calculateTotalArticle()
                 calcularTotales()
               } else{
@@ -284,7 +284,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                   <img 
                   // id="imageArticulo" 
                   id={`imageArticulo-${index}`}
-                  src={row.foto ? `${IP_URL()}/media/${row.foto}` : ""}
+                  src={row.foto  `${IP_URL()}/media/${row.foto}` : ""}
                   height={35} />
                 </td>
                 <td className="">
@@ -295,11 +295,11 @@ function TablaArticulos(props: TablaArticulosProps) {
                     id={`cantidadArticulo-${index}`} 
                     name="cantidad" 
                     placeholder="Cantidad" 
-                    defaultValue={row.cantidad ? row.cantidad : 1}
+                    defaultValue={row.cantidad  row.cantidad : 1}
                     
                     // onInput={calcularTotales}
                     // disabled
-                    disabled={dataVenta ? false : true}
+                    disabled={dataVenta  false : true}
                   />
                 </td>
                 <td className="">
@@ -320,7 +320,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                     // id="tipoDescuentoArticulo"
                     id={`tipoDescuentoArticulo-${index}`}
                     name="tipo_descuento"
-                    defaultValue={ row.tipo_descuento ? row.tipo_descuento : "precio" }
+                    defaultValue={ row.tipo_descuento  row.tipo_descuento : "precio" }
                   >
                     <option value="">Seleccione</option>
                     <option value="porcentaje">porcentaje %</option>
@@ -334,7 +334,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                     id={`descuentoArticulo-${index}`} 
                     name="descuento" 
                     placeholder="% Descuento" 
-                    defaultValue={row.descuento ? row.descuento : 0}
+                    defaultValue={row.descuento  row.descuento : 0}
                   />
                 </td>
                 <td className="">

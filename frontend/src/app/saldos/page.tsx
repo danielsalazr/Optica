@@ -25,7 +25,7 @@ async function page() {
     fetchError = error instanceof Error ? error.message : 'Error desconocido';
   }
 
-  return <SaldosModule rows={data?.informe_cartera ?? []} fetchError={fetchError} />;
+  return <SaldosModule rows={data.informe_cartera ?? []} fetchError={fetchError} />;
 }
 
 export default page;

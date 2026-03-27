@@ -12,19 +12,19 @@ type Jornada = {
   id: number;
   empresa: number;
   empresa_nombre: string;
-  sucursal?: string;
+  sucursal: string;
   fecha: string;
-  condicion_pago?: "quincenal" | "mensual" | string | null;
-  fecha_inicio?: string | null;
-  cantidad_cuotas?: number | null;
-  fecha_vencimiento?: string | null;
+  condicion_pago: "quincenal" | "mensual" | string | null;
+  fecha_inicio: string | null;
+  cantidad_cuotas: number | null;
+  fecha_vencimiento: string | null;
   estado: JornadaEstado;
-  responsable?: number | null;
-  responsable_nombre?: string | null;
-  observaciones?: string | null;
-  ventas_count?: number;
-  total_vendido?: number;
-  total_abonos?: number;
+  responsable: number | null;
+  responsable_nombre: string | null;
+  observaciones: string | null;
+  ventas_count: number;
+  total_vendido: number;
+  total_abonos: number;
 };
 
 type Empresa = {
@@ -33,8 +33,8 @@ type Empresa = {
 };
 
 type Props = {
-  initialJornadas?: Jornada[];
-  empresas?: Empresa[];
+  initialJornadas: Jornada[];
+  empresas: Empresa[];
 };
 
 type AlertState = {
@@ -66,9 +66,9 @@ const currencyFormatter = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-const formatCurrency = (valor?: number | null) => currencyFormatter.format(valor ?? 0);
+const formatCurrency = (valor: number | null) => currencyFormatter.format(Number(valor || 0));
 
-const formatDate = (value?: string | null) => {
+const formatDate = (value: string | null) => {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -86,7 +86,7 @@ const sortJornadas = (records: Jornada[] = []) =>
     const fechaA = new Date(a.fecha).getTime();
     const fechaB = new Date(b.fecha).getTime();
     if (fechaA === fechaB) {
-      return (b.id ?? 0) - (a.id ?? 0);
+      return Number(b.id || 0) - Number(a.id || 0);
     }
     return fechaB - fechaA;
   });
@@ -110,7 +110,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   });
 
   const empresasOrdenadas = useMemo(() => {
-    return [...(empresas ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return [...(empresas - [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [empresas]);
 
   const resumen = useMemo(() => {
@@ -118,9 +118,9 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       (acc, jornada) => {
         acc.total += 1;
         acc.estados[jornada.estado] += 1;
-        acc.ventas += jornada.ventas_count ?? 0;
-        acc.vendido += jornada.total_vendido ?? 0;
-        acc.abonos += jornada.total_abonos ?? 0;
+        acc.ventas += Number(jornada.ventas_count || 0);
+        acc.vendido += Number(jornada.total_vendido || 0);
+        acc.abonos += Number(jornada.total_abonos || 0);
         return acc;
       },
       {
@@ -206,7 +206,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const addDaysSkipping31 = (startDate: Date | string, days: number) => {
     if (!startDate || !days || days <= 0) return startDate;
-    const fecha = startDate instanceof Date ? new Date(startDate) : new Date(startDate);
+    const fecha = startDate instanceof Date ? new Date(startDate.getTime()) : new Date(startDate);
     if (Number.isNaN(fecha.getTime())) return startDate;
     let count = 0;
     while (count < days) {
@@ -232,7 +232,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   const mostrarMensaje = (tipo: "error" | "success", texto: string) => {
     setMensaje({ tipo, mensaje: texto });
     setTimeout(() => {
-      setMensaje((valorActual) => (valorActual?.mensaje === texto ? null : valorActual));
+      setMensaje((valorActual) => (valorActual.mensaje === texto ? null : valorActual));
     }, 5000);
   };
 
@@ -272,13 +272,13 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
       const data = await response.json().catch(() => null);
       if (!response.ok || !data) {
-        const detail = data?.detail ?? "No fue posible crear la jornada.";
+        const detail = data?.detail || "No fue posible crear la jornada.";
         throw new Error(detail);
       }
 
       upsertJornada(data as Jornada);
       resetForm();
-      mostrarMensaje("success", "La jornada se creó correctamente.");
+      mostrarMensaje("success", "La jornada se cre? correctamente.");
     } catch (error) {
       const detail = error instanceof Error ? error.message : "No fue posible crear la jornada.";
       mostrarMensaje("error", detail);
@@ -302,12 +302,12 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
       const data = await response.json().catch(() => null);
       if (!response.ok || !data) {
-        const detail = data?.detail ?? "No fue posible actualizar el estado de la jornada.";
+        const detail = data?.detail || "No fue posible actualizar el estado de la jornada.";
         throw new Error(detail);
       }
 
       upsertJornada(data as Jornada);
-      mostrarMensaje("success", "La jornada se actualizó correctamente.");
+      mostrarMensaje("success", "La jornada se actualiz? correctamente.");
     } catch (error) {
       const detail =
         error instanceof Error ? error.message : "No fue posible actualizar el estado de la jornada.";
@@ -574,8 +574,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                           jornada.cantidad_cuotas ||
                           jornada.fecha_vencimiento) && (
                           <div className="text-muted small mt-1">
-                            Pago: {jornada.condicion_pago ?? "—"} · Cuotas:{" "}
-                            {jornada.cantidad_cuotas ?? 0} · Vence:{" "}
+                            Pago: {jornada.condicion_pago || "-"} - Cuotas:{" "}
+                            {Number(jornada.cantidad_cuotas || 0)} - Vence:{" "}
                             {formatDate(jornada.fecha_vencimiento)}
                           </div>
                         )}
@@ -586,10 +586,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                         )}
                       </td>
                       <td>{formatDate(jornada.fecha)}</td>
-                      <td className="text-center fw-semibold">{jornada.ventas_count ?? 0}</td>
+                      <td className="text-center fw-semibold">{Number(jornada.ventas_count || 0)}</td>
                       <td className="text-center">{formatCurrency(jornada.total_vendido)}</td>
                       <td className="text-center">{formatCurrency(jornada.total_abonos)}</td>
-                      <td>{jornada.responsable_nombre || "—"}</td>
+                      <td>{jornada.responsable_nombre || "-"}</td>
                       <td>
                         <span className={`badge text-bg-${ESTADO_BADGES[jornada.estado]} px-3 py-2`}>
                           {ESTADO_LABELS[jornada.estado]}

@@ -8,13 +8,13 @@ import { buildBackendUrl } from '@/utils/js/env';
 type GeneralInfoCard = {
     title: string;
     value: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className: string }>;
     color: string;
     textColor: string;
     bgColor: string;
-    trend?: string;
-    percentage?: string;
-    suffix?: string;
+    trend: string;
+    percentage: string;
+    suffix: string;
 };
 
 const SalesIndicator = () => {

@@ -6,19 +6,19 @@ import { callApi, callApiForm } from '@/utils/js/api';
 import {eliminarElementosFormData, transformarFormDataValues} from '@/utils/js/utilsFormData.js';
 
 type AbonoFormVenta = {
-    id?: number | string;
-    cliente?: string;
-    cedula?: string | number;
-    precio?: number | string;
-    totalAbono?: number | string;
-    saldo?: number | string;
+    id: number | string;
+    cliente: string;
+    cedula: string | number;
+    precio: number | string;
+    totalAbono: number | string;
+    saldo: number | string;
     [key: string]: unknown;
 };
 
 type AbonosFormProps = {
     data: AbonoFormVenta;
-    generalData?: {
-        mediosPago?: Array<{
+    generalData: {
+        mediosPago: Array<{
             id: number | string;
             nombre: string;
             imagen: string;
@@ -54,8 +54,8 @@ function AbonosForm(props: AbonosFormProps) {
 
         const newFormData = transformarFormDataValues(formData,fromMoneyToText, ['precio', 'totalventa', 'totalAbono', 'saldo', ], 'string')         // console.log(req.res);
 
-        const saldo = parseInt(String(formData.get('saldo') ?? '0'));
-        const precio = parseInt(String(formData.get('precio') ?? '0'));
+        const saldo = parseInt(String(formData.get('saldo') - '0'));
+        const precio = parseInt(String(formData.get('precio') - '0'));
 
         console.log(precio)
         console.log(saldo)

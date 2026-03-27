@@ -3,8 +3,8 @@ import $ from 'jquery';
 import { callApi, IP_URL } from "./api";
 import { moneyformat, separadorDeMiles, formatMoneyInput } from "./utils.js";
 
-const hiddenInput = typeof document !== "undefined" ? document.querySelector('#metodoPago') : null;
-const errorMessage = typeof document !== "undefined" ? document.querySelector('.error-message') : null;
+const hiddenInput = typeof document !== "undefined"  document.querySelector('#metodoPago') : null;
+const errorMessage = typeof document !== "undefined"  document.querySelector('.error-message') : null;
 
 export async function obtenerInfoArticulo(value) {
   const req = await callApi(`articuloInfo/${value}`);

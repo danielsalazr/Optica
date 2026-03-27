@@ -6,21 +6,21 @@ import AbonosData from '@/components/abonos/AbonosData';
 import { buildBackendUrl } from '@/utils/js/env';
 
 type AbonoRow = {
-  id?: number | string;
+  id: number | string;
   precio: number | string;
   fecha: string;
-  fechaRaw?: string;
-  medioDePago_id?: number | string;
-  abono_masivo_id?: number | string | null;
-  descripcion?: string | null;
+  fechaRaw: string;
+  medioDePago_id: number | string;
+  abono_masivo_id: number | string | null;
+  descripcion: string | null;
   [key: string]: unknown;
 };
 
 type GeneralData = {
-  mediosPago?: Array<{
+  mediosPago: Array<{
     id: number | string;
     nombre: string;
-    imagen?: string;
+    imagen: string;
   }>;
   [key: string]: unknown;
 };

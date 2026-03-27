@@ -4,11 +4,11 @@ import Button from 'react-bootstrap/Button';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
 type SideActionProps = {
-    children?: React.ReactNode;
-    title?: React.ReactNode;
-    show?: boolean;
-    togglestate?: () => void;
-    data?: unknown;
+    children: React.ReactNode;
+    title: React.ReactNode;
+    show: boolean;
+    togglestate: () => void;
+    data: unknown;
     [key: string]: unknown;
 };
 

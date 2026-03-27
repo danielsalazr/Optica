@@ -11,7 +11,7 @@ type FormulaRow = {
 };
 
 type FormulaLentesProps = {
-  data?: unknown;
+  data: unknown;
 };
 
 function FormulaLentes({data}: FormulaLentesProps) {

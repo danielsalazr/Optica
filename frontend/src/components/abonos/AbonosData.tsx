@@ -18,32 +18,32 @@ import { callApi } from "@/utils/js/api";
 import Link from "next/link";
 
 type AbonoDataRow = {
-  id?: string | number;
-  cedula?: string | number;
-  cliente?: string;
-  factura_id?: string | number;
-  fecha?: string;
-  fechaRaw?: string;
-  nombre?: string;
-  precio?: string | number;
-  medioDePago_id?: string | number;
-  abono_masivo_id?: string | number | null;
-  descripcion?: string | null;
+  id: string | number;
+  cedula: string | number;
+  cliente: string;
+  factura_id: string | number;
+  fecha: string;
+  fechaRaw: string;
+  nombre: string;
+  precio: string | number;
+  medioDePago_id: string | number;
+  abono_masivo_id: string | number | null;
+  descripcion: string | null;
   [key: string]: unknown;
 };
 
 type GeneralData = {
-  mediosPago?: Array<{
+  mediosPago: Array<{
     id: number | string;
     nombre: string;
-    imagen?: string;
+    imagen: string;
   }>;
   [key: string]: unknown;
 };
 
 type AbonosDataProps = {
-  data?: AbonoDataRow[];
-  generalData?: GeneralData;
+  data: AbonoDataRow[];
+  generalData: GeneralData;
 };
 
 type PreparedAbonoRow = AbonoDataRow & {
@@ -59,23 +59,23 @@ type PreparedAbonoRow = AbonoDataRow & {
 
 type AbonoMasivoDetail = {
   id: number;
-  tipo?: string;
-  nombre_objetivo?: string | null;
-  empresa?: string | null;
-  jornada?: number | null;
-  cliente?: string | null;
-  creado_en?: string;
-  total?: number;
-  cantidad_abonos?: number;
-  abonos?: Array<{
+  tipo: string;
+  nombre_objetivo: string | null;
+  empresa: string | null;
+  jornada: number | null;
+  cliente: string | null;
+  creado_en: string;
+  total: number;
+  cantidad_abonos: number;
+  abonos: Array<{
     id: number;
-    venta_id?: number;
-    cliente_id?: number;
-    cliente_nombre?: string | null;
-    precio?: number;
-    fecha?: string;
-    descripcion?: string | null;
-    medioDePago?: string | null;
+    venta_id: number;
+    cliente_id: number;
+    cliente_nombre: string | null;
+    precio: number;
+    fecha: string;
+    descripcion: string | null;
+    medioDePago: string | null;
   }>;
 };
 
@@ -99,7 +99,7 @@ const createEditState = (): EditFormState => ({
   fecha: null,
 });
 
-function parseDate(value?: string) {
+function parseDate(value: string) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -143,11 +143,11 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
         ...item,
         idLabel: item.id ? `#${item.id}` : "-",
         facturaLabel: item.factura_id ? `#${item.factura_id}` : "-",
-        clienteLabel: item.cliente?.toString().trim() || "Sin cliente",
-        cedulaLabel: item.cedula?.toString() || "Sin documento",
-        metodoPagoLabel: item.nombre?.toString().trim() || "Sin medio de pago",
-        fechaLabel: item.fecha?.toString() || "-",
-        precioLabel: item.precio?.toString() || "$ 0",
+        clienteLabel: item.cliente.toString().trim() || "Sin cliente",
+        cedulaLabel: item.cedula.toString() || "Sin documento",
+        metodoPagoLabel: item.nombre.toString().trim() || "Sin medio de pago",
+        fechaLabel: item.fecha.toString() || "-",
+        precioLabel: item.precio.toString() || "$ 0",
         isAbonoMasivo: !!item.abono_masivo_id,
       })),
     [tableData]
@@ -175,7 +175,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
   const totalsByMethod = useMemo(() => {
     const totals = new Map<string, number>();
     tableData.forEach((item) => {
-      const key = item.nombre?.toString().trim() || "Sin medio de pago";
+      const key = item.nombre.toString().trim() || "Sin medio de pago";
       totals.set(key, (totals.get(key) || 0) + parseCurrencyValue(item.precio as string | number));
     });
 
@@ -206,14 +206,14 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
     try {
       const req = await callApi(`abonos/masivo/${row.abono_masivo_id}/`);
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || "No fue posible cargar el detalle del abono masivo.");
+        throw new Error(req.data.detail || "No fue posible cargar el detalle del abono masivo.");
       }
       setMassiveDetail(req.data as AbonoMasivoDetail);
     } catch (error) {
       setActionError(
         error instanceof Error
-          ? error.message
-          : "No fue posible cargar el detalle del abono masivo."
+            ? error.message
+            : "No fue posible cargar el detalle del abono masivo."
       );
     } finally {
       setDetailLoading(false);
@@ -228,7 +228,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
       cliente_id: row.cedula ? Number(row.cedula) : null,
       precio: Number(String(row.precio ?? 0).replace(/\D/g, "")) || 0,
       medioDePago: row.medioDePago_id ? Number(row.medioDePago_id) : null,
-      descripcion: row.descripcion?.toString() || "",
+      descripcion: row.descripcion.toString() || "",
       fecha: parseDate(row.fechaRaw || row.fecha),
     });
     setEditModalOpen(true);
@@ -273,10 +273,10 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
       });
 
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || "No fue posible actualizar el abono.");
+        throw new Error(req.data.detail || "No fue posible actualizar el abono.");
       }
 
-      const medioSeleccionado = generalData.mediosPago?.find(
+      const medioSeleccionado = (generalData.mediosPago ?? []).find(
         (medio) => Number(medio.id) === editForm.medioDePago
       );
 
@@ -293,9 +293,9 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
                 fecha: editForm.fecha
                   ? editForm.fecha.toLocaleDateString("es-CO")
                   : item.fecha,
-                fechaRaw: formatDateForApi(editForm.fecha) ?? item.fechaRaw,
+                fechaRaw: formatDateForApi(editForm.fecha) || item.fechaRaw,
                 medioDePago_id: editForm.medioDePago ?? undefined,
-                nombre: medioSeleccionado?.nombre ?? item.nombre,
+                nombre: medioSeleccionado?.nombre || item.nombre,
                 descripcion: editForm.descripcion,
               }
             : item
@@ -304,7 +304,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
 
       setEditModalOpen(false);
       setEditForm(createEditState());
-      toastRef.current?.show({
+      toastRef.current.show({
         severity: "success",
         summary: "Abono actualizado",
         detail: `Se actualizó el abono #${editForm.id}.`,
@@ -326,7 +326,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget?.id) return;
+    if (!deleteTarget.id) return;
     setSubmitting(true);
     setActionError(null);
     try {
@@ -339,7 +339,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
       });
 
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || "No fue posible eliminar el abono.");
+        throw new Error(req.data.detail || "No fue posible eliminar el abono.");
       }
 
       setTableData((prev) =>
@@ -347,7 +347,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
       );
       setDeleteModalOpen(false);
       setDeleteTarget(null);
-      toastRef.current?.show({
+      toastRef.current.show({
         severity: "success",
         summary: "Abono eliminado",
         detail: `Se eliminó el abono ${deleteTarget.idLabel}.`,
@@ -504,9 +504,9 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
       >
         <div className="d-flex flex-column gap-3">
           <p className="mb-0">
-            ¿Seguro que deseas eliminar el abono{" "}
-            <strong>{deleteTarget?.idLabel ?? ""}</strong> de la venta{" "}
-            <strong>{deleteTarget?.facturaLabel ?? ""}</strong>?
+            ?Seguro que deseas eliminar el abono{" "}
+            <strong>{deleteTarget.idLabel || ""}</strong> de la venta{" "}
+            <strong>{deleteTarget.facturaLabel || ""}</strong>
           </p>
 
           {actionError ? (
@@ -532,7 +532,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
               onClick={handleDelete}
               disabled={submitting}
             >
-              {submitting ? "Eliminando..." : "Eliminar"}
+               {submitting ? "Eliminando..." : "Eliminar"}
             </button>
           </div>
         </div>
@@ -597,7 +597,7 @@ function AbonosData({ data = [], generalData = {} }: AbonosDataProps) {
                   {(massiveDetail.abonos ?? []).map((item) => (
                     <tr key={item.id}>
                       <td>#{item.id}</td>
-                      <td>#{item.venta_id ?? "-"}</td>
+                      <td>#{item.venta_id || "-"}</td>
                       <td>{item.cliente_nombre || item.cliente_id || "-"}</td>
                       <td>{item.medioDePago || "-"}</td>
                       <td>{item.fecha ? new Date(item.fecha).toLocaleDateString("es-CO") : "-"}</td>

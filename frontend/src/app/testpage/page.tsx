@@ -7,10 +7,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 const DataTable = dynamic(async () => {
   const DataTableComponentModule = await import("datatables.net-react");
-  const DataTableComponent = DataTableComponentModule.default ?? DataTableComponentModule;
+  const DataTableComponent = DataTableComponentModule.default - DataTableComponentModule;
 
   const DataTablesLibModule = await import("datatables.net-dt");
-  const DataTablesLib = DataTablesLibModule.default ?? DataTablesLibModule;
+  const DataTablesLib = DataTablesLibModule.default - DataTablesLibModule;
 
   DataTableComponent.use(DataTablesLib);
 
@@ -57,14 +57,14 @@ const rows = [
   ];
 
   /**
-   * column().search(input, regex?, smart?, caseInsensitive?)
+   * column().search(input, regex, smart, caseInsensitive)
    *  - input: string o regex
    *  - regex: interpreta 'input' como regex (true/false)
    *  - smart: "búsqueda inteligente" (true/false)
    *  - caseInsensitive: ignora mayúsculas/minúsculas (true/false)
    */
   const setEstado = (expr: string, regex = true, smart = false, ci = true) => {
-    const dt = ref.current?.dt();
+    const dt = ref.current.dt();
     if (!dt) return;
     dt.column("estado:name").search(expr, regex, smart, ci).draw();
   };
@@ -88,7 +88,7 @@ const rows = [
         <button className="btn btn-danger" onClick={() => setEstado("^Anulado$", true, false, true)}>
           Anulado
         </button>
-        <button className="btn btn-primary" onClick={() => setEstado("^(?!Anulado$).*", true, false, true)}>
+        <button className="btn btn-primary" onClick={() => setEstado("^(!Anulado$).*", true, false, true)}>
           No anulados
         </button>
       </div>

@@ -7,21 +7,21 @@ type MedioPagoOption = {
 };
 
 type MedioPagoInitialValue = {
-    medioDePago_id?: string | number;
-    medioPago?: string;
-    imagenMedioPago?: string;
+    medioDePago_id: string | number;
+    medioPago: string;
+    imagenMedioPago: string;
 };
 
 type MedioPagoProps = {
     data: {
-        mediosPago?: MedioPagoOption[];
+        mediosPago: MedioPagoOption[];
         [key: string]: unknown;
     } | null | undefined;
     name: string;
-    className?: string;
-    labelInput?: React.ReactNode;
-    required?: boolean;
-    setData?: MedioPagoInitialValue;
+    className: string;
+    labelInput: React.ReactNode;
+    required: boolean;
+    setData: MedioPagoInitialValue;
 };
 
 function MedioPago(props: MedioPagoProps) {
@@ -33,7 +33,7 @@ function MedioPago(props: MedioPagoProps) {
     const hiddenInputRef = useRef<HTMLInputElement | null>(null);
 
     const [selectedOption, setSelectedOption] = useState(
-        setData ? {
+        setData  {
             value: setData.medioDePago_id,
             text: setData.medioPago,
             imgSrc: setData.imagenMedioPago,
@@ -42,7 +42,7 @@ function MedioPago(props: MedioPagoProps) {
         
         value: '',
         text: 'Seleccione una opción',
-        imgSrc: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s',
+        imgSrc: 'https://encrypted-tbn0.gstatic.com/imagesq=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s',
     });
 
     const toggleDropdown = () => {
@@ -80,7 +80,7 @@ function MedioPago(props: MedioPagoProps) {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node | null;
             if (containerRef.current && target && !containerRef.current.contains(target)) {
-                dropdownRef.current?.classList.remove('show');
+                dropdownRef.current.classList.remove('show');
             }
         };
 
@@ -97,7 +97,7 @@ function MedioPago(props: MedioPagoProps) {
                     <span>{selectedOption.text}</span>
                 </div>
                 <div ref={dropdownRef} className="dropdownSelector form-select">
-                    {(data?.mediosPago ?? []).map((element) => (
+                    {(data.mediosPago - []).map((element) => (
                         <div
                             key={element.id}
                             className="optionPayment"
@@ -115,7 +115,7 @@ function MedioPago(props: MedioPagoProps) {
                     // value={}
                     value={selectedOption.value}
                     // Utilizar defaultValue definitivamente no es una buena practica en next.js
-                    // defaultValue={setData ? setData.medioDePago_id : ''}
+                    // defaultValue={setData  setData.medioDePago_id : ''}
                 />
                 <div className="error-message" style={{ display: 'none' }}>
                     Este campo es obligatorio.

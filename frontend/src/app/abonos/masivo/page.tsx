@@ -8,46 +8,46 @@ import { fechaFormat } from "@/utils/js/utils";
 const defaultMode = "empresa";
 
 type ClienteOption = {
-  id?: number;
-  cedula?: number | string;
-  nombre?: string;
-  apellido?: string;
+  id: number;
+  cedula: number | string;
+  nombre: string;
+  apellido: string;
 };
 
 type EmpresaOption = {
   id: number | string;
-  nombre?: string;
-  nit?: string;
+  nombre: string;
+  nit: string;
 };
 
 type JornadaOption = {
   id: number | string;
-  fecha?: string;
-  empresa__nombre?: string;
-  empresa_nombre?: string;
-  sucursal?: string;
+  fecha: string;
+  empresa__nombre: string;
+  empresa_nombre: string;
+  sucursal: string;
 };
 
 type MedioPagoOption = {
   id: number | string;
-  nombre?: string;
+  nombre: string;
 };
 
 type PreviewRow = {
   id: number | string;
-  cliente_id?: number | string;
-  empresaCliente?: string;
-  jornada_id?: number | string | null;
-  precio?: number;
-  total_abonos?: number;
-  saldo?: number;
-  saldoInicial?: number;
-  aplicar?: number;
-  saldoFinal?: number;
-  cuotas?: number | string | null;
-  numeroCuotas?: number | string | null;
-  compromisoPago?: number | string | null;
-  fecha?: string;
+  cliente_id: number | string;
+  empresaCliente: string;
+  jornada_id: number | string | null;
+  precio: number;
+  total_abonos: number;
+  saldo: number;
+  saldoInicial: number;
+  aplicar: number;
+  saldoFinal: number;
+  cuotas: number | string | null;
+  numeroCuotas: number | string | null;
+  compromisoPago: number | string | null;
+  fecha: string;
 };
 
 type ApplyPayload = {
@@ -59,9 +59,9 @@ type ApplyPayload = {
     venta_id: PreviewRow["id"];
     monto: number | undefined;
   }>;
-  empresa_id?: string;
-  jornada_id?: string;
-  cliente_id?: string;
+  empresa_id: string;
+  jornada_id: string;
+  cliente_id: string;
 };
 
 function AbonosMasivosPage() {
@@ -352,7 +352,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona una empresa.");
         return;
       }
-      endpoint = `abonos/masivo/preview/?tipo=empresa&empresa_id=${empresaForm.empresaId}`;
+      endpoint = `abonos/masivo/preview/tipo=empresa&empresa_id=${empresaForm.empresaId}`;
     } else if (modo === "jornada") {
       tipo = "jornada";
       montoRaw = jornadaForm.monto || 0;
@@ -360,7 +360,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona una jornada.");
         return;
       }
-      endpoint = `abonos/masivo/preview/?tipo=jornada&jornada_id=${jornadaForm.jornadaId}`;
+      endpoint = `abonos/masivo/preview/tipo=jornada&jornada_id=${jornadaForm.jornadaId}`;
     } else {
       tipo = "cliente";
       montoRaw = clienteForm.monto || 0;
@@ -368,7 +368,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona un cliente.");
         return;
       }
-      endpoint = `abonos/masivo/preview/?tipo=cliente&cliente_id=${clienteForm.clienteId}`;
+      endpoint = `abonos/masivo/preview/tipo=cliente&cliente_id=${clienteForm.clienteId}`;
     }
 
     const monto = Number(montoRaw || 0);
@@ -381,7 +381,7 @@ function AbonosMasivosPage() {
     try {
       const { res, data } = await callApi(endpoint);
       if (!res.ok) {
-        throw new Error(data?.detail || "No se pudo cargar las ventas.");
+        throw new Error(data.detail || "No se pudo cargar las ventas.");
       }
 
       const ventas = Array.isArray(data) ? data : [];
@@ -450,7 +450,7 @@ function AbonosMasivosPage() {
 
   const getNumeroCuotas = (row: PreviewRow) => {
     const cuotas = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
-    return cuotas ?? "—";
+    return cuotas ?? "-";
   };
 
   const getValorCuota = (row: PreviewRow): number => {
@@ -459,6 +459,32 @@ function AbonosMasivosPage() {
     const cuotas = Number(cuotasRaw || 0);
     if (!cuotas) return 0;
     return saldo / cuotas;
+  };
+
+
+  const getCuotasVersus = (row: PreviewRow) => {
+    const totalCuotas = Number((row.cuotas ?? row.numeroCuotas ?? row.compromisoPago) || 0);
+    const precio = Number(row.precio || 0);
+    const totalAbonos = Number(row.total_abonos || 0);
+
+    if (!totalCuotas || totalCuotas <= 0 || !precio || precio <= 0) {
+      return null;
+    }
+
+    const valorCuota = precio / totalCuotas;
+    if (!valorCuota || valorCuota <= 0) {
+      return null;
+    }
+
+    const pagadas = Math.min(totalCuotas, totalAbonos / valorCuota);
+    const pendientes = Math.max(totalCuotas - pagadas, 0);
+    return { pagadas, pendientes };
+  };
+
+  const formatCuotasMetric = (value: number) => {
+    if (!Number.isFinite(value)) return "0";
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   };
 
   const handleAplicarAbonos = async () => {
@@ -484,20 +510,20 @@ function AbonosMasivosPage() {
         modo === "empresa"
           ? empresaForm.medioPago
           : modo === "jornada"
-          ? jornadaForm.medioPago
-          : clienteForm.medioPago,
+            ? jornadaForm.medioPago
+            : clienteForm.medioPago,
       descripcion:
         modo === "empresa"
           ? empresaForm.descripcion
           : modo === "jornada"
-          ? jornadaForm.descripcion
-          : clienteForm.descripcion,
+            ? jornadaForm.descripcion
+            : clienteForm.descripcion,
       fecha:
         modo === "empresa"
           ? empresaForm.fecha
           : modo === "jornada"
-          ? jornadaForm.fecha
-          : clienteForm.fecha,
+            ? jornadaForm.fecha
+            : clienteForm.fecha,
       items: previewRows
         .filter((row) => selectedVentas.has(row.id))
         .map((row) => ({
@@ -533,7 +559,7 @@ function AbonosMasivosPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(data?.detail || "No se pudo aplicar el abono masivo.");
+        throw new Error(data.detail || "No se pudo aplicar el abono masivo.");
       }
       setApplySuccess("Abono masivo aplicado correctamente.");
     } catch (err: unknown) {
@@ -611,7 +637,7 @@ function AbonosMasivosPage() {
                   locale="es-CO"
                   value={empresaForm.monto || null}
                   onValueChange={(e) =>
-                    setEmpresaForm((prev) => ({ ...prev, monto: e.value ?? 0 }))
+                    setEmpresaForm((prev) => ({ ...prev, monto: Number(e.value || 0) }))
                   }
                 />
               </div>
@@ -636,7 +662,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-4">
-                <label className="form-label">Descripción</label>
+                 <label className="form-label">Descripci?n</label>
                 <input
                   type="text"
                   className="form-control"
@@ -654,7 +680,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribución
+                Previsualizar distribuci?n
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -714,7 +740,7 @@ function AbonosMasivosPage() {
                   locale="es-CO"
                   value={jornadaForm.monto || null}
                   onValueChange={(e) =>
-                    setJornadaForm((prev) => ({ ...prev, monto: e.value ?? 0 }))
+                    setJornadaForm((prev) => ({ ...prev, monto: Number(e.value || 0) }))
                   }
                 />
               </div>
@@ -739,7 +765,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-8">
-                <label className="form-label">Descripción</label>
+                 <label className="form-label">Descripci?n</label>
                 <input
                   type="text"
                   className="form-control"
@@ -757,7 +783,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribución
+                Previsualizar distribuci?n
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -813,7 +839,7 @@ function AbonosMasivosPage() {
                   locale="es-CO"
                   value={clienteForm.monto || null}
                   onValueChange={(e) =>
-                    setClienteForm((prev) => ({ ...prev, monto: e.value ?? 0 }))
+                    setClienteForm((prev) => ({ ...prev, monto: Number(e.value || 0) }))
                   }
                 />
               </div>
@@ -838,7 +864,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-8">
-                <label className="form-label">Descripción</label>
+                 <label className="form-label">Descripci?n</label>
                 <input
                   type="text"
                   className="form-control"
@@ -856,7 +882,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribución
+                Previsualizar distribuci?n
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -868,13 +894,13 @@ function AbonosMasivosPage() {
 
       <div className="mt-4">
         {previewError ? <div className="alert alert-warning">{previewError}</div> : null}
-        {previewLoading ? <div className="alert alert-info">Cargando previsualización...</div> : null}
+        {previewLoading ? <div className="alert alert-info">Cargando previsualizaci?n...</div> : null}
         {applyError ? <div className="alert alert-danger">{applyError}</div> : null}
         {applySuccess ? <div className="alert alert-success">{applySuccess}</div> : null}
         {previewRows.length > 0 ? (
           <div className="card">
             <div className="card-body">
-              <h6 className="card-title">Previsualización de distribución</h6>
+              <h6 className="card-title">Previsualizaci?n de distribuci?n</h6>
               <div className="row g-3 align-items-end mb-3">
                 <div className="col-md-4">
                   <label className="form-label">Monto a distribuir</label>
@@ -887,7 +913,7 @@ function AbonosMasivosPage() {
                     locale="es-CO"
                     value={previewMonto}
                     onValueChange={(e) => {
-                      const montoNum = e.value ?? 0;
+                      const montoNum = Number(e.value || 0);
                       setPreviewMonto(montoNum);
                       const { rows, summary } = applyMontoToSelected(
                         previewRows,
@@ -958,7 +984,8 @@ function AbonosMasivosPage() {
                       </th>
                       <th>Venta</th>
                       <th>Cliente</th>
-                      <th className="text-center">Cuotas</th>
+                      <th className="text-center">Cuotas pag./total</th>
+                      <th className="text-center">Cuotas pendientes</th>
                       <th className="text-center">Valor cuota</th>
                       <th>Saldo actual</th>
                       <th>Abono a aplicar</th>
@@ -978,7 +1005,20 @@ function AbonosMasivosPage() {
                         </td>
                         <td>{row.id}</td>
                         <td>{clientesMap.get(row.cliente_id) || row.cliente_id}</td>
-                        <td className="text-center">{getNumeroCuotas(row)}</td>
+                        <td className="text-center">
+                          {(() => {
+                            const cuotas = getCuotasVersus(row);
+                            if (!cuotas) return getNumeroCuotas(row);
+                            return `${formatCuotasMetric(cuotas.pagadas)} / ${formatCuotasMetric(Number((row.cuotas ?? row.numeroCuotas ?? row.compromisoPago) || 0))}`;
+                          })()}
+                        </td>
+                        <td className="text-center">
+                          {(() => {
+                            const cuotas = getCuotasVersus(row);
+                            if (!cuotas) return '-';
+                            return formatCuotasMetric(cuotas.pendientes);
+                          })()}
+                        </td>
                         <td className="text-center">{formatCurrency(getValorCuota(row))}</td>
                         <td>{formatCurrency(row.saldoInicial)}</td>
                         <td>

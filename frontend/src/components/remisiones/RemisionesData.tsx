@@ -20,10 +20,10 @@ type RemisionItem = {
   cantidad: number;
   cantidadDespachada: number;
   restante: number;
-  precioUnitario?: number;
-  totalRemisionado?: number;
-  descuento?: number;
-  articulo?: {
+  precioUnitario: number;
+  totalRemisionado: number;
+  descuento: number;
+  articulo: {
     id: number;
     nombre: string;
   };
@@ -32,34 +32,34 @@ type RemisionItem = {
 type Abono = {
   id: number;
   precio: number;
-  medioDePago?: number;
-  medioPagoNombre?: string | null;
-  fecha?: string;
-  descripcion?: string | null;
+  medioDePago: number;
+  medioPagoNombre: string | null;
+  fecha: string;
+  descripcion: string | null;
 };
 
 type RemisionRow = {
   id: number;
   venta: number;
-  cliente?: {
-    cedula?: number;
-    nombre?: string;
-    telefono?: string;
+  cliente: {
+    cedula: number;
+    nombre: string;
+    telefono: string;
   };
-  empresaCliente?: string | null;
+  empresaCliente: string | null;
   fecha: string;
   creado_en: string;
-  observacion?: string | null;
-  items?: RemisionItem[];
-  totalRemision?: number;
-  abonos?: Abono[];
-  condicionPago?: string | null;
-  compromisoPago?: number | null;
-  numeroCuotas?: number | null;
-  fechaInicio?: string | null;
-  fechaVencimiento?: string | null;
-  valorCuota?: number | null;
-  cuotasPagadas?: number | null;
+  observacion: string | null;
+  items: RemisionItem[];
+  totalRemision: number;
+  abonos: Abono[];
+  condicionPago: string | null;
+  compromisoPago: number | null;
+  numeroCuotas: number | null;
+  fechaInicio: string | null;
+  fechaVencimiento: string | null;
+  valorCuota: number | null;
+  cuotasPagadas: number | null;
 };
 
 type PreparedRemisionRow = RemisionRow & {
@@ -76,15 +76,15 @@ type PreparedRemisionRow = RemisionRow & {
 type ColumnMeta = {
   field: keyof PreparedRemisionRow | string;
   header: string;
-  sortable?: boolean;
-  bodyClassName?: string;
+  sortable: boolean;
+  bodyClassName: string;
 };
 
 type Props = {
   data: RemisionRow[];
 };
 
-const formatDate = (value?: string) => {
+const formatDate = (value: string) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
@@ -109,7 +109,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   const [formulaError, setFormulaError] = useState<string | null>(null);
   const [formulaImages, setFormulaImages] = useState<string[]>([]);
 
-  const resolveMediaUrl = (path?: string | null) => {
+  const resolveMediaUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
     const base = IP_URL();
@@ -120,7 +120,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   };
 
   const handleFormulaModal = useCallback(async () => {
-    if (!selected?.venta) return;
+    if (!selected.venta) return;
     setFormulaOpen(true);
     setFormulaLoading(true);
     setFormulaError(null);
@@ -128,7 +128,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     try {
       const req = await callApi(`venta/${selected.venta}`);
       if (!req.res.ok) {
-        throw new Error(req.data?.detail || "No fue posible obtener la fÃ³rmula.");
+        throw new Error(req.data.detail || "No fue posible obtener la f?rmula.");
       }
       const data = req.data || {};
       const candidates: string[] = [];
@@ -145,11 +145,11 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         .filter(Boolean) as string[];
 
       if (!resolved.length) {
-        setFormulaError("No hay fÃ³rmulas asociadas a esta venta.");
+        setFormulaError("No hay f?rmulas asociadas a esta venta.");
       }
       setFormulaImages(resolved);
     } catch (error) {
-      setFormulaError(error instanceof Error ? error.message : "Error al cargar la fÃ³rmula.");
+      setFormulaError(error instanceof Error ? error.message : "Error al cargar la f?rmula.");
     } finally {
       setFormulaLoading(false);
     }
@@ -170,7 +170,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
       const ventaReq = await callApi(`venta/${selected.venta}`);
       if (!ventaReq.res.ok) {
-        throw new Error(ventaReq.data?.detail || "No fue posible obtener el detalle de la venta para imprimir.");
+        throw new Error(ventaReq.data.detail || "No fue posible obtener el detalle de la venta para imprimir.");
       }
 
       const ventaData = ventaReq.data || {};
@@ -184,24 +184,24 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         format: "pos",
         copies: 1,
         data: {
-          numero: `REM-${selected.id}` ,
+          numero: `REM-${selected.id}`,
           fecha: selected.fecha,
           cliente: selected.clienteNombre,
           items: (selected.items || []).map((item) => ({
-            descripcion: item.articulo?.nombre ?? `Item ${item.itemVenta}` ,
+            descripcion: item.articulo?.nombre || `Item ${item.itemVenta}`,
             cantidad: item.cantidad,
-            valor_unitario: item.precioUnitario ?? 0,
-            valor_total: item.totalRemisionado ?? ((item.precioUnitario ?? 0) * (item.cantidad ?? 0)),
+            valor_unitario: Number(item.precioUnitario || 0),
+            valor_total: Number(item.totalRemisionado || 0) || (Number(item.precioUnitario || 0) * Number(item.cantidad || 0)),
           })),
           valor_venta: valorVenta,
           abonado: abonado,
           saldo: saldo,
           abonos: abonos.map((abono) => ({
-            medio_pago: abono.medioPagoNombre ?? String(abono.medioDePago ?? "N/A"),
-            fecha: abono.fecha ?? "",
-            valor: abono.precio ?? 0,
+            medio_pago: abono.medioPagoNombre || String(abono.medioDePago || "N/A"),
+            fecha: abono.fecha || "",
+            valor: Number(abono.precio || 0),
           })),
-          observaciones: selected.observacion ?? "",
+          observaciones: selected.observacion || "",
         },
       };
 
@@ -213,13 +213,13 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
       const responseData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(responseData?.detail || "No fue posible enviar la remisión al servicio de impresión.");
+        throw new Error(responseData.detail || "No fue posible enviar la remisión al servicio de impresión.");
       }
 
       await swalconfirmation(`Remisión #${selected.id} enviada a impresión.`);
     } catch (error) {
       console.error(error);
-      await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remisión.");
+      await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remisi?n.");
     } finally {
       setPrinting(false);
     }
@@ -230,30 +230,28 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     return (data ?? []).map((remision) => {
       const items = remision.items ?? [];
       const cantidadRemitida = items.reduce(
-        (acc, item) => acc + (item?.cantidad ?? 0),
+        (acc, item) => acc + Number(item.cantidad || 0),
         0
       );
       const totalDespachado = items.reduce(
-        (acc, item) => acc + (item?.cantidadDespachada ?? 0),
+        (acc, item) => acc + Number(item.cantidadDespachada || 0),
         0
       );
       return {
         ...remision,
-        clienteNombre: remision.cliente?.nombre ?? "Sin dato",
-        clienteCedula: remision.cliente?.cedula
-          ? remision.cliente.cedula.toString()
-          : "Sin dato",
-        empresaCliente: remision.empresaCliente ?? "Sin empresa",
+        clienteNombre: remision.cliente?.nombre || "Sin dato",
+        clienteCedula: remision.cliente?.cedula ? remision.cliente.cedula.toString() : "Sin dato",
+        empresaCliente: remision.empresaCliente || "Sin empresa",
         fechaFormateada: formatDate(remision.fecha),
         itemsCount: items.length,
         cantidadRemitida,
         totalDespachado,
         totalRemision:
-          remision.totalRemision ??
+          Number(remision.totalRemision || 0) ||
           items.reduce((acc, item) => {
             const totalItem =
-              item.totalRemisionado ??
-              (item.precioUnitario ?? 0) * (item.cantidad ?? 0);
+              Number(item.totalRemisionado || 0) ||
+              (Number(item.precioUnitario || 0) * Number(item.cantidad || 0));
             return acc + (Number.isNaN(totalItem) ? 0 : totalItem);
           }, 0),
       };
@@ -262,7 +260,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
-      { field: "id", header: "RemisiÃ³n", sortable: true },
+      { field: "id", header: "Remisi?n", sortable: true },
       { field: "venta", header: "Venta", sortable: true },
       { field: "clienteNombre", header: "Cliente", sortable: true },
       { field: "clienteCedula", header: "Documento" },
@@ -271,7 +269,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
       { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
       { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center" },
-      { field: "totalRemision", header: "Total remisiÃ³n", bodyClassName: "text-end" },
+      { field: "totalRemision", header: "Total remisi?n", bodyClassName: "text-end" },
     ],
     []
   );
@@ -302,7 +300,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         <div className="d-flex flex-column">
           {/* <span className="fw-semibold">Listado de remisiones</span> */}
           <span className="text-muted small">
-            Consulta rÃ¡pida por cliente, fecha o documento.
+            Consulta r?pida por cliente, fecha o documento.
           </span>
         </div>
         <span className="p-input-icon-left remisiones-search">
@@ -340,8 +338,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     if (!selected) return 0;
     return (selected.items ?? []).reduce((acc, item) => {
       const totalItem =
-        item.totalRemisionado ??
-        (item.precioUnitario ?? 0) * (item.cantidad ?? 0);
+        Number(item.totalRemisionado || 0) ||
+        (Number(item.precioUnitario || 0) * Number(item.cantidad || 0));
       return acc + (Number.isNaN(totalItem) ? 0 : totalItem);
     }, 0);
   }, [selected]);
@@ -546,23 +544,23 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         <div className="ventas-card ">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
-              <h4 className="mb-1">Detalle remisiÃ³n #{selected.id}</h4>
+              <h4 className="mb-1">Detalle remisi?n #{selected.id}</h4>
               <div className="text-muted small">
-                Venta #{selected.venta} Â- {selected.fechaFormateada}
+                Venta #{selected.venta} - {selected.fechaFormateada}
               </div>
               {selected.observacion && (
                 <div className="text-muted small mt-1">
-                  ObservaciÃ³n: {selected.observacion}
+                  Observacion: {selected.observacion}
                 </div>
               )}
             </div>
             <div className="text-end">
               <div className="fw-semibold">Cliente</div>
               <div className="text-muted small">
-                {selected.clienteNombre} Â- {selected.clienteCedula}
+                {selected.clienteNombre} - {selected.clienteCedula}
               </div>
               <div className="mt-2">
-                <div className="text-muted small">Total remisiÃ³n</div>
+                <div className="text-muted small">Total remisi?n</div>
                 <div className="fw-semibold">
                   {moneyformat(totalRemisionSeleccionada)}
                 </div>
@@ -573,7 +571,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                   className="btn btn-sm btn-outline-primary"
                   onClick={handleFormulaModal}
                 >
-                  Ver f?rmula
+                  Ver formula
                 </button>
                 <button
                   type="button"
@@ -591,7 +589,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             <table className="table table-sm align-middle mb-0">
               <thead>
                 <tr>
-                  <th>ArtÃ­culo</th>
+                  <th>Art?culo</th>
                   <th className="text-center">Remitido</th>
                   <th className="text-center">Precio</th>
                   <th className="text-center">Descuento</th>
@@ -603,16 +601,16 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               <tbody>
                 {(selected.items ?? []).map((item) => (
                   <tr key={item.id}>
-                    <td>{item.articulo?.nombre ?? `Item ${item.itemVenta}`}</td>
+                    <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
                     <td className="text-center fw-semibold">{item.cantidad}</td>
-                    <td className="text-center">{moneyformat(item.precioUnitario ?? 0)}</td>
+                    <td className="text-center">{moneyformat(Number(item.precioUnitario || 0))}</td>
                     <td className="text-center">
                       {item.descuento ? `${item.descuento}%` : "0%"}
                     </td>
                     <td className="text-center fw-semibold">
                       {moneyformat(
-                        item.totalRemisionado ??
-                          (item.precioUnitario ?? 0) * (item.cantidad ?? 0)
+                        item.totalRemisionado -
+                          (Number(item.precioUnitario || 0) * Number(item.cantidad || 0))
                       )}
                     </td>
                     <td className="text-center text-primary">
@@ -636,7 +634,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     <tr>
                       <th>Fecha</th>
                       <th>Medio de pago</th>
-                      <th>DescripciÃ³n</th>
+                      <th>Descripcion</th>
                       <th className="text-end">Valor</th>
                     </tr>
                   </thead>
@@ -644,10 +642,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     {(selected.abonos ?? []).map((abono) => (
                       <tr key={abono.id}>
                         <td>{formatDate(abono.fecha)}</td>
-                        <td>{abono.medioPagoNombre ?? abono.medioDePago ?? "â€”"}</td>
-                        <td>{abono.descripcion ?? "â€”"}</td>
+                        <td>{abono.medioPagoNombre || abono.medioDePago || "-"}</td>
+                        <td>{abono.descripcion || "-"}</td>
                         <td className="text-end fw-semibold">
-                          {moneyformat(abono.precio ?? 0)}
+                          {moneyformat(Number(abono.precio || 0))}
                         </td>
                       </tr>
                     ))}
@@ -660,7 +658,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                       <td className="text-end fw-semibold">
                         {moneyformat(
                           (selected.abonos ?? []).reduce(
-                            (acc, abono) => acc + (abono.precio ?? 0),
+                            (acc, abono) => acc + Number(abono.precio || 0),
                             0
                           )
                         )}
@@ -671,11 +669,11 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               </div>
             )}
             <div className="mt-3 text-muted small">
-              <div>CondiciÃ³n de pago: <strong>{selected.condicionPago ?? "â€”"}</strong></div>
-              <div>Compromiso de pago: <strong>{selected.compromisoPago ?? "â€”"}</strong></div>
-              <div>NÃºmero de cuotas: <strong>{selected.numeroCuotas ?? "â€”"}</strong></div>
-              <div>Valor por cuota: <strong>{moneyformat(selected.valorCuota ?? 0)}</strong></div>
-              <div>Cuotas pagadas: <strong>{selected.cuotasPagadas ?? 0}</strong></div>
+              <div>Condici?n de pago: <strong>{selected.condicionPago || "-"}</strong></div>
+              <div>Compromiso de pago: <strong>{selected.compromisoPago || "-"}</strong></div>
+              <div>N?mero de cuotas: <strong>{selected.numeroCuotas || "-"}</strong></div>
+              <div>Valor por cuota: <strong>{moneyformat(Number(selected.valorCuota || 0))}</strong></div>
+              <div>Cuotas pagadas: <strong>{Number(selected.cuotasPagadas || 0)}</strong></div>
             </div>
           </div>
         </div>
@@ -683,13 +681,13 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       )}
 
       <Dialog
-        header={`FÃ³rmula Â- Venta #${selected?.venta ?? "--"}`}
+        header={`F?rmula - Venta #${selected?.venta ?? "--"}`}
         visible={formulaOpen}
         style={{ width: "70vw", maxWidth: "900px" }}
         onHide={() => setFormulaOpen(false)}
       >
         {formulaLoading && (
-          <div className="py-3 text-center text-muted">Cargando fÃ³rmulaâ€¦</div>
+          <div className="py-3 text-center text-muted">Cargando formulas</div>
         )}
         {formulaError && !formulaLoading && (
           <div className="text-danger mb-2">{formulaError}</div>
@@ -700,7 +698,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               <div key={`${src}-${idx}`} className="border rounded p-2 bg-light">
                 <img
                   src={src}
-                  alt={`FÃ³rmula ${idx + 1}`}
+                  alt={`F?rmula ${idx + 1}`}
                   style={{ maxWidth: "100%", maxHeight: "70vh", objectFit: "contain" }}
                 />
               </div>

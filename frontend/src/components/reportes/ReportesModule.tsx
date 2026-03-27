@@ -23,7 +23,7 @@ type ReportDefinition = {
   columns: Array<{
     field: string;
     header: string;
-    body?: (row: ReportRow) => React.ReactNode;
+    body: (row: ReportRow) => React.ReactNode;
   }>;
 };
 
@@ -77,7 +77,7 @@ function ReportesModule({
   fetchError,
 }: {
   data: ReportesData;
-  fetchError?: string | null;
+  fetchError: string | null;
 }) {
   const [activeReport, setActiveReport] = useState<ReportKey>("movimientos_ingresos");
   const [filters, setFilters] = useState<Record<ReportKey, string>>({

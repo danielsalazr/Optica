@@ -5,26 +5,26 @@ import Image from 'next/image';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils';
 
 type AbonoListVenta = {
-  id?: number | string;
-  cedula?: number | string;
-  cliente?: string;
-  abono?: number | string;
-  precio?: number | string;
-  saldo?: number | string;
-  totalAbono?: number | string;
+  id: number | string;
+  cedula: number | string;
+  cliente: string;
+  abono: number | string;
+  precio: number | string;
+  saldo: number | string;
+  totalAbono: number | string;
 };
 
 type AbonoListRow = {
-  fecha?: string;
-  imagenMedioPago?: string;
-  medioDePago?: string;
-  precio?: number | string;
+  fecha: string;
+  imagenMedioPago: string;
+  medioDePago: string;
+  precio: number | string;
   [key: string]: unknown;
 };
 
 type AbonosListProps = {
   data: AbonoListVenta;
-  generalData?: unknown;
+  generalData: unknown;
 };
 
 function AbonosList(props: AbonosListProps) {

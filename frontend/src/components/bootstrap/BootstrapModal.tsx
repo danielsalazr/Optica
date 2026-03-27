@@ -5,15 +5,15 @@ import Modal from 'react-bootstrap/Modal';
 
 type BootstrapModalProps = {
     onHide: () => void;
-    title?: React.ReactNode;
-    children: React.ReactElement<{ ref?: React.Ref<unknown> }>;
+    title: React.ReactNode;
+    children: React.ReactElement<{ ref: React.Ref<unknown> }>;
     onSubmit: (value: unknown) => void;
-    submitBtn?: React.ReactNode;
+    submitBtn: React.ReactNode;
     [key: string]: unknown;
 };
 
 export default function BootstrapModal(props: BootstrapModalProps) {
-    const formRef = useRef<{ submit?: () => Promise<unknown> | unknown } | null>(null);
+    const formRef = useRef<{ submit: () => Promise<unknown> | unknown } | null>(null);
     const { onHide, title, children, onSubmit, submitBtn, ...modalProps } = props;
   
 
@@ -21,7 +21,7 @@ export default function BootstrapModal(props: BootstrapModalProps) {
         console.log('Se activo')
         if (formRef.current) {
             console.log(formRef.current)
-            const consulta = await formRef.current.submit?.();
+            const consulta = await formRef.current.submit.();
             console.log(consulta)
             // console.log(formRef.telefono.getInstance().getNumber(telefono))
             if (consulta != false)  {

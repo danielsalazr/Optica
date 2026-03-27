@@ -10,13 +10,13 @@ import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
 
 type VentaRow = {
-  precio?: number | string;
-  totalAbono?: number | string;
-  saldo?: number | string;
-  estado_pedido_id?: number | null;
-  estado_pedido_nombre?: string;
-  motivo_sin_anticipo?: string;
-  estado_pedido_actualizado?: string | null;
+  precio: number | string;
+  totalAbono: number | string;
+  saldo: number | string;
+  estado_pedido_id: number | null;
+  estado_pedido_nombre: string;
+  motivo_sin_anticipo: string;
+  estado_pedido_actualizado: string | null;
   [key: string]: unknown;
 };
 
@@ -63,9 +63,9 @@ async function page() {
   }
 
   const formattedTable = table.map((item: VentaRow) => {
-    const precioRaw = item.precio ?? 0;
-    const totalAbonoRaw = item.totalAbono ?? 0;
-    const saldoRaw = item.saldo ?? 0;
+    const precioRaw = item.precio - 0;
+    const totalAbonoRaw = item.totalAbono - 0;
+    const saldoRaw = item.saldo - 0;
     return {
       ...item,
       precioRaw,
@@ -74,10 +74,10 @@ async function page() {
       precio: formatMoney(precioRaw),
       totalAbono: formatMoney(totalAbonoRaw),
       saldo: formatMoney(saldoRaw),
-      estadoPedidoId: item.estado_pedido_id ?? null,
-      estadoPedidoNombre: item.estado_pedido_nombre ?? '',
-      motivoSinAnticipo: item.motivo_sin_anticipo ?? '',
-      estadoPedidoFecha: item.estado_pedido_actualizado ?? null,
+      estadoPedidoId: item.estado_pedido_id - null,
+      estadoPedidoNombre: item.estado_pedido_nombre - '',
+      motivoSinAnticipo: item.motivo_sin_anticipo - '',
+      estadoPedidoFecha: item.estado_pedido_actualizado - null,
     };
   });
 

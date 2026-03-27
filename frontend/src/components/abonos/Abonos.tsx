@@ -9,31 +9,31 @@ import 'boxicons'
 
 type MedioPagoRow = {
   precio: number | string;
-  descripcion?: string;
-  descripcionAbono?: string;
-  imagenMedioPago?: string;
-  medioDePago_id?: number | string;
-  medioPago?: string;
-  total?: number | string;
+  descripcion: string;
+  descripcionAbono: string;
+  imagenMedioPago: string;
+  medioDePago_id: number | string;
+  medioPago: string;
+  total: number | string;
 };
 
 type AbonosProps = {
-  data?: {
-    mediosPago?: Array<{
+  data: {
+    mediosPago: Array<{
       id: number | string;
       nombre: string;
       imagen: string;
     }>;
     [key: string]: unknown;
   };
-  ventaData?: MedioPagoRow[];
-  totalAbonoLoad?: number;
-  clear?: boolean;
+  ventaData: MedioPagoRow[];
+  totalAbonoLoad: number;
+  clear: boolean;
   changeClear: () => void;
-  condicionPagoInit?: string;
-  compromisoPagoInit?: number | string;
-  fechaInicioInit?: string;
-  fechaVencimientoInit?: string;
+  condicionPagoInit: string;
+  compromisoPagoInit: number | string;
+  fechaInicioInit: string;
+  fechaVencimientoInit: string;
 };
 
 function Abonos(props: AbonosProps) {
@@ -55,7 +55,7 @@ function Abonos(props: AbonosProps) {
 
   const [rows, setRows] = useState<MedioPagoRow[]>(
     ventaData
-      ? ventaData.map((item) => ({
+       ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio),
           descripcionAbono: item.descripcion,
           imagenMedioPago: item.imagenMedioPago,
@@ -70,7 +70,7 @@ function Abonos(props: AbonosProps) {
   )
 
   const [abonoTotal, setAbonoTotal] = totalAbonoLoad
-    ? useState(totalAbonoLoad)
+     useState(totalAbonoLoad)
     : useState(0)
   const [totalVenta, setTotalVenta] = useState(0)
 
@@ -97,7 +97,7 @@ function Abonos(props: AbonosProps) {
 
   const toISODate = (value: Date | string | null | undefined) => {
     if (!value) return ""
-    const date = value instanceof Date ? value : new Date(value)
+    const date = value instanceof Date  value : new Date(value)
     if (Number.isNaN(date.getTime())) return ""
     const yyyy = date.getFullYear()
     const mm = String(date.getMonth() + 1).padStart(2, "0")
@@ -120,7 +120,7 @@ function Abonos(props: AbonosProps) {
   }
 
   useEffect(() => {
-    const multiplicador = condicionPago === 'mensual' ? 30 : 15
+    const multiplicador = condicionPago === 'mensual'  30 : 15
     const cuotas = Number(compromisoPago) || 0
     const dias = cuotas * multiplicador
     setFechaVencimientoDate(addDaysSkipping31(fechaInicioDate, dias))
@@ -201,7 +201,7 @@ function Abonos(props: AbonosProps) {
   const saldo = Math.max(totalVenta - abonoTotal, 0)
   const cuotasNumero = Number(compromisoPago) || 0
   const valorCuota =
-    cuotasNumero > 0 ? Number((saldo / cuotasNumero).toFixed(2)) : 0
+    cuotasNumero > 0  Number((saldo / cuotasNumero).toFixed(2)) : 0
 
   return (
     <div className="container mw-100 my-4" onLoad={handleLoad}>
@@ -213,7 +213,7 @@ function Abonos(props: AbonosProps) {
           <Calendar
             inputId="fecha_inicio"
             value={fechaInicioDate}
-            onChange={(e) => setFechaInicioDate(e.value ?? null)}
+            onChange={(e) => setFechaInicioDate(e.value - null)}
             dateFormat="dd/mm/yy"
             showIcon
             showButtonBar
@@ -306,7 +306,7 @@ function Abonos(props: AbonosProps) {
                     id={`descripcion-${index}`}
                     name="descripcionAbono"
                     placeholder="descripcionAbono"
-                    defaultValue={row.descripcionAbono ? row.descripcionAbono : ''}
+                    defaultValue={row.descripcionAbono  row.descripcionAbono : ''}
                   />
                 </td>
                 <td width={150}>
