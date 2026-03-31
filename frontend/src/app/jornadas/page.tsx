@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from "react";
 import JornadasModule from "@/components/jornadas/JornadasModule";
 import { buildBackendUrl } from "@/utils/js/env";

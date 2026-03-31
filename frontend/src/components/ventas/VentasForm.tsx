@@ -5,7 +5,6 @@ import TablaArticulos from '@/components/TablaArticulos';
 import ClientesForm from '../usuarios/ClientesForm';
 import AnularVentaForm from './AnularVentaForm';
 
-import {obtenerInfoArticulo} from "@/utils/js/selectizeElements"
 import { IP_URL, callApiFile } from '@/utils/js/api';
 
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
@@ -15,7 +14,6 @@ import MedioPago from '@/components/MedioPago';
 import FormulaLentes from '../FormulaLentes';
 
 import $ from 'jquery';
-import 'selectize';
 import dynamic from 'next/dynamic';
 
 import BootstrapModal from '../bootstrap/BootstrapModal';
@@ -94,79 +92,65 @@ function VentasForm({data}) {
       );
     }, [jornadas, empresaSeleccionada]);
 
-      useEffect(()=>{
-              //import( "bootstrap/dist/js/bootstrap.bundle.js");
-              
-              const loadUtils = async () => {
-                
-                // await import("https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js")
-                // const getCookie = await import('@/utils/js/getCookie.js');
-                
+      useEffect(() => {
+              let isMounted = true;
+
+              const initClientOnly = async () => {
+                await import('selectize');
                 await import('@/utils/js/utils.js');
                 await import('@/utils/js/api.js');
-                await import ("@/utils/js/intlInput.js");
-                
-                
-                // await import ("@/utils/js/selectizeElements.js");
-                // const selectize = await import ("selectize/dist/js/standalone/selectize.min.js");
-                await import ("@/utils/js/imagenesInputs.js");
-                await import ("@/utils/js/ventas.js");
-                // const intlInput =  await import ("@/utils/js/intlInput");
-                
+                await import("@/utils/js/intlInput.js");
+                await import("@/utils/js/imagenesInputs.js");
+                await import("@/utils/js/ventas.js");
+
+                if (!isMounted) {
+                  return;
+                }
+
+                if (usuarioRef.current) {
+                    selectizeInstance = $(usuarioRef.current).selectize({
+                        create: true,
+                        createOnBlur: true,
+                        persist: false,
+                        maxItems: 1,
+                        hideSelected: true,
+                    });
+        
+                    setUsuario(selectizeInstance);
+                }
+
+                if (empresaRef.current) {
+                    const selectizeInstance2 = $(empresaRef.current).selectize({
+                        createOnBlur: true,
+                        persist: false,
+                        maxItems: 1,
+                        highlight: false,
+                        hideSelected: true,
+                    });
+        
+                    setEmpresa(selectizeInstance2);
+                    selectizeInstance2[0].selectize.on('change', (value: string) => {
+                        setEmpresaSeleccionada(value || '');
+                    });
+                }
+
+                if (vendedorRef.current) {
+                    $(vendedorRef.current).selectize({
+                        createOnBlur: true,
+                        persist: false,
+                        maxItems: 1,
+                        highlight: false,
+                        hideSelected: true,
+                    });
+                }
               };
-              loadUtils();
 
+              initClientOnly();
 
-            if (usuarioRef.current) {
-                selectizeInstance = $(usuarioRef.current).selectize({
-                    create: true,
-                    createOnBlur: true,
-                    persist: false,
-                    maxItems: 1,
-                    hideSelected: true,
-                    //maxOptions: 10,
-                });
-    
-                setUsuario(selectizeInstance);
-            }
+              return () => {
+                isMounted = false;
+              };
 
-            if (empresaRef.current) {
-                const selectizeInstance2 = $(empresaRef.current).selectize({
-                
-                    // create: true,
-                    createOnBlur: true,
-                    persist: false,
-                    maxItems: 1,
-                    highlight: false,
-                    // closeAfterSelect: true,
-                    hideSelected: true,
-                    // onBlur: function(value) {
-                    //     this.items(value);
-                    // },
-                    //maxOptions: 10,
-                    // onChange: function(value) {
-                    //     this.refreshOptions();
-                    // },
-                    
-                });
-    
-                setEmpresa(selectizeInstance2);
-                selectizeInstance2[0].selectize.on('change', (value: string) => {
-                    setEmpresaSeleccionada(value || '');
-                });
-            }
-
-            if (vendedorRef.current) {
-                $(vendedorRef.current).selectize({
-                    createOnBlur: true,
-                    persist: false,
-                    maxItems: 1,
-                    highlight: false,
-                    hideSelected: true,
-                });
-            }
-            
-              
           },[])
 
 

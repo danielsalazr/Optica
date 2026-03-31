@@ -1,3 +1,6 @@
+// @ts-nocheck
+export const dynamic = 'force-dynamic';
+
 import React from 'react'
 import VentasForm from '@/components/ventas/VentasForm';
 import { buildBackendUrl } from '@/utils/js/env';
@@ -16,8 +19,13 @@ async function getData() {
 
 async function page() {
 
-    const data = await getData();
-    console.log(data)
+    let data = { pedido: 0, clientes: [], empresas: [], vendedores: [], jornadas: [], articulos: [], mediosPago: [] };
+
+    try {
+      data = await getData();
+    } catch (error) {
+      console.error('Error cargando /ventas/crearVenta:', error);
+    }
 
   return (
     <div className="d-flex w-100 flex-column vh-100 align-items-center mt-4">

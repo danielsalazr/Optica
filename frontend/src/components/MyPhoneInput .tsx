@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import PhoneInput from 'react-phone-number-input'

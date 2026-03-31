@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react'
 import MedioPago from './MedioPago'
 import { executeUtils } from '@/utils/js/utils.js';

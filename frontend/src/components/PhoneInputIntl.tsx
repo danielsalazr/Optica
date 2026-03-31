@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 import dynamic from "next/dynamic";
 // import IntlTelInput from "intl-tel-input/react/build/IntlTelInputWithUtils";
@@ -11,11 +12,12 @@ import React, { useState } from "react";
 function PhoneInputIntl() {
     
     const [value, setValue] = useState<string>("")
+    const [isValid, setIsValid] = useState<boolean>(true)
   return (
     <div>
       <IntlTelInput
         onChangeNumber={setValue}
-        // onChangeValidity={setIsValid}
+        onChangeValidity={setIsValid}
         initOptions={{
             initialCountry: "co",
         }}

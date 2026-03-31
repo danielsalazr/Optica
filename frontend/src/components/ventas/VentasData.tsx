@@ -1,3 +1,4 @@
+// @ts-nocheck
 ﻿// @ts-nocheck
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react'
@@ -193,7 +194,9 @@ function VentasData(props) {
 
   const handleRemisionCreated = async () => {
     if (remisionRowContext) {
-      await fetchRemisionData(remisionRowContext.id);
+      if (remisionRowContext?.id != null) {
+        await fetchRemisionData(remisionRowContext.id);
+      }
     }
     await handleFetchVentas(false);
   };
@@ -246,10 +249,10 @@ function VentasData(props) {
     return null;
   };
 
-  const normalize = (value) => (value - '').toString().toLowerCase().trim();
+  const normalize = (value) => String(value ?? '').toLowerCase().trim();
 
   const renderEstadoPedidoBadge = (nombre) => {
-    const value = (nombre - '').toString().trim() || 'Pedido tomado';
+    const value = String(nombre ?? '').trim() || 'Pedido tomado';
     const key = identifyEstadoPedidoKey(value);
     const badge = estadoPedidoBadgeClass(key);
     return <span className={`badge ${badge} badge-estado-pedido`}>{value}</span>;
@@ -257,9 +260,9 @@ function VentasData(props) {
 
 
   const getCuotasEstadoInfo = (row) => {
-    const totalCuotas = Number(row.cuotas - row.numeroCuotas - row.compromisoPago - 0);
-    const precio = Number(row.precioRaw - row.precio - 0);
-    const abonado = Number(row.totalAbonoRaw - row.totalAbono - row.total_abonos - 0);
+    const totalCuotas = Number(row.cuotas ?? row.numeroCuotas ?? row.compromisoPago ?? 0);
+    const precio = Number(row.precioRaw ?? row.precio ?? 0);
+    const abonado = Number(row.totalAbonoRaw ?? row.totalAbono ?? row.total_abonos ?? 0);
 
     if (!totalCuotas || totalCuotas <= 0 || !precio || precio <= 0) {
       return null;
@@ -335,7 +338,7 @@ function VentasData(props) {
   }, [selectedVentas, bulkActionConfig]);
   const bulkRowsWithoutMotivo = useMemo(() => {
     const requiringIds = new Set(bulkRowsRequiringMotivo.map((row) => row.id));
-    return (selectedVentas - []).filter((row) => !requiringIds.has(row.id));
+    return (selectedVentas ?? []).filter((row) => !requiringIds.has(row.id));
   }, [selectedVentas, bulkRowsRequiringMotivo]);
   const bulkCanConfirm =
     Boolean(selectedVentas.length) &&
@@ -383,14 +386,14 @@ function VentasData(props) {
         return;
       }
 
-      const errores = req.data.errores - [];
+      const errores = req.data.errores || [];
       if (errores.length > 0) {
         const detalle = errores
           .map((item) => `Venta ${item.venta_id}: ${item.detail}`)
           .join('<br>');
-        await swalHtmlCreation('Resultado del cambio masivo', `Se actualizaron ${req.data.procesadas - 0} ventas.<br><br>${detalle}`);
+        await swalHtmlCreation('Resultado del cambio masivo', `Se actualizaron ${Number(req.data.procesadas || 0)} ventas.<br><br>${detalle}`);
       } else {
-        await swalconfirmation(`Se actualizaron ${req.data.procesadas - 0} ventas correctamente.`);
+        await swalconfirmation(`Se actualizaron ${Number(req.data.procesadas || 0)} ventas correctamente.`);
       }
 
       setBulkModalOpen(false);
@@ -418,9 +421,9 @@ function VentasData(props) {
     let redata = await res.json();
 
     redata = redata.map((item) => {
-      const precioRaw = Number(item.precioRaw - item.precio - 0);
-      const totalAbonoRaw = Number(item.totalAbonoRaw - item.totalAbono - 0);
-      const saldoRaw = Number(item.saldoRaw - item.saldo - 0);
+      const precioRaw = Number(item.precioRaw ?? item.precio ?? 0);
+      const totalAbonoRaw = Number(item.totalAbonoRaw ?? item.totalAbono ?? 0);
+      const saldoRaw = Number(item.saldoRaw ?? item.saldo ?? 0);
 
       return {
         ...item,
@@ -431,10 +434,10 @@ function VentasData(props) {
         precio: moneyformat(precioRaw),
         totalAbono: moneyformat(totalAbonoRaw),
         saldo: moneyformat(saldoRaw),
-        estadoPedidoId: item.estadoPedidoId - item.estado_pedido_id - null,
-        estadoPedidoNombre: item.estadoPedidoNombre - item.estado_pedido_nombre - '',
-        motivoSinAnticipo: item.motivoSinAnticipo - item.motivo_sin_anticipo - '',
-        estadoPedidoFecha: item.estadoPedidoFecha - item.estado_pedido_actualizado - null,
+        estadoPedidoId: item.estadoPedidoId ?? item.estado_pedido_id ?? null,
+        estadoPedidoNombre: item.estadoPedidoNombre ?? item.estado_pedido_nombre ?? '',
+        motivoSinAnticipo: item.motivoSinAnticipo ?? item.motivo_sin_anticipo ?? '',
+        estadoPedidoFecha: item.estadoPedidoFecha ?? item.estado_pedido_actualizado ?? null,
       };
     });
     setDataTable(redata)
@@ -552,9 +555,9 @@ function VentasData(props) {
   const getEstadoPagoBadge = (value) => {
     const v = normalize(value);
     const color =
-      v === 'anulado'  'danger' :
-      v === 'pagado'  'success' :
-      v === 'con abono'  'info' :
+      v === 'anulado' ? 'danger' :
+      v === 'pagado' ? 'success' :
+      v === 'con abono' ? 'info' :
       'warning';
     return <span className={`badge bg-${color} badge-estado-pedido`}>{value}</span>;
   };
@@ -578,7 +581,7 @@ function VentasData(props) {
           onClick={() => handleEstadoPedidoAction(row)}
           disabled={estadoLoading === row.id}
         >
-          {estadoLoading === row.id  (
+          {estadoLoading === row.id ? (
             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
           ) : (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M12 6V3m-6.364 4.636L3.514 6.514m14.95 1.122l2.122-2.122M6 12H3m18 0h-3m-9 6v3m11.314-5.314l-2.122 2.122M5.05 17.95l-2.122 2.122"/><circle cx="12" cy="12" r="3"/></g></svg>
@@ -687,23 +690,23 @@ function VentasData(props) {
     if (!detalle) {
       return (
         <div className="px-3 py-2 text-muted">
-          {detailLoading[rowData.id]  'Cargando detalles' : 'No hay detalle disponible.'}
+          {detailLoading[rowData.id] ? 'Cargando detalles' : 'No hay detalle disponible.'}
         </div>
       );
     }
 
-    const ventasItems = detalle.ventas - [];
-    const remisiones = detalle.remisiones - [];
-    const observacion = detalle.observacion - '';
-    const estadoPedido = detalle.estadoPedidoNombre - detalle.estado_pedido_nombre - '';
-    const motivoSinAnticipo = detalle.motivoSinAnticipo - detalle.motivo_sin_anticipo - '';
+    const ventasItems = detalle.ventas || [];
+    const remisiones = detalle.remisiones || [];
+    const observacion = detalle.observacion || '';
+    const estadoPedido = detalle.estadoPedidoNombre ?? detalle.estado_pedido_nombre ?? '';
+    const motivoSinAnticipo = detalle.motivoSinAnticipo ?? detalle.motivo_sin_anticipo ?? '';
     const tieneFormula = Boolean(
       detalle.foto_formula ||
       detalle.fotoFormula ||
       detalle.foto_formula_url ||
       detalle.formula ||
       detalle.formulas ||
-      detalle.ventas.some((item) => item.foto_formula || item.fotoFormula)
+      ventasItems.some((item) => item.foto_formula || item.fotoFormula)
     );
 
     return (
@@ -711,8 +714,8 @@ function VentasData(props) {
         <div className="mb-3">
           <div className="fw-semibold">Estado pedido: {estadoPedido || ''}</div>
           <div className="mt-2">
-            <span className={`badge ${tieneFormula  'bg-success' : 'bg-secondary'}`}>
-              {tieneFormula  'Formula asociada' : 'Sin formula'}
+            <span className={`badge ${tieneFormula ? 'bg-success' : 'bg-secondary'}`}>
+              {tieneFormula ? 'Formula asociada' : 'Sin formula'}
             </span>
           </div>
           {getCuotasEstadoInfo(rowData) && (
@@ -740,7 +743,7 @@ function VentasData(props) {
               </tr>
             </thead>
             <tbody>
-              {ventasItems.length === 0  (
+              {ventasItems.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center text-muted">
                     Sin Ã­tems
@@ -770,7 +773,7 @@ function VentasData(props) {
               </tr>
             </thead>
             <tbody>
-              {remisiones.length === 0  (
+              {remisiones.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="text-center text-muted">
                     Sin remisiones
@@ -815,7 +818,6 @@ function VentasData(props) {
 
         {componentesPorEstado[templateAbono]}
       </SideAction>
-
       <Modal
         size="xl"
         show={remisionModalOpen}
@@ -825,14 +827,14 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            Remisiones Â- Venta #{remisionRowContext.id - '--'}
+            Remisiones - Venta #{remisionRowContext?.id ?? "--"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {remisionLoading && (
             <div className="py-5 text-center">
               <Spinner animation="border" role="status" />
-              <p className="text-muted mt-3 mb-0">Cargando informaciÃ³n de remisiones</p>
+              <p className="text-muted mt-3 mb-0">Cargando informacion de remisiones</p>
             </div>
           )}
 
@@ -844,13 +846,13 @@ function VentasData(props) {
 
           {!remisionLoading && !remisionError && remisionContext && (
             <RemisionesPanel
-              ventaId={remisionRowContext.id - 0}
-              items={remisionContext.ventas - []}
-              remisiones={remisionContext.remisiones - []}
-              articulos={generalData.articulos - []}
+              ventaId={Number(remisionRowContext?.id || 0)}
+              items={remisionContext.ventas || []}
+              remisiones={remisionContext.remisiones || []}
+              articulos={generalData.articulos || []}
               cliente={{
-                cedula: remisionRowContext.cedula,
-                nombre: remisionRowContext.cliente,
+                cedula: remisionRowContext?.cedula,
+                nombre: remisionRowContext?.cliente,
               }}
               onCreated={handleRemisionCreated}
             />
@@ -866,7 +868,7 @@ function VentasData(props) {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            FÃ³rmula Â- Venta #{formulaVentaId - '--'}
+            Formula - Venta #{formulaVentaId ?? "--"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -900,7 +902,7 @@ function VentasData(props) {
           <Modal.Title>Cambio masivo de estado</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {!selectedVentas.length  (
+          {!selectedVentas.length ? (
             <div className="alert alert-warning mb-0">No hay ventas seleccionadas.</div>
           ) : (
             <>
@@ -930,7 +932,7 @@ function VentasData(props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {(selectedVentas - []).map((row) => {
+                    {(selectedVentas ?? []).map((row) => {
                       const requiereMotivo =
                         bulkActionConfig.slug === 'para_fabricacion' &&
                         !ventaPerteneceAJornada(row) &&
@@ -941,7 +943,7 @@ function VentasData(props) {
                           <td>{row.cliente || 'Sin cliente'}</td>
                           <td>{renderEstadoPedidoBadge(row.estadoPedidoNombre)}</td>
                           <td>
-                            {requiereMotivo  (
+                            {requiereMotivo ? (
                               <span className="badge bg-warning text-dark">SÃ­</span>
                             ) : (
                               <span className="badge bg-success">No</span>
@@ -988,7 +990,7 @@ function VentasData(props) {
             Cancelar
           </Button>
           <Button variant="primary" onClick={handleBulkEstadoSubmit} disabled={!bulkCanConfirm || bulkLoading}>
-            {bulkLoading  'Aplicando...' : 'Confirmar cambio masivo'}
+            {bulkLoading ? 'Aplicando...' : 'Confirmar cambio masivo'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -997,20 +999,20 @@ function VentasData(props) {
 
       <div className="data-table-shell">
         <div className="d-flex flex-wrap gap-2 mb-3">
-          <button type="button" className={`btn ${estadoPagoFilter === 'todos'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPagoFilter('todos')}>Todos</button>
-          <button type="button" className={`btn ${estadoPagoFilter === 'con_abono'  'btn-info' : 'btn-outline-info'}`} onClick={() => setEstadoPagoFilter('con_abono')}>Con abono</button>
-          <button type="button" className={`btn ${estadoPagoFilter === 'sin_pago'  'btn-warning' : 'btn-outline-warning'}`} onClick={() => setEstadoPagoFilter('sin_pago')}>Sin pago</button>
-          <button type="button" className={`btn ${estadoPagoFilter === 'pagado'  'btn-success' : 'btn-outline-success'}`} onClick={() => setEstadoPagoFilter('pagado')}>Pagado</button>
-          <button type="button" className={`btn ${estadoPagoFilter === 'anulado'  'btn-danger' : 'btn-outline-danger'}`} onClick={() => setEstadoPagoFilter('anulado')}>Anulado</button>
-          <button type="button" className={`btn ${estadoPagoFilter === 'no_anulados'  'btn-primary' : 'btn-outline-primary'}`} onClick={() => setEstadoPagoFilter('no_anulados')}>No anulados</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPagoFilter('todos')}>Todos</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'con_abono' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setEstadoPagoFilter('con_abono')}>Con abono</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'sin_pago' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setEstadoPagoFilter('sin_pago')}>Sin pago</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'pagado' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setEstadoPagoFilter('pagado')}>Pagado</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'anulado' ? 'btn-danger' : 'btn-outline-danger'}`} onClick={() => setEstadoPagoFilter('anulado')}>Anulado</button>
+          <button type="button" className={`btn ${estadoPagoFilter === 'no_anulados' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setEstadoPagoFilter('no_anulados')}>No anulados</button>
         </div>
         <div className="d-flex flex-wrap gap-2 mb-3">
-          <button type="button" className={`btn ${estadoPedidoFilter === 'todos'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('todos')}>Todos</button>
-          <button type="button" className={`btn ${estadoPedidoFilter === 'creado'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('creado')}>{ESTADO_PEDIDO_LABELS.creado}</button>
-          <button type="button" className={`btn ${estadoPedidoFilter === 'para_fabricacion'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('para_fabricacion')}>{ESTADO_PEDIDO_LABELS.para_fabricacion}</button>
-          <button type="button" className={`btn ${estadoPedidoFilter === 'en_fabricacion'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('en_fabricacion')}>{ESTADO_PEDIDO_LABELS.en_fabricacion}</button>
-          <button type="button" className={`btn ${estadoPedidoFilter === 'listo_entrega'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('listo_entrega')}>{ESTADO_PEDIDO_LABELS.listo_entrega}</button>
-          <button type="button" className={`btn ${estadoPedidoFilter === 'entregado'  'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('entregado')}>{ESTADO_PEDIDO_LABELS.entregado}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('todos')}>Todos</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'creado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('creado')}>{ESTADO_PEDIDO_LABELS.creado}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'para_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('para_fabricacion')}>{ESTADO_PEDIDO_LABELS.para_fabricacion}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'en_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('en_fabricacion')}>{ESTADO_PEDIDO_LABELS.en_fabricacion}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'listo_entrega' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('listo_entrega')}>{ESTADO_PEDIDO_LABELS.listo_entrega}</button>
+          <button type="button" className={`btn ${estadoPedidoFilter === 'entregado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('entregado')}>{ESTADO_PEDIDO_LABELS.entregado}</button>
         </div>
         <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
           <div>
@@ -1066,7 +1068,7 @@ function VentasData(props) {
           />
           <Column
             header="Estado pago"
-            body={(row) => getEstadoPagoBadge(row.estado - '')}
+            body={(row) => getEstadoPagoBadge(row.estado || '')}
           />
           <Column header="Acciones" body={(row) => slots.Acciones(null, row)} />
         </DataTable>

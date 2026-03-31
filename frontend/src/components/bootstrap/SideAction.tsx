@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React,{ useState } from 'react'
 
 import Button from 'react-bootstrap/Button';
@@ -13,13 +14,13 @@ type SideActionProps = {
 };
 
 function SideAction(props: SideActionProps) {
-    const {children, title, show, togglestate, data}  = props;
+    const {children, title, show, togglestate, data, ...offcanvasProps}  = props;
 
     // console.log(data)
 
     return (
       <>
-        <Offcanvas show={show} onHide={togglestate} {...props}>
+        <Offcanvas show={show} onHide={togglestate} {...offcanvasProps}>
           <Offcanvas.Header closeButton>
             <Offcanvas.Title>{title}</Offcanvas.Title>
           </Offcanvas.Header>

@@ -5,6 +5,8 @@
     "boxicons": "^2.1.4",
     "escpos": "^3.0.0-alpha.6",
     "postcss": "^8.4.38",
+    "primeicons": "^7.0.0",
+    "primereact": "^10.9.7",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-helmet-async": "^1.3.0",

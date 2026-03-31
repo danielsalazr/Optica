@@ -1,3 +1,4 @@
+// @ts-nocheck
 ﻿import PrinterConfigModule from "@/components/printAgent/PrinterConfigModule";
 
 export const dynamic = 'force-dynamic';

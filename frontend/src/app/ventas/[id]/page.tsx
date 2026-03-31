@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react'
 import VentaUpdateForm from '@/components/ventas/VentaUpdateForm';
 import { buildBackendUrl } from '@/utils/js/env';

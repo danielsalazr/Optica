@@ -21,13 +21,13 @@ from .models import (
     Jornada,
     AbonoMasivo,
     Vendedor,
+    CitaAgenda,
+    CitaAgendaRegistro,
 )
 from .utils_estado_pedido import (
     get_estado_pedido_by_slug,
     identify_estado_pedido_slug,
     maybe_mark_para_fabricacion,
-    CitaAgenda,
-    CitaAgendaRegistro,
     # EstadoVenta,
     # MediosDePago,
 )

@@ -130,6 +130,12 @@ function SideBar({ children }) {
     scrollTo: "agendar-cita",
   });
 
+  menuData.push({
+    title: "Tracking venta",
+    icon: "bx bx-timer",
+    pathRoute: "/tracking_venta",
+  });
+
   // menuData.push({
   //   title: "Cerrar Sesión",
   //   icon: "bx bx-user-x",

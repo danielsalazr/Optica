@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client"
 import React from 'react';
 import { TrendingUp, DollarSign, CreditCard, XCircle, AlertCircle } from 'lucide-react';

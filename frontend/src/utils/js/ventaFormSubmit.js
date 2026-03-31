@@ -1,6 +1,5 @@
 // ventaForm.addEventListener('submit', async function(e) 
 import $ from 'jquery';
-import 'selectize';
 import { swalErr, swalHtmlCreation, swalHtml} from "@/utils/js/sweetAlertFunctions"
 
 

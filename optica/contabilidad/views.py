@@ -77,6 +77,7 @@ from django.conf import settings
 from rich.console import Console
 
 from .utils_estado_pedido import (
+    ESTADOS_PEDIDO_DEFINICIONES,
     ESTADO_PEDIDO_ORDER,
     identify_estado_pedido_slug,
     mark_entregado_si_corresponde,
@@ -93,6 +94,111 @@ class MainP(APIView):
     def get(self, request):
         
         return render(request, 'contabilidad/index.html')
+
+
+class PublicVentaTrackingView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    ESTADO_COLORS = {
+        'creado': '#6c757d',
+        'para_fabricacion': '#0dcaf0',
+        'en_fabricacion': '#ffca00',
+        'listo_entrega': '#4e25ff',
+        'entregado': '#198754',
+    }
+
+    def get(self, request):
+        cedula = (request.query_params.get('cedula') or '').strip()
+        venta_id = (request.query_params.get('venta') or '').strip()
+
+        if not cedula or not venta_id:
+            return Response(
+                {'detail': 'Debes indicar cedula y numero de venta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            venta_id_int = int(venta_id)
+            cedula_int = int(cedula)
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'Cedula o numero de venta no tienen un formato valido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        venta = (
+            Ventas.objects.select_related('estado', 'estado_pedido')
+            .filter(id=venta_id_int, cliente_id=cedula_int, anulado=False)
+            .first()
+        )
+
+        if not venta:
+            return Response(
+                {'detail': 'No encontramos una venta activa con esos datos.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        cliente = Clientes.objects.filter(cedula=venta.cliente_id).values('nombre').first()
+        total_abonos = (
+            Abonos.objects.filter(venta_id=venta.id)
+            .aggregate(total=Coalesce(Sum('precio'), 0))
+            .get('total')
+            or venta.totalAbono
+            or 0
+        )
+        saldo_registrado = (
+            Saldos.objects.filter(venta_id=venta.id)
+            .order_by('-id')
+            .values_list('saldo', flat=True)
+            .first()
+        )
+        saldo = saldo_registrado if saldo_registrado is not None else max((venta.precio or 0) - total_abonos, 0)
+
+        estado_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+        actual_index = ESTADO_PEDIDO_ORDER.get(estado_slug, 0)
+
+        timeline = []
+        for index, (_, slug, nombre) in enumerate(ESTADOS_PEDIDO_DEFINICIONES):
+            if index < actual_index:
+                stage = 'completed'
+            elif index == actual_index:
+                stage = 'current'
+            else:
+                stage = 'pending'
+
+            fecha_hito = None
+            if slug == 'creado':
+                fecha_hito = venta.fechaCreacion or venta.fecha
+            elif slug == estado_slug:
+                fecha_hito = venta.estado_pedido_actualizado or venta.fecha
+
+            timeline.append({
+                'id': index + 1,
+                'slug': slug,
+                'label': nombre,
+                'stage': stage,
+                'color': self.ESTADO_COLORS.get(slug, '#6c757d'),
+                'date': fecha_hito.isoformat() if fecha_hito else None,
+            })
+
+        return Response({
+            'venta_id': venta.id,
+            'cedula': str(venta.cliente_id),
+            'cliente': cliente.get('nombre') if cliente else '',
+            'empresa': venta.empresaCliente or '',
+            'fecha': venta.fecha.isoformat() if venta.fecha else None,
+            'precio': venta.precio or 0,
+            'total_abonos': total_abonos,
+            'saldo': saldo,
+            'cuotas': venta.cuotas or 0,
+            'estado_pago': venta.estado.nombre if venta.estado else '',
+            'estado_pedido': venta.estado_pedido.nombre if venta.estado_pedido else 'Pedido tomado',
+            'estado_pedido_slug': estado_slug,
+            'motivo_sin_anticipo': venta.motivo_sin_anticipo or '',
+            'observacion': venta.observacion or '',
+            'timeline': timeline,
+        }, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def informacionGeneral(request):

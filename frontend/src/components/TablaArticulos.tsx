@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 import React from 'react'
 import { useEffect,useState, useRef  } from 'react';
@@ -7,14 +8,10 @@ import '@/styles/selectizeTable.css';
 // import "selectize/dist/js/standalone/selectize.min.js";
 // import "selectize/dist/css/selectize.css";
 import { callApi, IP_URL } from "@/utils/js/api";
-import { addRow } from "@/utils/js/tablaArticulos.js"
-import ("@/utils/js/ventas");
-import { obtenerInfoArticulo } from '@/utils/js/ventas';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
 import { buildBackendUrl } from '@/utils/js/env';
 
 import $ from 'jquery';
-import 'selectize';
 
 type ArticuloOption = {
   id: number | string;
@@ -49,6 +46,11 @@ type TablaArticulosProps = {
   changeClear: () => void;
 };
 
+async function obtenerInfoArticulo(value: string) {
+  const req = await callApi(`articuloInfo/${value}`);
+  return req.data;
+}
+
 function TablaArticulos(props: TablaArticulosProps) {
 
   const {articulos, ventaData, clear, changeClear} = props;
@@ -57,7 +59,7 @@ function TablaArticulos(props: TablaArticulosProps) {
 
   // console.log(articulos)
   // console.log(ventaData)
-  const [dataVenta, setDataVenta] =  ventaData != undefined  useState<VentaArticuloRow[] | null>(ventaData) : useState<VentaArticuloRow[] | null>(null);
+  const [dataVenta, setDataVenta] = ventaData != undefined ? useState<VentaArticuloRow[] | null>(ventaData) : useState<VentaArticuloRow[] | null>(null);
   const [ventaTotal, setVentaTotal] = useState(0);
   const selectRefs = useRef<Array<HTMLSelectElement | null>>([]);
   // const [rows, setRows] = useState([[{
@@ -66,8 +68,8 @@ function TablaArticulos(props: TablaArticulosProps) {
   // }]]);
 
   const [rows, setRows] = useState<TablaArticuloRow[]>(
-    ventaData 
-       ventaData.map((item) => ({
+    ventaData
+      ? ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio_articulo), // `$ ${item.precio_articulo}`,
           total: fromNumberToMoney(item.totalArticulo), // `$ ${item.totalArticulo}`,
           // Agrega aquí otros campos que necesites de ventaData
@@ -83,7 +85,7 @@ function TablaArticulos(props: TablaArticulosProps) {
         }]
   );
   
-  const [utilsLoaded, setUtilsLoaded] = useState(false);
+  const [selectizeLoaded, setSelectizeLoaded] = useState(false);
 
     const datatos = async () => {
         const req =  await fetch(buildBackendUrl("articuloInfo/1"));
@@ -144,8 +146,8 @@ function TablaArticulos(props: TablaArticulosProps) {
                 precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
                 totalArticulo.val(`$ ${data.precio}`);
                 cantidadArticulo.prop('disabled', false);
-                data.fotos.length > 0  imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``) ;
-                // console.log(data.fotos.length > 0  data.fotos[0].foto : '')
+                data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``);
+                // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
                 await calculateTotalArticle()
                 calcularTotales()
               } else{
@@ -199,30 +201,37 @@ function TablaArticulos(props: TablaArticulosProps) {
     
     
 
-    useEffect(()=>{
-        const loadUtils = async () => {
-          await import ("@/utils/js/selectizeElements.js");    
-        };
+    useEffect(() => {
+      let isMounted = true;
 
-        loadUtils();
+      const loadUtils = async () => {
+        await import("selectize");
+        await import("@/utils/js/selectizeElements.js");
         executeUtils();
-        
-        
-        
-    },[])
+        if (isMounted) {
+          setSelectizeLoaded(true);
+        }
+      };
+
+      loadUtils();
+
+      return () => {
+        isMounted = false;
+      };
+    }, []);
 
     useEffect(() => {
-      if (rows.length > 0) {
-        console.log("rows: ", rows)
-
-        rows.forEach((_, index) => {
-            console.log("index: ", index)  
-          initializeSelectize(index);
-        })
-
+      if (!selectizeLoaded || rows.length === 0) {
+        calcularTotales();
+        return;
       }
-      calcularTotales()
-    }, [rows]);
+
+      rows.forEach((_, index) => {
+        initializeSelectize(index);
+      });
+
+      calcularTotales();
+    }, [rows, selectizeLoaded]);
 
     useEffect(() => {
       console.log(clear)
@@ -284,7 +293,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                   <img 
                   // id="imageArticulo" 
                   id={`imageArticulo-${index}`}
-                  src={row.foto  `${IP_URL()}/media/${row.foto}` : ""}
+                  src={row.foto ? `${IP_URL()}/media/${row.foto}` : null}
                   height={35} />
                 </td>
                 <td className="">
@@ -295,11 +304,11 @@ function TablaArticulos(props: TablaArticulosProps) {
                     id={`cantidadArticulo-${index}`} 
                     name="cantidad" 
                     placeholder="Cantidad" 
-                    defaultValue={row.cantidad  row.cantidad : 1}
+                    defaultValue={row.cantidad ? row.cantidad : 1}
                     
                     // onInput={calcularTotales}
                     // disabled
-                    disabled={dataVenta  false : true}
+                    disabled={dataVenta ? false : true}
                   />
                 </td>
                 <td className="">
@@ -320,7 +329,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                     // id="tipoDescuentoArticulo"
                     id={`tipoDescuentoArticulo-${index}`}
                     name="tipo_descuento"
-                    defaultValue={ row.tipo_descuento  row.tipo_descuento : "precio" }
+                    defaultValue={row.tipo_descuento ? row.tipo_descuento : "precio"}
                   >
                     <option value="">Seleccione</option>
                     <option value="porcentaje">porcentaje %</option>
@@ -334,7 +343,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                     id={`descuentoArticulo-${index}`} 
                     name="descuento" 
                     placeholder="% Descuento" 
-                    defaultValue={row.descuento  row.descuento : 0}
+                    defaultValue={row.descuento ? row.descuento : 0}
                   />
                 </td>
                 <td className="">

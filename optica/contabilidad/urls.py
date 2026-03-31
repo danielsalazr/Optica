@@ -48,6 +48,7 @@ urlpatterns = [
     path('articuloInfo/<int:id>', views.articuloInfo, name="articuloInfo"),
     path('api/citas/proximas/', views.UpcomingAppointmentsView.as_view(), name="citas-proximas"),
     path('api/citas/registrar/', views.AppointmentRegistrationView.as_view(), name="citas-registrar"),
+    path('api/tracking/venta/', views.PublicVentaTrackingView.as_view(), name='tracking-venta-publico'),
     
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

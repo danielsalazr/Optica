@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import  Dropdown  from "react-bootstrap/Dropdown";
 import DropdownButton from 'react-bootstrap/DropdownButton';

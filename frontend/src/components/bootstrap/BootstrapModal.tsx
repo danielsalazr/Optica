@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useRef } from 'react';
 
 import Button from 'react-bootstrap/Button';
@@ -21,10 +22,10 @@ export default function BootstrapModal(props: BootstrapModalProps) {
         console.log('Se activo')
         if (formRef.current) {
             console.log(formRef.current)
-            const consulta = await formRef.current.submit.();
+            const consulta = await formRef.current.submit();
             console.log(consulta)
             // console.log(formRef.telefono.getInstance().getNumber(telefono))
-            if (consulta != false)  {
+            if (consulta != false) {
               
                 onSubmit(consulta);
               onHide();

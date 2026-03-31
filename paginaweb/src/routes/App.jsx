@@ -9,6 +9,7 @@ import MisionVision from '../container/MisionVision';
 import Brigadas from '../components/Brigadas';
 import Tutoriales from '../container/Tutoriales';
 import AgendarCita from '../components/AgendarCita';
+import TrackingVenta from '../components/TrackingVenta';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
@@ -30,6 +31,7 @@ function App() {
               <Route path='/brigadas_empresariales' element={<Brigadas />} />
               <Route path='/tutoriales' element={<Tutoriales />} />
               <Route path='/agendar_cita' element={<AgendarCita />} />
+              <Route path='/tracking_venta' element={<TrackingVenta />} />
               <Route path='*' element={<h2>Not found</h2>} />
             </Routes>
           </Layout>

@@ -384,9 +384,9 @@ function VentaUpdateForm(props) {
         <div className="container-md px-0 mt-5">
             <RemisionesPanel
                 ventaId={Number(ventaId)}
-                items={dataVenta.ventas - []}
-                remisiones={dataVenta.remisiones - []}
-                articulos={data.articulos - []}
+                items={dataVenta.ventas ?? []}
+                remisiones={dataVenta.remisiones ?? []}
+                articulos={data.articulos ?? []}
                 cliente={clienteInfo}
                 onCreated={handleRemisionCreated}
             />

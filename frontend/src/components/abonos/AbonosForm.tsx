@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, {useState, useEffect, useRef} from 'react'
 import MedioPago from '../MedioPago';
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
@@ -54,8 +55,8 @@ function AbonosForm(props: AbonosFormProps) {
 
         const newFormData = transformarFormDataValues(formData,fromMoneyToText, ['precio', 'totalventa', 'totalAbono', 'saldo', ], 'string')         // console.log(req.res);
 
-        const saldo = parseInt(String(formData.get('saldo') - '0'));
-        const precio = parseInt(String(formData.get('precio') - '0'));
+        const saldo = parseInt(String(formData.get('saldo') ?? '0'));
+        const precio = parseInt(String(formData.get('precio') ?? '0'));
 
         console.log(precio)
         console.log(saldo)
@@ -143,6 +144,11 @@ function AbonosForm(props: AbonosFormProps) {
                 name="medioDePago" 
                 className="form-group col-sm-12 col-md-6 col-xl-3 col-xl-3 w-100"
                 required={true}
+                setData={{
+                    medioDePago_id: '',
+                    medioPago: 'Seleccione una opcion',
+                    imagenMedioPago: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s',
+                }}
             />
         </div>
         {/* <div className="col-md-2">

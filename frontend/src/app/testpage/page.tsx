@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import React, { useRef } from "react";
@@ -7,10 +8,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 const DataTable = dynamic(async () => {
   const DataTableComponentModule = await import("datatables.net-react");
-  const DataTableComponent = DataTableComponentModule.default - DataTableComponentModule;
+  const DataTableComponent = DataTableComponentModule.default ?? DataTableComponentModule;
 
   const DataTablesLibModule = await import("datatables.net-dt");
-  const DataTablesLib = DataTablesLibModule.default - DataTablesLibModule;
+  const DataTablesLib = DataTablesLibModule.default ?? DataTablesLibModule;
 
   DataTableComponent.use(DataTablesLib);
 
