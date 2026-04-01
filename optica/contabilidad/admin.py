@@ -7,6 +7,7 @@ from .models import (
     Abonos,
     Articulos,
     FotosArticulos,
+    FotosVentas,
     ItemsVenta,
     Saldos,
     HistoricoSaldos,
@@ -150,8 +151,8 @@ class VentasAdmin(admin.ModelAdmin):
 
 @admin.register(Vendedor)
 class VendedorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nombre', 'celular')
-    search_fields = ('nombre', 'celular')
+    list_display = ('id', 'nombre', 'cedula', 'celular')
+    search_fields = ('nombre', 'cedula', 'celular')
 
 @admin.register(MediosDePago)
 class MediosDePagoAdmin(admin.ModelAdmin):
@@ -256,6 +257,12 @@ class ItemsPEdidoVentaAdmin(admin.ModelAdmin):
         'articulo',
         'cantidad',
     )
+
+
+@admin.register(FotosVentas)
+class FotosVentasAdmin(admin.ModelAdmin):
+    list_display = ('id', 'venta', 'foto')
+    search_fields = ('venta__id',)
 
 
 @admin.register(Remision)

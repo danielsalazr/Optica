@@ -1,7 +1,8 @@
 import $ from 'jquery';
 import 'selectize';
 
-import { callApi, IP_URL } from "./api";
+import { callApi } from "./api";
+import { buildMediaUrl } from "./env";
 
 async function obtenerInfoArticulo(value) {
     const req = await callApi(`articuloInfo/${value}`)
@@ -53,7 +54,7 @@ if (typeof window !== 'undefined') {
         precio_articulo.val(moneyformat(data.precio))
         cantidadArticulo.prop('disabled', false);
         calculateTotalArticle()
-        imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
+        imageArticulo.attr("src", buildMediaUrl(`media/${data.fotos[0].foto}`));
       } else{
         cantidadArticulo.prop('disabled', true);
         imageArticulo.attr("src", ``);

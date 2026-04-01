@@ -19,11 +19,12 @@ import Modal from 'react-bootstrap/Modal';
 import Spinner from 'react-bootstrap/Spinner';
 
 import { callApi, IP_URL } from '@/utils/js/api';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildBackendUrl, buildMediaUrl } from '@/utils/js/env';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
 import { Tooltip } from 'primereact/tooltip';
+import { Galleria } from 'primereact/galleria';
 import '@/styles/style.css';
 
 
@@ -82,6 +83,21 @@ const estadoPedidoBadgeClass = (key: string): string => {
   }
 };
 
+const galleryResponsiveOptions = [
+  {
+    breakpoint: '991px',
+    numVisible: 5,
+  },
+  {
+    breakpoint: '767px',
+    numVisible: 3,
+  },
+  {
+    breakpoint: '575px',
+    numVisible: 2,
+  },
+];
+
 function VentasData(props) {
   let { header, data, generalData } = props;
   const [templateAbono, setTemplateAbono] = useState(0);
@@ -104,6 +120,13 @@ function VentasData(props) {
   const [formulaError, setFormulaError] = useState<string | null>(null);
   const [formulaImages, setFormulaImages] = useState<string[]>([]);
   const [formulaVentaId, setFormulaVentaId] = useState<number | null>(null);
+  const [formulaActiveIndex, setFormulaActiveIndex] = useState(0);
+  const [fotosVentaModalOpen, setFotosVentaModalOpen] = useState(false);
+  const [fotosVentaLoading, setFotosVentaLoading] = useState(false);
+  const [fotosVentaError, setFotosVentaError] = useState<string | null>(null);
+  const [fotosVentaImages, setFotosVentaImages] = useState<string[]>([]);
+  const [fotosVentaId, setFotosVentaId] = useState<number | null>(null);
+  const [fotosVentaActiveIndex, setFotosVentaActiveIndex] = useState(0);
   const detailCache = useRef(new Map());
   const [expandedRows, setExpandedRows] = useState(null);
   const [detailLoading, setDetailLoading] = useState({});
@@ -149,11 +172,10 @@ function VentasData(props) {
   const resolveMediaUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const base = IP_URL();
     if (path.startsWith('/media/')) {
-      return `${base.replace(/\/$/, '')}${path}`;
+      return buildMediaUrl(path);
     }
-    return `${base.replace(/\/$/, '')}/media/${path.replace(/^\/+/, '')}`;
+    return buildMediaUrl(`media/${path.replace(/^\/+/, '')}`);
   };
 
   const handleFormulaModal = async (rowData) => {
@@ -162,6 +184,7 @@ function VentasData(props) {
     setFormulaLoading(true);
     setFormulaError(null);
     setFormulaImages([]);
+    setFormulaActiveIndex(0);
     try {
       const req = await callApi(`venta/${rowData.id}`);
       if (!req.res.ok) {
@@ -189,6 +212,43 @@ function VentasData(props) {
       setFormulaError(error instanceof Error ? error.message : "Error al cargar la f?rmula.");
     } finally {
       setFormulaLoading(false);
+    }
+  };
+
+  const handleFotosVentaModal = async (rowData) => {
+    setFotosVentaId(rowData.id);
+    setFotosVentaModalOpen(true);
+    setFotosVentaLoading(true);
+    setFotosVentaError(null);
+    setFotosVentaImages([]);
+    setFotosVentaActiveIndex(0);
+    try {
+      const req = await callApi(`venta/${rowData.id}`);
+      if (!req.res.ok) {
+        throw new Error(req.data.detail || 'No fue posible obtener las fotos de la venta.');
+      }
+      const data = req.data || {};
+      const candidates: string[] = [];
+      if (Array.isArray(data.fotosVenta)) {
+        candidates.push(...data.fotosVenta);
+      }
+      if (Array.isArray(data.foto)) {
+        candidates.push(...data.foto);
+      } else if (data.foto) {
+        candidates.push(data.foto);
+      }
+      const resolved = [...new Set(candidates
+        .map((item) => resolveMediaUrl(item))
+        .filter(Boolean) as string[])];
+
+      if (!resolved.length) {
+        setFotosVentaError('No hay fotos asociadas a esta venta.');
+      }
+      setFotosVentaImages(resolved);
+    } catch (error) {
+      setFotosVentaError(error instanceof Error ? error.message : 'Error al cargar las fotos de la venta.');
+    } finally {
+      setFotosVentaLoading(false);
     }
   };
 
@@ -282,6 +342,16 @@ function VentasData(props) {
     if (!Number.isFinite(value)) return '0';
     const rounded = Math.round(value * 10) / 10;
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  };
+
+  const formatDescuento = (item) => {
+    const tipo = String(item?.tipo_descuento ?? item?.tipoDescuento ?? 'precio').toLowerCase();
+    const valor = Number(item?.descuento ?? 0);
+    if (!valor) return '-';
+    if (tipo === 'porcentaje') {
+      return `${valor} %`;
+    }
+    return `$ ${valor}`;
   };
 
 
@@ -627,6 +697,14 @@ function VentasData(props) {
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></g></svg>
         </button>
         <button
+          className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
+          data-pr-tooltip="Ver fotos de la venta"
+          data-pr-position="top"
+          onClick={() => handleFotosVentaModal(row)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="m3 15l4-4a3 5 0 0 1 3 0l5 5"/><path d="m14 14l1-1a3 5 0 0 1 3 0l.5 .5"/></g></svg>
+        </button>
+        <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
           data-pr-tooltip="Abonar a la venta"
           data-pr-position="top"
@@ -685,6 +763,24 @@ function VentasData(props) {
     await ensureDetalle(e.data);
   };
 
+  const galleryItemTemplate = (item) => (
+    <div className="d-flex justify-content-center align-items-center bg-light rounded p-3">
+      <img
+        src={item}
+        alt="Vista previa"
+        style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+      />
+    </div>
+  );
+
+  const galleryThumbnailTemplate = (item) => (
+    <img
+      src={item}
+      alt="Miniatura"
+      style={{ display: 'block', width: '100%', height: '5rem', objectFit: 'cover' }}
+    />
+  );
+
   const rowExpansionTemplate = (rowData) => {
     const detalle = detailCache.current.get(rowData.id);
     if (!detalle) {
@@ -711,6 +807,7 @@ function VentasData(props) {
 
     return (
       <div className="ventas-card my-2">
+
         <div className="mb-3">
           <div className="fw-semibold">Estado pedido: {estadoPedido || ''}</div>
           <div className="mt-2">
@@ -755,7 +852,7 @@ function VentasData(props) {
                     <td>{item.articulo_nombre || item.articulo?.nombre || `Articulo #${item.articulo_id || ""}`}</td>
                     <td className="text-center">{item.cantidad - 0}</td>
                     <td className="text-end">{moneyformat(item.precio_articulo - 0)}</td>
-                    <td className="text-center">{item.descuento - 0}%</td>
+                    <td className="text-center">{formatDescuento(item)}</td>
                     <td className="text-end fw-semibold">{moneyformat(item.totalArticulo - 0)}</td>
                   </tr>
                 ))
@@ -882,17 +979,58 @@ function VentasData(props) {
             <div className="alert alert-warning">{formulaError}</div>
           )}
           {!formulaLoading && !formulaError && formulaImages.length > 0 && (
-            <div className="d-flex flex-wrap gap-3 justify-content-center">
-              {formulaImages.map((src, idx) => (
-                <div key={`${src}-${idx}`} className="border rounded p-2 bg-light">
-                  <img
-                    src={src}
-                    alt={`Formula ${idx + 1}`}
-                    style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
-                  />
-                </div>
-              ))}
+            <Galleria
+              value={formulaImages}
+              activeIndex={formulaActiveIndex}
+              onItemChange={(e) => setFormulaActiveIndex(e.index)}
+              responsiveOptions={galleryResponsiveOptions}
+              numVisible={5}
+              circular
+              showItemNavigators
+              showThumbnails={formulaImages.length > 1}
+              item={galleryItemTemplate}
+              thumbnail={galleryThumbnailTemplate}
+              className="ventas-image-galleria"
+            />
+          )}
+        </Modal.Body>
+      </Modal>
+
+      <Modal
+        size="lg"
+        show={fotosVentaModalOpen}
+        onHide={() => setFotosVentaModalOpen(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Fotos de la venta - Venta #{fotosVentaId ?? "--"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {fotosVentaLoading && (
+            <div className="py-4 text-center">
+              <Spinner animation="border" role="status" />
+              <p className="text-muted mt-3 mb-0">Cargando fotos de la venta</p>
             </div>
+          )}
+          {fotosVentaError && !fotosVentaLoading && (
+            <div className="alert alert-warning">{fotosVentaError}</div>
+          )}
+          {!fotosVentaLoading && !fotosVentaError && fotosVentaImages.length > 0 && (
+            <Galleria
+              value={fotosVentaImages}
+              activeIndex={fotosVentaActiveIndex}
+              onItemChange={(e) => setFotosVentaActiveIndex(e.index)}
+              responsiveOptions={galleryResponsiveOptions}
+              numVisible={5}
+              circular
+              showItemNavigators
+              showThumbnails={fotosVentaImages.length > 1}
+              item={galleryItemTemplate}
+              thumbnail={galleryThumbnailTemplate}
+              className="ventas-image-galleria"
+            />
           )}
         </Modal.Body>
       </Modal>

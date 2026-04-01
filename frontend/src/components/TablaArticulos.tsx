@@ -7,9 +7,9 @@ import "intl-tel-input/build/css/intlTelInput.css";
 import '@/styles/selectizeTable.css';
 // import "selectize/dist/js/standalone/selectize.min.js";
 // import "selectize/dist/css/selectize.css";
-import { callApi, IP_URL } from "@/utils/js/api";
+import { callApi } from "@/utils/js/api";
 import { executeUtils, moneyformat, formatMoneyInput, separadorDeMiles, fromNumberToMoney, fromMoneyToText } from '@/utils/js/utils.js';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildBackendUrl, buildMediaUrl } from '@/utils/js/env';
 
 import $ from 'jquery';
 
@@ -146,7 +146,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                 precio_articulo.val(formatMoneyInput(`$ ${data.precio}`));
                 totalArticulo.val(`$ ${data.precio}`);
                 cantidadArticulo.prop('disabled', false);
-                data.fotos.length > 0 ? imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`) : imageArticulo.attr("src", ``);
+                data.fotos.length > 0 ? imageArticulo.attr("src", buildMediaUrl(`media/${data.fotos[0].foto}`)) : imageArticulo.attr("src", ``);
                 // console.log(data.fotos.length > 0 ? data.fotos[0].foto : '')
                 await calculateTotalArticle()
                 calcularTotales()
@@ -293,7 +293,7 @@ function TablaArticulos(props: TablaArticulosProps) {
                   <img 
                   // id="imageArticulo" 
                   id={`imageArticulo-${index}`}
-                  src={row.foto ? `${IP_URL()}/media/${row.foto}` : null}
+                  src={row.foto ? buildMediaUrl(`media/${row.foto}`) : null}
                   height={35} />
                 </td>
                 <td className="">

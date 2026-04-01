@@ -32,9 +32,13 @@ environ.Env.read_env()
 SECRET_KEY = 'django-insecure-0l6fe&g0&2st&4czj$$-+_^vi2yh5@r^jaig3f3&xq-zsi47^7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+PRODUCCION = env.bool('PRODUCCION', default=False)
+DEBUG = env.bool('DEBUG', default=not PRODUCCION)
 
-ALLOWED_HOSTS = ALLOWED_HOSTS = ["api.bienestaroptica.com", "console.bienestaroptica.com", "localhost"] #['*']
+_default_allowed_hosts = ["127.0.0.1", "localhost","localhost:8000"]
+if PRODUCCION:
+    _default_allowed_hosts.extend(["api.bienestaroptica.com", "console.bienestaroptica.com", "bienestaroptica.com", "www.bienestaroptica.com"])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=_default_allowed_hosts)
 
 
 # Application definition
@@ -218,26 +222,25 @@ CSRF_TRUSTED_ORIGINS = [
     
 ]
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-CSRF_COOKIE_DOMAIN = ".bienestaroptica.com"
-SESSION_COOKIE_DOMAIN = ".bienestaroptica.com"
-
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-
-#CSRF_COOKIE_SAMESITE = 'Lax'
-#SESSION_COOKIE_SAMESITE = 'Lax'
-
-CSRF_COOKIE_SAMESITE = 'None'
-SESSION_COOKIE_SAMESITE = 'None'
-
-
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False
+# CORS_ALLOW_ALL_ORIGINS = False
 
-SECURE_SSL_REDIRECT = True
-USE_X_FORWARDED_HOST = True
+if PRODUCCION:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_COOKIE_DOMAIN = '.bienestaroptica.com'
+    SESSION_COOKIE_DOMAIN = '.bienestaroptica.com'
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SECURE_SSL_REDIRECT = True
+    USE_X_FORWARDED_HOST = True
+else:
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
 CORS_ALLOW_METHODS = [
     'GET',
     'POST',

@@ -33,6 +33,11 @@ export const MEDIA_BASE_URL = normalizeBaseUrl(
   BACKEND_BASE_URL
 );
 
+export const STATIC_BASE_URL = normalizeBaseUrl(
+  process.env.NEXT_PUBLIC_STATIC_BASE_URL,
+  BACKEND_BASE_URL
+);
+
 export const PRINT_AGENT_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_PRINT_AGENT_URL,
   DEFAULT_PRINT_AGENT_URL
@@ -49,4 +54,5 @@ export const buildServerBackendUrl = (path = "") => buildUrl(SSR_BACKEND_BASE_UR
 export const buildFrontendUrl = (path = "") => buildUrl(FRONTEND_BASE_URL, path);
 export const buildAdminUrl = (path = "") => buildUrl(ADMIN_BASE_URL, path);
 export const buildMediaUrl = (path = "") => buildUrl(MEDIA_BASE_URL, path);
+export const buildStaticUrl = (path = "") => buildUrl(STATIC_BASE_URL, path);
 export const buildPrintAgentUrl = (path = "") => buildUrl(PRINT_AGENT_BASE_URL, path);

@@ -27,20 +27,17 @@ function Header() {
             <li>
               <NavDropdown title="Pedidos" id="pedidos-nav-dropdown" menuVariant="dark" data-bs-theme="dark" className="success" style={{ color: "white" }}>
                 <NavDropdown.Item as={Link} href="/pedidos">Pedidos</NavDropdown.Item>
-                <NavDropdown.Item as={Link} href="/ventas/crearVenta">Crear venta</NavDropdown.Item>
               </NavDropdown>
             </li>
             <li>
               <NavDropdown title="Abonos" id="abonos-nav-dropdown" menuVariant="dark" data-bs-theme="dark" className="success" style={{ color: "white" }}>
                 <NavDropdown.Item as={Link} href="/abonos">Abonos</NavDropdown.Item>
                 <NavDropdown.Item as={Link} href="/abonos/masivo">Abono masivo</NavDropdown.Item>
-                <NavDropdown.Item as={Link} href="/ventas/crearVenta">Crear venta</NavDropdown.Item>
               </NavDropdown>
             </li>
             <li>
               <NavDropdown title="Saldos" id="saldos-nav-dropdown" menuVariant="dark" data-bs-theme="dark" className="success" style={{ color: "white" }}>
                 <NavDropdown.Item as={Link} href="/saldos">Saldos</NavDropdown.Item>
-                <NavDropdown.Item as={Link} href="/ventas/crearVenta">Crear venta</NavDropdown.Item>
               </NavDropdown>
             </li>
             <li>

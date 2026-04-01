@@ -75,6 +75,7 @@ class Proveedores(models.Model):
 class Vendedor(models.Model):
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
+    cedula = models.BigIntegerField(blank=True, null=True)
     celular = models.CharField(max_length=30, blank=True, null=True)
 
     class Meta:
@@ -334,8 +335,22 @@ class ItemsVenta(models.Model):
     cantidad = models.IntegerField(default=0)
     precio_articulo = models.IntegerField(default=0)
     descuento = models.IntegerField(default=0)
+    tipo_descuento = models.CharField(max_length=20, default='precio', blank=True, null=True)
     totalArticulo = models.IntegerField(default=0)
-    # tipo_descuento
+
+
+class FotosVentas(models.Model):
+    id = models.AutoField(primary_key=True)
+    venta = models.ForeignKey(Ventas, on_delete=models.CASCADE, related_name='fotosVenta')
+    foto = models.ImageField(upload_to='fotos_ventas/')
+
+    class Meta:
+        managed = True
+        verbose_name = 'Foto de venta'
+        verbose_name_plural = 'Fotos de venta'
+
+    def __str__(self):
+        return f"Venta {self.venta_id} - {self.id}"
 
 
 class Remision(models.Model):

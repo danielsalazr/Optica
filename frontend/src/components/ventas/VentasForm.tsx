@@ -3,30 +3,20 @@
 import React, { useRef, useEffect, useState, useMemo, ReactElement } from 'react'
 import TablaArticulos from '@/components/TablaArticulos';
 import ClientesForm from '../usuarios/ClientesForm';
-import AnularVentaForm from './AnularVentaForm';
 
-import { IP_URL, callApiFile } from '@/utils/js/api';
 
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
 import "@/styles/style.css"
 import Abonos from '@/components/abonos/Abonos';
-import MedioPago from '@/components/MedioPago';
-import FormulaLentes from '../FormulaLentes';
 
 import $ from 'jquery';
-import dynamic from 'next/dynamic';
 
 import BootstrapModal from '../bootstrap/BootstrapModal';
-import Button from 'react-bootstrap/Button';
-import clientesForm from '../usuarios/ClientesForm';
 import EmpresaForm from '../usuarios/EmpresaForm';
 
 
 // Iconos
 import { UserRoundPlus } from 'lucide-react';
-import { Icon } from "@iconify/react";
-import { IconArrowLeft } from '@tabler/icons-react';
-import { FaBeer } from 'react-icons/fa';
 
 
 // const IntlTelInput = dynamic(() => import("intl-tel-input/react/build/IntlTelInputWithUtils"), {
@@ -56,6 +46,8 @@ function VentasForm({data}) {
     const [vendedores, setVendedores] = useState(data.vendedores || []);
     const [jornadas, setJornadas] = useState(data.jornadas || []);
     const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
+    const [ventaPreviewUrls, setVentaPreviewUrls] = useState<string[]>([]);
+    const [formulaPreviewUrl, setFormulaPreviewUrl] = useState<string | null>(null);
 
     let selectizeInstance = null;
 
@@ -100,7 +92,6 @@ function VentasForm({data}) {
                 await import('@/utils/js/utils.js');
                 await import('@/utils/js/api.js');
                 await import("@/utils/js/intlInput.js");
-                await import("@/utils/js/imagenesInputs.js");
                 await import("@/utils/js/ventas.js");
 
                 if (!isMounted) {
@@ -162,6 +153,33 @@ function VentasForm({data}) {
         //     telefonoRef.current.getInstance().getNumber(telefono);
         //   };
 
+        useEffect(() => {
+            return () => {
+                ventaPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+                if (formulaPreviewUrl) {
+                    URL.revokeObjectURL(formulaPreviewUrl);
+                }
+            };
+        }, [ventaPreviewUrls, formulaPreviewUrl]);
+
+        const handleVentaImagesChange = (e) => {
+            const files = Array.from(e.target.files || []);
+            setVentaPreviewUrls((prev) => {
+                prev.forEach((url) => URL.revokeObjectURL(url));
+                return files.map((file) => URL.createObjectURL(file));
+            });
+        };
+
+        const handleFormulaImageChange = (e) => {
+            const file = e.target.files?.[0];
+            setFormulaPreviewUrl((prev) => {
+                if (prev) {
+                    URL.revokeObjectURL(prev);
+                }
+                return file ? URL.createObjectURL(file) : null;
+            });
+        };
+
         const handleNuevoCliente = (nuevoCliente) => {
             setClientes([...clientes, nuevoCliente]); // Agregar el nuevo cliente al estado
             if (usuario) {
@@ -195,6 +213,8 @@ function VentasForm({data}) {
                     setPedido(parseInt(pedido) + 1 );
     
                     formRef.current.reset();
+                    setVentaPreviewUrls((prev) => { prev.forEach((url) => URL.revokeObjectURL(url)); return []; });
+                    setFormulaPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
     
                     console.log(setUsuario.selectize)
                     console.log(selectizeInstance)
@@ -316,7 +336,7 @@ function VentasForm({data}) {
                         <option value="">--</option>
                         {vendedores.map((vendedor) => (
                             <option key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nombre} {vendedor.celular ? `? ${vendedor.celular}` : ""}
+                                {vendedor.nombre}
                             </option>
                         ))}
                     </select>
@@ -376,12 +396,57 @@ function VentasForm({data}) {
                     <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={""} />
                 </div>
                 </div>
-                <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                <div className="row align-items-stretch g-3 mt-3 pt-2 border-top position-relative">
+                  <div
+                    className="d-none d-md-block position-absolute top-0 bottom-0"
+                    style={{
+                      left: "calc(50% + 0.75rem)",
+                      transform: "translateX(-50%) scaleX(0.5)",
+                      width: "1px",
+                      backgroundColor: "rgba(148, 163, 184, 0.12)",
+                      zIndex: 1,
+                    }}
+                    aria-hidden="true"
+                  />
+                <div className="form-group col-sm-12 col-md-6 col-xl-6 d-flex flex-column justify-content-start h-100">
                 <label htmlFor="foto">Fotos de la venta:</label>
-                <input type="file" className="form-control" id="imagenes" multiple accept="image/*"  name="foto" />
+                {ventaPreviewUrls.length > 0 && (
+                  <div className="mb-2">
+                    <div className="small text-muted mb-2">Vista previa de la seleccion</div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {ventaPreviewUrls.map((src, index) => (
+                        <a key={`${src}-${index}`} href={src} target="_blank" rel="noreferrer" className="d-inline-block">
+                          <img
+                            src={src}
+                            alt={`Foto de venta ${index + 1}`}
+                            className="img-thumbnail"
+                            style={{ maxWidth: '180px', maxHeight: '180px', objectFit: 'cover' }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {ventaPreviewUrls.length} imagenes seleccionadas.
+                    </div>
+                  </div>
+                )}
+                <input type="file" className="form-control" id="imagenes" multiple accept="image/*"  name="foto" onChange={handleVentaImagesChange} />
               </div>
-              <div className="form-group">
+              <div className="form-group col-sm-12 col-md-6 col-xl-6 d-flex flex-column justify-content-start ps-md-4 h-100">
                 <label htmlFor="foto_formula">Foto de formula:</label>
+                {formulaPreviewUrl && (
+                  <div className="mb-2">
+                    <div className="small text-muted mb-2">Vista previa de la seleccion</div>
+                    <a href={formulaPreviewUrl} target="_blank" rel="noreferrer" className="d-inline-block">
+                      <img
+                        src={formulaPreviewUrl}
+                        alt="Formula seleccionada"
+                        className="img-thumbnail"
+                        style={{ maxWidth: '220px', maxHeight: '220px', objectFit: 'contain' }}
+                      />
+                    </a>
+                  </div>
+                )}
                 <input
                   type="file"
                   className="form-control"
@@ -389,9 +454,10 @@ function VentasForm({data}) {
                   name="foto_formula"
                   accept="image/*"
                   capture="environment"
+                  onChange={handleFormulaImageChange}
                 />
               </div>
-                <div id="previsualizadores" className="mt-2" />
+              </div>
                 
                 <hr className="my-3" />
                 <div className="row my-1">

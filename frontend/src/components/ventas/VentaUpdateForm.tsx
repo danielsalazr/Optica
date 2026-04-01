@@ -1,18 +1,15 @@
 // @ts-nocheck
 "use client";
 import React, { useRef, useEffect, useState, ReactElement, useMemo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import FormulaLentes from '@/components/FormulaLentes';
 import TablaArticulos from '@/components/TablaArticulos';
 import Abonos from '@/components/abonos/Abonos';
 import ClientesForm from '@/components/usuarios/ClientesForm';
 import EmpresaForm from '@/components/usuarios/EmpresaForm';
-import AnularVentaForm from '@/components/ventas/AnularVentaForm';
 import BootstrapModal from '@/components/bootstrap/BootstrapModal';
 import RemisionesPanel from '@/components/remisiones/RemisionesPanel';
+import { buildMediaUrl } from '@/utils/js/env';
 
 // import { IP_URL, callApiFile } from '@/utils/js/api';
-import { obtenerInfoArticulo } from "@/utils/js/selectizeElements"
 import { handleFormSubmitUpdate } from "@/utils/js/ventaFormSubmit.js"
 
 
@@ -20,7 +17,6 @@ import { handleFormSubmitUpdate } from "@/utils/js/ventaFormSubmit.js"
 
 
 import $ from 'jquery';
-import 'selectize';
 import "@/styles/style.css"
 import '@/styles/selectwithImage.css';
 
@@ -31,9 +27,6 @@ import '@/styles/selectwithImage.css';
 
 // Iconos
 import { UserRoundPlus } from 'lucide-react';
-import { Icon } from "@iconify/react";
-import { IconArrowLeft } from '@tabler/icons-react';
-import { FaBeer } from 'react-icons/fa';
 
 
 // const IntlTelInput = dynamic(() => import("intl-tel-input/react/build/IntlTelInputWithUtils"), {
@@ -85,19 +78,15 @@ function VentaUpdateForm(props) {
                 await import('@/utils/js/utils.js');
                 await import('@/utils/js/api.js');
                 await import ("@/utils/js/intlInput.js");
-                
+                await import('selectize');
                 
                 // await import ("@/utils/js/selectizeElements.js");
                 // const selectize = await import ("selectize/dist/js/standalone/selectize.min.js");
-                await import ("@/utils/js/imagenesInputs.js");
                 await import ("@/utils/js/ventas.js");
                 // const intlInput =  await import ("@/utils/js/intlInput");
                 
-              };
-              loadUtils();
 
-
-            if (usuarioRef.current) {
+                if (usuarioRef.current) {
                     selectizeInstance = $(usuarioRef.current).selectize({
                     create: true,
                     createOnBlur: true,
@@ -135,10 +124,63 @@ function VentaUpdateForm(props) {
                     hideSelected: true,
                 });
             }
+              };
+              loadUtils();
               
           },[])
 
-    const ventaId = dataVenta.id - dataVenta.pedido - ventaData.id - ventaData.pedido - 0;
+    const ventaId = Number(dataVenta?.id || 0);
+
+    const vendedorSeleccionado = dataVenta?.vendedor_id ?? dataVenta?.vendedor ?? '';
+
+    const formulaActualUrl = useMemo(() => {
+        const formulaPath = dataVenta?.foto_formula;
+        if (!formulaPath) return null;
+        if (String(formulaPath).startsWith('http://') || String(formulaPath).startsWith('https://')) {
+            return String(formulaPath);
+        }
+        if (String(formulaPath).startsWith('/media/')) {
+            return buildMediaUrl(String(formulaPath));
+        }
+        return buildMediaUrl(`media/${String(formulaPath).replace(/^\/+/, '')}`);
+    }, [dataVenta?.foto_formula]);
+
+    const fotoVentaActualUrls = useMemo(() => {
+        const fotos = Array.isArray(dataVenta?.fotosVenta) && dataVenta.fotosVenta.length
+            ? dataVenta.fotosVenta
+            : (dataVenta?.foto ? [dataVenta.foto] : []);
+
+        return fotos.map((fotoPath) => {
+            if (!fotoPath) return null;
+            if (String(fotoPath).startsWith('http://') || String(fotoPath).startsWith('https://')) {
+                return String(fotoPath);
+            }
+            if (String(fotoPath).startsWith('/media/')) {
+                return buildMediaUrl(String(fotoPath));
+            }
+            return buildMediaUrl(`media/${String(fotoPath).replace(/^\/+/, '')}`);
+        }).filter(Boolean);
+    }, [dataVenta?.fotosVenta, dataVenta?.foto]);
+
+    const [ventaPreviewUrls, setVentaPreviewUrls] = useState<string[]>([]);
+    const [formulaPreviewUrl, setFormulaPreviewUrl] = useState<string | null>(null);
+
+    const revokeIfBlobUrl = (url?: string | null) => {
+        if (url && String(url).startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
+    };
+
+    const fotoVentaPreviewPrincipal = ventaPreviewUrls[0] || null;
+    const formulaPreviewPrincipal = formulaPreviewUrl || null;
+
+    const mostrandoFotoActual = Boolean(
+        fotoVentaActualUrls.length > 0 && fotoVentaPreviewPrincipal === fotoVentaActualUrls[0]
+    );
+
+    const mostrandoFormulaActual = Boolean(
+        formulaActualUrl && formulaPreviewPrincipal === formulaActualUrl
+    );
 
     const clienteInfo = useMemo(() => {
         const clienteEncontrado = clientes.find(
@@ -190,6 +232,44 @@ function VentaUpdateForm(props) {
         });
     }, [setDataVenta]);
 
+
+        useEffect(() => {
+            if (fotoVentaActualUrls.length > 0) {
+                setVentaPreviewUrls((prev) => (prev.length ? prev : fotoVentaActualUrls));
+            }
+        }, [fotoVentaActualUrls]);
+
+        useEffect(() => {
+            if (formulaActualUrl) {
+                setFormulaPreviewUrl((prev) => prev || formulaActualUrl);
+            }
+        }, [formulaActualUrl]);
+
+        useEffect(() => {
+            return () => {
+                ventaPreviewUrls.forEach((url) => revokeIfBlobUrl(url));
+                revokeIfBlobUrl(formulaPreviewUrl);
+            };
+        }, [ventaPreviewUrls, formulaPreviewUrl]);
+
+        const handleVentaImagesChange = (e) => {
+            const files = Array.from(e.target.files || []);
+            setVentaPreviewUrls((prev) => {
+                prev.forEach((url) => revokeIfBlobUrl(url));
+                return files.length ? files.map((file) => URL.createObjectURL(file)) : fotoVentaActualUrls;
+            });
+        };
+
+        const handleFormulaImageChange = (e) => {
+            const file = e.target.files?.[0];
+            setFormulaPreviewUrl((prev) => {
+                revokeIfBlobUrl(prev);
+                if (file) {
+                    return URL.createObjectURL(file);
+                }
+                return formulaActualUrl || null;
+            });
+        };
 
         const handleNuevoCliente = (nuevoCliente) => {
             setClientes([...clientes, nuevoCliente]); // Agregar el nuevo cliente al estado
@@ -312,13 +392,13 @@ function VentaUpdateForm(props) {
                         className="form-select"
                         id="vendedor"
                         name="vendedor"
-                        defaultValue={dataVenta.vendedor - dataVenta.vendedor_id - ''}
+                        defaultValue={vendedorSeleccionado}
                         required
                     >
                         <option value="">--</option>
                         {vendedores.map((vendedor) => (
                             <option key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nombre} {vendedor.celular ? `? ${vendedor.celular}` : ""}
+                                {vendedor.nombre}
                             </option>
                         ))}
                     </select>
@@ -340,12 +420,68 @@ function VentaUpdateForm(props) {
                     <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={dataVenta.observacion} />
                 </div>
                 </div>
-                <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+                <div className="row align-items-stretch g-3 mt-3 pt-2 border-top position-relative">
+                  <div
+                    className="d-none d-md-block position-absolute top-0 bottom-0"
+                    style={{
+                      left: "calc(50% + 0.75rem)",
+                      transform: "translateX(-50%)",
+                      width: "1px",
+                      backgroundColor: "rgba(148, 163, 184, 0.12)",
+                      transform: "translateX(-50%) scaleX(0.5)",
+                      zIndex: 1,
+                    }}
+                    aria-hidden="true"
+                  />
+                <div className="form-group col-sm-12 col-md-6 col-xl-6 d-flex flex-column justify-content-start h-100">
                 <label htmlFor="foto">Fotos de la venta:</label>
-                <input type="file" className="form-control" id="imagenes" multiple accept="image/*"  name="foto" />
+                {ventaPreviewUrls.length > 0 && (
+                  <div className="mb-2">
+                    <div className="small text-muted mb-2">
+                      {mostrandoFotoActual ? 'Fotos actuales de la venta' : 'Vista previa de la seleccion'}
+                    </div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {ventaPreviewUrls.map((src, index) => (
+                        <a key={`${src}-${index}`} href={src} target="_blank" rel="noreferrer" className="d-inline-block">
+                          <img
+                            src={src}
+                            alt={mostrandoFotoActual ? `Foto actual de la venta ${index + 1}` : `Vista previa de foto de venta ${index + 1}`}
+                            style={{ maxWidth: '180px', maxHeight: '180px', objectFit: 'cover' }}
+                            className="img-thumbnail"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {mostrandoFotoActual ? `${ventaPreviewUrls.length} imagenes actuales.` : `${ventaPreviewUrls.length} imagenes seleccionadas.`}
+                    </div>
+                  </div>
+                )}
+                <input type="file" className="form-control" id="imagenes" multiple accept="image/*"  name="foto" onChange={handleVentaImagesChange} />
+                <div className="small text-muted mt-1">
+                  Si seleccionas nuevas fotos, reemplazaran la foto actual de la venta.
+                </div>
               </div>
-              <div className="form-group">
+              <div className="form-group col-sm-12 col-md-6 col-xl-6 d-flex flex-column justify-content-start ps-md-4 h-100">
                 <label htmlFor="foto_formula">Foto de formula:</label>
+                {formulaPreviewPrincipal && (
+                  <div className="mb-2">
+                    <div className="small text-muted mb-2">
+                      {mostrandoFormulaActual ? 'Formula actual' : 'Vista previa de la seleccion'}
+                    </div>
+                    <a href={formulaPreviewPrincipal} target="_blank" rel="noreferrer" className="d-inline-block">
+                      <img
+                        src={formulaPreviewPrincipal}
+                        alt={mostrandoFormulaActual ? 'Formula actual' : 'Formula seleccionada'}
+                        className="img-thumbnail"
+                        style={{ maxWidth: '220px', maxHeight: '220px', objectFit: 'contain' }}
+                      />
+                    </a>
+                    <div className="small text-muted mt-1">
+                      Si seleccionas un nuevo archivo, se reemplazara la formula actual.
+                    </div>
+                  </div>
+                )}
                 <input
                   type="file"
                   className="form-control"
@@ -353,9 +489,10 @@ function VentaUpdateForm(props) {
                   name="foto_formula"
                   accept="image/*"
                   capture="environment"
+                  onChange={handleFormulaImageChange}
                 />
               </div>
-                <div id="previsualizadores" className="mt-2" />
+              </div>
                 
                 <hr className="my-3" />
                 <div className="row my-1">

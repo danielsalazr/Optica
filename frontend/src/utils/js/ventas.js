@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
-import { callApi, IP_URL } from "./api";
+import { callApi } from "./api";
+import { buildMediaUrl } from "./env";
 import { moneyformat, separadorDeMiles, formatMoneyInput } from "./utils.js";
 
 const hiddenInput = typeof document !== "undefined" ? document.querySelector('#metodoPago') : null;
@@ -42,7 +43,7 @@ const initVentasUi = async () => {
         precio_articulo.val(moneyformat(data.precio));
         cantidadArticulo.prop('disabled', false);
         calculateTotalArticle();
-        imageArticulo.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
+        imageArticulo.attr("src", buildMediaUrl(`media/${data.fotos[0].foto}`));
       } else {
         cantidadArticulo.prop('disabled', true);
         imageArticulo.attr("src", ``);

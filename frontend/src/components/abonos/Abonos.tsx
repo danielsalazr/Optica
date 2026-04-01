@@ -324,7 +324,6 @@ function Abonos(props: AbonosProps) {
                     value={row.precio}
                     onChange={(e) => handlePrecioChange(index, e.target.value)}
                     onBlur={(e) => handlePrecioChange(index, e.target.value)}
-                    defaultValue={`$ 0`}
                   />
                 </td>
                 <td style={{ width: '4.2%' }} className="text-center align-middle">

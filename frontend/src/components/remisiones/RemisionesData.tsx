@@ -8,9 +8,9 @@ import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
-import { buildPrintAgentUrl } from "@/utils/js/env";
+import { buildMediaUrl, buildPrintAgentUrl } from "@/utils/js/env";
 import { swalErr, swalconfirmation } from "@/utils/js/sweetAlertFunctions";
-import { callApi, IP_URL } from "@/utils/js/api";
+import { callApi } from "@/utils/js/api";
 import { Dialog } from "primereact/dialog";
 
 import "@/styles/style.css";
@@ -113,11 +113,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   const resolveMediaUrl = (path: string | null) => {
     if (!path) return null;
     if (path.startsWith("http://") || path.startsWith("https://")) return path;
-    const base = IP_URL();
     if (path.startsWith("/media/")) {
-      return `${base.replace(/\/$/, "")}${path}`;
+      return buildMediaUrl(path);
     }
-    return `${base.replace(/\/$/, "")}/media/${path.replace(/^\/+/, "")}`;
+    return buildMediaUrl(`media/${path.replace(/^\/+/, "")}`);
   };
 
   const handleFormulaModal = useCallback(async () => {

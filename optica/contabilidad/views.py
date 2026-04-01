@@ -47,6 +47,7 @@ from .models import (
     MediosDePago,
     Articulos,
     FotosArticulos,
+    FotosVentas,
     PedidoVenta,
     ItemsPEdidoVenta,
     Saldos,
@@ -571,6 +572,38 @@ def abonar(request, factura = 0):
 
 
 
+def _build_venta_payload(request):
+    payload = {}
+    for key in request.data.keys():
+        if key in ('foto', 'foto_formula'):
+            continue
+        value = request.data.get(key)
+        if value is not None:
+            payload[key] = value
+
+    foto_formula = request.FILES.get('foto_formula')
+    if foto_formula is not None:
+        payload['foto_formula'] = foto_formula
+
+    fotos_venta = request.FILES.getlist('foto')
+    if fotos_venta:
+        payload['foto'] = fotos_venta[0]
+
+    return payload
+
+
+def _sync_fotos_venta(venta, fotos_venta):
+    if fotos_venta is None:
+        return
+
+    if fotos_venta:
+        venta.fotosVenta.all().delete()
+        for foto in fotos_venta:
+            FotosVentas.objects.create(venta=venta, foto=foto)
+        venta.foto = fotos_venta[0]
+        venta.save(update_fields=['foto'])
+
+
 class Venta(APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request, id=0,):
@@ -604,7 +637,7 @@ class Venta(APIView):
             
             # Datos de venta
             clasificacion = [
-                  ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'totalArticulo', 'articulo_id', 'articulo_nombre', 'venta_id', 'foto']),
+                  ('ventas', ['id', 'cantidad', 'precio_articulo', 'descuento', 'tipo_descuento', 'totalArticulo', 'articulo_id', 'articulo_nombre', 'venta_id', 'foto']),
                 # ('abonos', ['totalArticulo', 'articulo_id', 'venta_id']),
                 # Puedes añadir más clasificaciones según necesites
             ]
@@ -668,6 +701,7 @@ class Venta(APIView):
                     'jornada': venta_instance.jornada_id,
                     'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
                     'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
+                    'fotosVenta': [foto.foto.url for foto in venta_instance.fotosVenta.all()],
                 })
 
             return Response(lista, status=status.HTTP_200_OK)
@@ -770,9 +804,9 @@ class Venta(APIView):
         console.log(json.loads(request.data['abonos']))
         console.log(json.loads(request.data['saldo']))
 
-        data_copy = request.data.copy()
+        fotos_venta = request.FILES.getlist('foto')
 
-        serializer = VentaSerializer(data=data_copy)
+        serializer = VentaSerializer(data=_build_venta_payload(request))
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if not serializer.is_valid():
@@ -780,6 +814,7 @@ class Venta(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         venta_obj = serializer.save()
+        _sync_fotos_venta(venta_obj, fotos_venta)
 
         console.log(request.data)
         # data_copy['saldo'] = saldo['saldo']
@@ -873,7 +908,7 @@ class Venta(APIView):
         console.log(json.loads(request.data['abonos']))
         console.log(json.loads(request.data['saldo']))
 
-        data_copy = request.data.copy()
+        fotos_venta = request.FILES.getlist('foto')
 
         venta = Ventas.objects.get(id=factura)
 
@@ -884,13 +919,15 @@ class Venta(APIView):
         # except MiModelo.DoesNotExist:
         #     return Response(status=status.HTTP_404_NOT_FOUND)
         
-        serializer = VentaSerializer(venta, data=request.data)
+        serializer = VentaSerializer(venta, data=_build_venta_payload(request))
         if not serializer.is_valid():
             console.log(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # console.log(serializer.data)
 
         venta_actualizada = serializer.save()
+        if fotos_venta:
+            _sync_fotos_venta(venta_actualizada, fotos_venta)
 
         if venta_items:
             # Validar que no se eliminen items ya remisionados
@@ -916,6 +953,7 @@ class Venta(APIView):
                     item_existente.cantidad = int(item_data.get("cantidad") or 0)
                     item_existente.precio_articulo = int(item_data.get("precio_articulo") or 0)
                     item_existente.descuento = int(item_data.get("descuento") or 0)
+                    item_existente.tipo_descuento = item_data.get("tipo_descuento") or 'precio'
                     item_existente.totalArticulo = int(item_data.get("totalArticulo") or 0)
                     item_existente.save()
                 else:

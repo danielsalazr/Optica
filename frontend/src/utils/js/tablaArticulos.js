@@ -6,10 +6,11 @@ import 'selectize';
 // const selectize = dynamic(() => import('selectize'), { ssr: false });
 
 
-import { callApi, IP_URL } from '@/utils/js/api';
+import { callApi } from '@/utils/js/api';
 // import { obtenerInfoArticulo  } from "@/utils/js/selectizeElements";
 import { moneyformat, separadorDeMiles, formatMoneyInput  } from "./utils.js";
 import { calcularTotales, obtenerInfoArticulo } from "./ventas.js";
+import { buildMediaUrl } from "./env";
 
 
 
@@ -100,7 +101,7 @@ export async function addRow() {
         precio_articuloTable.val(moneyformat(data.precio))
         cantidadArticuloTable.prop('disabled', false);
         calculateTotalArticleTable()
-        imageArticuloTable.attr("src", `${IP_URL()}/media/${data.fotos[0].foto}`);
+        imageArticuloTable.attr("src", buildMediaUrl(`media/${data.fotos[0].foto}`));
       } else{
         cantidadArticuloTable.prop('disabled', true);
         imageArticuloTable.attr("src", ``);

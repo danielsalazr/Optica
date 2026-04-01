@@ -243,6 +243,7 @@ class ItemsVentaSerializer(serializers.ModelSerializer):
             'cantidad',
             'precio_articulo',
             'descuento',
+            'tipo_descuento',
             'totalArticulo',
         ]
 
