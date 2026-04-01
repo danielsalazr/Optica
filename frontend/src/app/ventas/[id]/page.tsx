@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from 'react'
 import VentaUpdateForm from '@/components/ventas/VentaUpdateForm';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildServerBackendUrl } from '@/utils/js/env';
 
 interface VentaPageProps {
   params: Promise<{
@@ -11,7 +11,7 @@ interface VentaPageProps {
 
 
 async function getVenta(id: string) {
-  const res = await fetch(buildBackendUrl(`venta/${id}`), {
+  const res = await fetch(buildServerBackendUrl(`venta/${id}`), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {
@@ -22,7 +22,7 @@ async function getVenta(id: string) {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildBackendUrl("ventas/"), {
+  const res = await fetch(buildServerBackendUrl("ventas/"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {

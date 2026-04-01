@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React from "react";
 import JornadasModule from "@/components/jornadas/JornadasModule";
-import { buildBackendUrl } from "@/utils/js/env";
+import { buildServerBackendUrl } from "@/utils/js/env";
 
-const API_BASE = `${buildBackendUrl("")}/`;
+const API_BASE = `${buildServerBackendUrl("")}/`;
 
 const buildUrl = (path: string) => {
   const normalizedPath = path.startsWith("/") ? path.slice(1) : path;

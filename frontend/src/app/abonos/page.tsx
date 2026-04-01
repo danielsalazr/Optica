@@ -4,7 +4,7 @@ import '@/styles/style.css';
 import '@/styles/selectwithImage.css';
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import AbonosData from '@/components/abonos/AbonosData';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildServerBackendUrl } from '@/utils/js/env';
 
 type AbonoRow = {
   id: number | string;
@@ -31,7 +31,7 @@ type GeneralData = {
 };
 
 async function getDataAbonos() {
-  const res = await fetch(buildBackendUrl("abono/"), {
+  const res = await fetch(buildServerBackendUrl("abono/"), {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -42,7 +42,7 @@ async function getDataAbonos() {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildBackendUrl("ventas/"), {
+  const res = await fetch(buildServerBackendUrl("ventas/"), {
     cache: "no-store",
   });
   if (!res.ok) {

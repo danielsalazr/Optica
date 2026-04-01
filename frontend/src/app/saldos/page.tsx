@@ -2,12 +2,12 @@
 import React from 'react';
 
 import SaldosModule from '@/components/saldos/SaldosModule';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildServerBackendUrl } from '@/utils/js/env';
 import '@/styles/style.css';
 
 
 async function getSaldosData() {
-  const res = await fetch(buildBackendUrl("reportes/data/"), {
+  const res = await fetch(buildServerBackendUrl("reportes/data/"), {
     cache: "no-store",
   });
   if (!res.ok) {

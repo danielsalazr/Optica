@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 
 import React from 'react'
 import VentasForm from '@/components/ventas/VentasForm';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildServerBackendUrl } from '@/utils/js/env';
 import '@/styles/selectwithImage.css';
 
 async function getData() {
-    const res = await fetch(buildBackendUrl("ventas/"), {
+    const res = await fetch(buildServerBackendUrl("ventas/"), {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {

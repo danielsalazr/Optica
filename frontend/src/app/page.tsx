@@ -7,6 +7,7 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Footer from "@/components/Footer";
+import { buildAdminUrl } from "@/utils/js/env";
 import SalesIndicator from "@/components/SalesIndicator";
 // import 'bootstrap/dist/js/bootstrap.bundle.min';
 
@@ -39,11 +40,11 @@ export default async function Home() {
           <Link href="ventas" type="button" className="btn btn-primary btn-lg my-1">Ventas</Link>
           <Link href="abonos" type="button" className="btn btn-primary btn-lg my-1">Abonos</Link>
           <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
-          <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Pedidos</Link>
+          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Pedidos</a>
           <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Saldos</Link>
-          <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Administrador</Link>
+          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Administrador</a>
           {/* <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
-          <Link href="admin" type="button" className="btn btn-primary btn-lg my-1">Administrador</Link> */}
+          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Administrador</a> */}
           {/* {'{'}% comment %{'}'} <button type="button" className="btn btn-primary btn-lg my-1">Crear Proveedor</button>
           <button type="button" className="btn btn-primary btn-lg my-1" /> {'{'}% endcomment %{'}'} */}
            {/* <form>

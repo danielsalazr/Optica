@@ -5,7 +5,7 @@ import React from 'react'
 import Link from "next/link";
 
 import VentasData from '@/components/ventas/VentasData';
-import { buildBackendUrl } from '@/utils/js/env';
+import { buildServerBackendUrl } from '@/utils/js/env';
 
 import '@/styles/selectwithImage.css';
 import "intl-tel-input/build/css/intlTelInput.css";
@@ -31,7 +31,7 @@ const currencyFormatter = new Intl.NumberFormat('es-CO', {
 const formatMoney = (value: unknown) => currencyFormatter.format(Number(value || 0));
 
 async function getDataVentas() {
-  const res = await fetch(buildBackendUrl("venta/"), {
+  const res = await fetch(buildServerBackendUrl("venta/"), {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -42,7 +42,7 @@ async function getDataVentas() {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildBackendUrl("ventas/"), {
+  const res = await fetch(buildServerBackendUrl("ventas/"), {
     cache: "no-store",
   });
   if (!res.ok) {

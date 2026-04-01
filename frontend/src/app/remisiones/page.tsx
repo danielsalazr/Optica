@@ -1,10 +1,10 @@
 // @ts-nocheck
 import RemisionesData from "@/components/remisiones/RemisionesData";
-import { buildBackendUrl } from "@/utils/js/env";
+import { buildServerBackendUrl } from "@/utils/js/env";
 
 
 async function getRemisiones() {
-  const res = await fetch(buildBackendUrl("remisiones/"), {
+  const res = await fetch(buildServerBackendUrl("remisiones/"), {
     cache: "no-store",
   });
 

@@ -55,5 +55,8 @@
   "bugs": {
     "url": "https://github.com/platzi/curso-webpack-react/issues"
   },
-  "homepage": "https://github.com/platzi/curso-webpack-react#readme"
+  "homepage": "https://github.com/platzi/curso-webpack-react#readme",
+  "overrides": {
+    "minimist": "^1.2.8"
+  }
 }

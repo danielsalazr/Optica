@@ -13,6 +13,11 @@ export const BACKEND_BASE_URL = normalizeBaseUrl(
   DEFAULT_BACKEND_URL
 );
 
+export const SSR_BACKEND_BASE_URL = normalizeBaseUrl(
+  process.env.BACKEND_SSR_URL,
+  BACKEND_BASE_URL
+);
+
 export const FRONTEND_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_FRONTEND_URL,
   DEFAULT_FRONTEND_URL
@@ -40,6 +45,7 @@ const buildUrl = (baseUrl, path = "") => {
 };
 
 export const buildBackendUrl = (path = "") => buildUrl(BACKEND_BASE_URL, path);
+export const buildServerBackendUrl = (path = "") => buildUrl(SSR_BACKEND_BASE_URL, path);
 export const buildFrontendUrl = (path = "") => buildUrl(FRONTEND_BASE_URL, path);
 export const buildAdminUrl = (path = "") => buildUrl(ADMIN_BASE_URL, path);
 export const buildMediaUrl = (path = "") => buildUrl(MEDIA_BASE_URL, path);

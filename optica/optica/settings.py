@@ -34,7 +34,7 @@ SECRET_KEY = 'django-insecure-0l6fe&g0&2st&4czj$$-+_^vi2yh5@r^jaig3f3&xq-zsi47^7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ALLOWED_HOSTS = ["api.bienestaroptica.com", "console.bienestaroptica.com", "localhost"] #['*']
 
 
 # Application definition
@@ -94,7 +94,7 @@ JAZZMIN_SETTINGS = {
     'related_modal_active': True,
     'custom_js': None,
     'show_ui_builder': False,
-    'changeform_format': 'horizontal_tabs',
+    'changeform_format': 'single',
     'changeform_format_overrides': {'auth.user': 'collapsible', 'auth.group': 'vertical_tabs'},
 }
 
@@ -204,7 +204,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://192.168.130.22:3001', 'http://127.0.0.1:3001', 'http://localhost:3001',
     'http://127.0.0.1:4720', 'http://localhost:4720',
     'http://127.0.0.1',
-    'https://api.bienestaroptica.com', 'https://console.bienestaroptica.com',
+    'https://api.bienestaroptica.com', "https://console.bienestaroptica.com",
     'https://bienestaroptica.com'
     
 ]
@@ -213,17 +213,31 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000','http://192.168.130.22:3000',
     'http://localhost:3001','http://192.168.130.22:3001',
     'http://127.0.0.1:4720','http://localhost:4720',
-    'https://api.bienestaroptica.com', 'https://console.bienestaroptica.com',
+    "https://api.bienestaroptica.com", 'https://console.bienestaroptica.com',
     'https://bienestaroptica.com'
     
 ]
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_COOKIE_DOMAIN = ".bienestaroptica.com"
+SESSION_COOKIE_DOMAIN = ".bienestaroptica.com"
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+#CSRF_COOKIE_SAMESITE = 'Lax'
+#SESSION_COOKIE_SAMESITE = 'Lax'
+
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
+
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
 
-
-CORS_ALLOW_ALL_ORIGINS = True
-
+SECURE_SSL_REDIRECT = True
+USE_X_FORWARDED_HOST = True
 CORS_ALLOW_METHODS = [
     'GET',
     'POST',
