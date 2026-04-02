@@ -35,6 +35,7 @@ function AbonosForm(props: AbonosFormProps) {
 
     
     const {data, generalData, fun} = props;
+    const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(data)
     console.log(generalData)
 
@@ -137,7 +138,11 @@ function AbonosForm(props: AbonosFormProps) {
             <input type="text" className="form-control precio" id="precio" name="precio" />
         </div>
 
-        <div className="col-md-12">
+        <div className="col-md-6">
+            <label htmlFor="fecha_abono" className="form-label">Fecha real del abono</label>
+            <input type="date" className="form-control" id="fecha_abono" name="fecha_abono" defaultValue={fechaHoy} required />
+        </div>
+        <div className="col-md-6">
             <label htmlFor="inputState" className="form-label">Medio de pago</label>
             <MedioPago 
                 data={generalData}

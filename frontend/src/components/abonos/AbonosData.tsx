@@ -25,6 +25,7 @@ type AbonoDataRow = {
   factura_id: string | number;
   fecha: string;
   fechaRaw: string;
+  fechaRegistro?: string;
   nombre: string;
   precio: string | number;
   medioDePago_id: string | number;
@@ -54,6 +55,7 @@ type PreparedAbonoRow = AbonoDataRow & {
   cedulaLabel: string;
   metodoPagoLabel: string;
   fechaLabel: string;
+  fechaRegistroLabel: string;
   precioLabel: string;
   isAbonoMasivo: boolean;
 };
@@ -148,6 +150,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
         cedulaLabel: item.cedula.toString() || "Sin documento",
         metodoPagoLabel: item.nombre.toString().trim() || "Sin medio de pago",
         fechaLabel: item.fecha.toString() || "-",
+        fechaRegistroLabel: item.fechaRegistro?.toString().trim() || "-",
         precioLabel: item.precio.toString() || "$ 0",
         isAbonoMasivo: !!item.abono_masivo_id,
       })),
@@ -155,7 +158,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
   );
 
   const globalFilterFields = useMemo(
-    () => ["idLabel", "facturaLabel", "clienteLabel", "cedulaLabel", "metodoPagoLabel", "fechaLabel", "precioLabel"],
+    () => ["idLabel", "facturaLabel", "clienteLabel", "cedulaLabel", "metodoPagoLabel", "fechaLabel", "fechaRegistroLabel", "precioLabel"],
     []
   );
 
@@ -261,7 +264,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
       precio: editForm.precio,
       medioDePago: editForm.medioDePago,
       descripcion: editForm.descripcion,
-      fecha: formatDateForApi(editForm.fecha),
+      fecha_abono: formatDateForApi(editForm.fecha),
     };
 
     try {
@@ -436,7 +439,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
           </div>
 
           <div>
-            <label className="form-label">Fecha</label>
+            <label className="form-label">Fecha real del abono</label>
             <Calendar
               value={editForm.fecha}
               onChange={(e) =>
@@ -589,7 +592,8 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
                     <th>Venta</th>
                     <th>Cliente</th>
                     <th>Medio de pago</th>
-                    <th>Fecha</th>
+                    <th>Fecha abono</th>
+                    <th>Fecha registro</th>
                     <th className="text-end">Valor</th>
                     <th className="text-center">Ir a venta</th>
                   </tr>
@@ -602,6 +606,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
                       <td>{item.cliente_nombre || item.cliente_id || "-"}</td>
                       <td>{item.medioDePago || "-"}</td>
                       <td>{item.fecha ? new Date(item.fecha).toLocaleDateString("es-CO") : "-"}</td>
+                      <td>{item.fecha_registro ? new Date(item.fecha_registro).toLocaleDateString("es-CO") : "-"}</td>
                       <td className="text-end">
                         {new Intl.NumberFormat("es-CO", {
                           style: "currency",

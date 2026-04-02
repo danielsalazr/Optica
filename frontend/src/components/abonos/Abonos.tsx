@@ -11,6 +11,7 @@ type MedioPagoRow = {
   precio: number | string;
   descripcion?: string;
   descripcionAbono?: string;
+  fecha_abono?: string;
   imagenMedioPago?: string;
   medioDePago_id?: number | string;
   medioPago?: string;
@@ -156,6 +157,7 @@ function Abonos(props: AbonosProps) {
       ...prevRows,
       {
         precio: '$ 0',
+        fecha_abono: new Date().toISOString().split('T')[0],
       },
     ])
   }
@@ -172,6 +174,12 @@ function Abonos(props: AbonosProps) {
         0
       )
     )
+  }
+
+  const handleFechaAbonoChange = (index: number, value: string) => {
+    const newRows = [...rows]
+    newRows[index].fecha_abono = value
+    setRows(newRows)
   }
 
   const handleDeleteRow = (index: number) => {
@@ -282,7 +290,8 @@ function Abonos(props: AbonosProps) {
           <thead className="table-light">
             <tr>
               <th style={{ width: '2%' }}>#</th>
-              <th style={{ width: '35%' }}>Medio de Pago</th>
+              <th style={{ width: '30%' }}>Medio de Pago</th>
+              <th style={{ width: '18%' }}>Fecha abono</th>
               <th>Descripcion</th>
               <th style={{ width: '20%' }}>Valor</th>
             </tr>
@@ -302,6 +311,16 @@ function Abonos(props: AbonosProps) {
                       medioPago: row.medioPago ?? "Seleccione una opcion",
                       imagenMedioPago: row.imagenMedioPago ?? "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s",
                     }}
+                  />
+                </td>
+                <td style={{ width: '18%' }}>
+                  <input
+                    type="date"
+                    className="form-control"
+                    id={`fecha-abono-${index}`}
+                    name="fechaAbono"
+                    value={row.fecha_abono || ''}
+                    onChange={(e) => handleFechaAbonoChange(index, e.target.value)}
                   />
                 </td>
                 <td width={40}>

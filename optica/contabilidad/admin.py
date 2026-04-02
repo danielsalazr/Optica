@@ -12,6 +12,7 @@ from .models import (
     Saldos,
     HistoricoSaldos,
     EstadoPedidoVenta,
+    HistoricoEstadoPedidoVenta,
     PedidoVenta,
     ItemsPEdidoVenta,
     TipoVenta,
@@ -236,6 +237,13 @@ class EstadoPedidoVentaAdmin(admin.ModelAdmin):
         #'cliente',
         'nombre',
     )
+
+
+@admin.register(HistoricoEstadoPedidoVenta)
+class HistoricoEstadoPedidoVentaAdmin(admin.ModelAdmin):
+    list_display = ('id', 'venta', 'estado_anterior', 'estado_nuevo', 'origen', 'usuario', 'fecha')
+    search_fields = ('venta__id', 'venta__cliente_id', 'estado_anterior__nombre', 'estado_nuevo__nombre')
+    list_filter = ('origen', 'estado_nuevo', 'fecha')
 
 
 @admin.register(PedidoVenta)

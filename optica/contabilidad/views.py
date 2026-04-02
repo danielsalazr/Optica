@@ -54,6 +54,7 @@ from .models import (
     Remision,
     RemisionItem,
     EstadoPedidoVenta,
+    HistoricoEstadoPedidoVenta,
     Jornada,
     Vendedor,
     CitaAgenda,
@@ -130,6 +131,7 @@ class PublicVentaTrackingView(APIView):
 
         venta = (
             Ventas.objects.select_related('estado', 'estado_pedido')
+            .prefetch_related('historicoEstadosPedido__estado_nuevo')
             .filter(id=venta_id_int, cliente_id=cedula_int, anulado=False)
             .first()
         )
@@ -159,20 +161,29 @@ class PublicVentaTrackingView(APIView):
         estado_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
         actual_index = ESTADO_PEDIDO_ORDER.get(estado_slug, 0)
 
+        historico_fechas = {'creado': venta.fechaCreacion or venta.fecha}
+        historicos = sorted(
+            venta.historicoEstadosPedido.all(),
+            key=lambda item: (item.fecha or timezone.make_aware(datetime.min), item.id or 0),
+        )
+        for item in historicos:
+            slug_historico = identify_estado_pedido_slug(getattr(item.estado_nuevo, 'nombre', None))
+            if slug_historico and item.fecha:
+                historico_fechas[slug_historico] = item.fecha
+
+        if estado_slug and estado_slug not in historico_fechas:
+            historico_fechas[estado_slug] = venta.estado_pedido_actualizado or venta.fecha
+
         timeline = []
         for index, (_, slug, nombre) in enumerate(ESTADOS_PEDIDO_DEFINICIONES):
-            if index < actual_index:
-                stage = 'completed'
-            elif index == actual_index:
+            fecha_hito = historico_fechas.get(slug)
+
+            if slug == estado_slug:
                 stage = 'current'
+            elif index < actual_index and fecha_hito:
+                stage = 'completed'
             else:
                 stage = 'pending'
-
-            fecha_hito = None
-            if slug == 'creado':
-                fecha_hito = venta.fechaCreacion or venta.fecha
-            elif slug == estado_slug:
-                fecha_hito = venta.estado_pedido_actualizado or venta.fecha
 
             timeline.append({
                 'id': index + 1,
@@ -697,11 +708,62 @@ class Venta(APIView):
 
             venta_instance = Ventas.objects.select_related('jornada__empresa').filter(id=id).first()
             if venta_instance:
+                historico_estado = list(
+                    HistoricoEstadoPedidoVenta.objects.select_related('estado_anterior', 'estado_nuevo', 'usuario')
+                    .filter(venta_id=id)
+                    .order_by('-fecha', '-id')
+                    .values(
+                        'id',
+                        'fecha',
+                        'motivo',
+                        'origen',
+                        'estado_anterior__nombre',
+                        'estado_nuevo__nombre',
+                        'usuario__username',
+                        'usuario__first_name',
+                        'usuario__last_name',
+                    )
+                )
+
+                if not any((item.get('estado_nuevo__nombre') or '').strip().lower() == 'pedido tomado' for item in historico_estado):
+                    historico_estado.append({
+                        'id': f'created-{id}',
+                        'fecha': venta_instance.fechaCreacion or venta_instance.fecha,
+                        'motivo': '',
+                        'origen': 'automatico',
+                        'estado_anterior__nombre': '',
+                        'estado_nuevo__nombre': 'Pedido tomado',
+                        'usuario__username': '',
+                        'usuario__first_name': '',
+                        'usuario__last_name': '',
+                    })
+
+                historico_estado.sort(
+                    key=lambda item: (item.get('fecha') or timezone.make_aware(datetime.min), str(item.get('id') or '')),
+                    reverse=True,
+                )
+
                 lista.update({
                     'jornada': venta_instance.jornada_id,
                     'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
                     'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
                     'fotosVenta': [foto.foto.url for foto in venta_instance.fotosVenta.all()],
+                    'historicoEstadoPedido': [
+                        {
+                            'id': item['id'],
+                            'fecha': item['fecha'].isoformat() if item.get('fecha') else None,
+                            'motivo': item.get('motivo') or '',
+                            'origen': item.get('origen') or 'manual',
+                            'estadoAnterior': item.get('estado_anterior__nombre') or '',
+                            'estadoNuevo': item.get('estado_nuevo__nombre') or '',
+                            'usuario': (
+                                f"{(item.get('usuario__first_name') or '').strip()} {(item.get('usuario__last_name') or '').strip()}".strip()
+                                or item.get('usuario__username')
+                                or ''
+                            ),
+                        }
+                        for item in historico_estado
+                    ],
                 })
 
             return Response(lista, status=status.HTTP_200_OK)
@@ -1005,7 +1067,7 @@ class Venta(APIView):
         ).get('total') or 0
         venta.totalAbono = total_abonos_db
         venta.save(update_fields=['totalAbono'])
-        maybe_mark_para_fabricacion(venta)
+        maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
 
 
         # return Response(serializer.data)
@@ -1117,7 +1179,9 @@ class Abono(APIView):
                     T0.cliente_id as cedula,                                                                                                              
                     T1.nombre as cliente,                                                                                                                 
                     T0.venta_id as venta,                                                                                                             
-                    DATE_FORMAT(T0.fecha, '%d/%m/%Y') as fecha,                                                                                                                                
+                    DATE_FORMAT(T0.fecha_abono, '%d/%m/%Y') as fecha,                                                                                                                                
+                    T0.fecha_abono as fecha_raw,
+                    T0.fecha as fecha_registro,
                     T0.id,                                                                                                                                   
                     T0.medioDePago_id,   
                     T2.nombre as "medioDePago",
@@ -1152,7 +1216,9 @@ class Abono(APIView):
                 T0.cliente_id as cedula,
                 T1.nombre as cliente,
                 T0.venta_id as factura_id,
-                T0.fecha,
+                DATE_FORMAT(T0.fecha_abono, '%d/%m/%Y') as fecha,
+                T0.fecha_abono as fecha_raw,
+                T0.fecha as fecha_registro,
                 T0.id,
                 T0.medioDePago_id,
                 T0.abono_masivo_id,
@@ -1193,6 +1259,8 @@ class Abono(APIView):
 
         data_copy = request.data.copy()
         data_copy['factura'] = venta.id
+        if data_copy.get('fecha') and not data_copy.get('fecha_abono'):
+            data_copy['fecha_abono'] = data_copy.get('fecha')
 
         serializer = AbonoSerializer(data=data_copy)
         #serializer = VentaSerializer(data=listdata, many=True)
@@ -1219,7 +1287,7 @@ class Abono(APIView):
                 # cambiar el estado de la venta a pagada
                 venta.estado_id = 3
             venta.save()
-            maybe_mark_para_fabricacion(venta)
+            maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
 
             # return JsonResponse({'accion': 'ok'}{'accion': 'ok'}, status=201)
             return Response({'accion': 'ok'}, status=status.HTTP_201_CREATED)
@@ -1240,6 +1308,8 @@ class Abono(APIView):
             data['venta'] = abono.venta_id
         if not data.get('cliente_id') and abono.cliente_id:
             data['cliente_id'] = abono.cliente_id
+        if data.get('fecha') and not data.get('fecha_abono'):
+            data['fecha_abono'] = data.get('fecha')
 
         serializer = AbonoSerializer(abono, data=data, partial=True)
         if serializer.is_valid():
@@ -1332,72 +1402,139 @@ class JornadaDetailView(APIView):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def _sync_total_abono_venta(venta):
+    total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
+        total=Coalesce(Sum('precio'), 0)
+    ).get('total') or 0
+    total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
+    if total_abono_actual != (venta.totalAbono or 0):
+        venta.totalAbono = total_abono_actual
+        venta.save(update_fields=['totalAbono'])
+    return total_abono_actual
+
+
+
+def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, usuario=None, origen='manual'):
+    estado_slug = (estado_slug or '').strip()
+    motivo_sin_anticipo = (motivo_sin_anticipo or '').strip()
+
+    if estado_slug not in ESTADO_PEDIDO_ORDER:
+        return False, 'Estado solicitado no es valido.'
+
+    if estado_slug == 'entregado':
+        return False, 'El estado Entregado se actualiza automaticamente luego de la remision completa.'
+
+    actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+    actual_order = ESTADO_PEDIDO_ORDER.get(actual_slug, 0)
+    target_order = ESTADO_PEDIDO_ORDER[estado_slug]
+
+    if target_order < actual_order:
+        return False, 'No es posible retroceder el estado del pedido.'
+
+    if target_order == actual_order:
+        return False, 'La venta ya se encuentra en el estado seleccionado.'
+
+    minimo = 0
+    precio = venta.precio or 0
+    if precio > 0:
+        minimo = math.ceil(precio / 2)
+
+    total_abono_actual = _sync_total_abono_venta(venta)
+    pertenece_jornada = venta.jornada_id is not None
+    requiere_motivo = (
+        target_order >= ESTADO_PEDIDO_ORDER['para_fabricacion'] and
+        not pertenece_jornada and
+        minimo > 0 and
+        total_abono_actual < minimo
+    )
+
+    if requiere_motivo and not motivo_sin_anticipo:
+        return False, 'Indique el motivo por el cual se envia a fabricacion sin cumplir el abono minimo.'
+
+    updated = mark_estado_pedido(
+        venta,
+        estado_slug,
+        motivo_sin_anticipo=motivo_sin_anticipo if requiere_motivo else None,
+        clear_detalle=not requiere_motivo,
+        usuario=usuario,
+        origen=origen,
+    )
+
+    current_estado = venta.estado_pedido.nombre if venta.estado_pedido else None
+    current_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+    data = {
+        'estado': current_estado,
+        'estado_slug': current_slug,
+        'estado_pedido': current_estado,
+        'estado_pedido_slug': current_slug,
+        'detalle': venta.estado_pedido_detalle,
+        'motivo_sin_anticipo': venta.motivo_sin_anticipo,
+        'actualizado': venta.estado_pedido_actualizado,
+        'updated': updated,
+    }
+    return True, data
+
+
 class VentaEstadoPedidoView(APIView):
     def post(self, request, venta_id):
         venta = get_object_or_404(Ventas, pk=venta_id)
-        estado_slug = (request.data.get('estado') or '').strip()
-        motivo_sin_anticipo = (request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or '').strip()
+        ok, result = _apply_estado_pedido_change(
+            venta,
+            request.data.get('estado'),
+            request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or '',
+            usuario=request.user,
+            origen='manual',
+        )
+        if not ok:
+            return Response({'detail': result}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result, status=status.HTTP_200_OK)
 
-        if estado_slug not in ESTADO_PEDIDO_ORDER:
-            return Response({'detail': 'Estado solicitado no es valido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if estado_slug == 'entregado':
-            return Response({'detail': 'El estado Entregado se actualiza automaticamente luego de la remision completa.'}, status=status.HTTP_400_BAD_REQUEST)
+class VentaEstadoPedidoMasivoView(APIView):
+    def post(self, request):
+        venta_ids = request.data.get('venta_ids') or []
+        estado_slug = request.data.get('estado')
+        motivo_sin_anticipo = request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or ''
 
-        actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
-        if ESTADO_PEDIDO_ORDER[estado_slug] < ESTADO_PEDIDO_ORDER.get(actual_slug, 0):
-            return Response({'detail': 'No es posible retroceder el estado del pedido.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(venta_ids, list) or not venta_ids:
+            return Response({'detail': 'Debe seleccionar al menos una venta.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        def _get_minimo_abono():
-            precio = venta.precio or 0
-            if precio <= 0:
-                return 0
-            return math.ceil(precio / 2)
+        ventas = list(Ventas.objects.filter(id__in=venta_ids).select_related('estado_pedido'))
+        if len(ventas) != len(set(venta_ids)):
+            return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        def _sync_total_abono():
-            total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
-                total=Coalesce(Sum('precio'), 0)
-            ).get('total') or 0
-            total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
-            if total_abono_actual != (venta.totalAbono or 0):
-                venta.totalAbono = total_abono_actual
-                venta.save(update_fields=['totalAbono'])
-            return total_abono_actual
-
-        if estado_slug == 'para_fabricacion':
-            minimo = _get_minimo_abono()
-            total_abono_actual = _sync_total_abono()
-            pertenece_jornada = venta.jornada_id is not None
-            if not pertenece_jornada and minimo > 0 and total_abono_actual < minimo:
-                if not motivo_sin_anticipo:
-                    return Response(
-                        {'detail': 'Indique el motivo por el cual se envia a fabricacion sin cumplir el abono minimo.'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                updated = mark_estado_pedido(venta, estado_slug, motivo_sin_anticipo=motivo_sin_anticipo)
-            else:
-                updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-        elif estado_slug == 'en_fabricacion':
-            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['para_fabricacion']:
-                return Response({'detail': 'Debe marcar el pedido Para enviar a fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
-            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-        elif estado_slug == 'listo_entrega':
-            if ESTADO_PEDIDO_ORDER.get(actual_slug, 0) < ESTADO_PEDIDO_ORDER['en_fabricacion']:
-                return Response({'detail': 'Debe marcar el pedido En fabricacion antes de continuar.'}, status=status.HTTP_400_BAD_REQUEST)
-            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-        else:
-            updated = mark_estado_pedido(venta, estado_slug, clear_detalle=True)
-
-        data = {
-            'estado': venta.estado_pedido.nombre if venta.estado_pedido else None,
-            'estado_slug': identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None)),
-            'detalle': venta.estado_pedido_detalle,
-            'motivo_sin_anticipo': venta.motivo_sin_anticipo,
-            'actualizado': venta.estado_pedido_actualizado,
-            'updated': updated,
+        estados_actuales = {
+            identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
+            for venta in ventas
         }
+        if len(estados_actuales) > 1:
+            return Response({'detail': 'No puedes mezclar ventas con diferentes estados de pedido en una misma accion.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(data, status=status.HTTP_200_OK)
+        errores = []
+        procesadas = 0
+        resultados = []
+        for venta in ventas:
+            ok, result = _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo, usuario=request.user, origen='masivo')
+            if ok:
+                procesadas += 1
+                resultados.append({
+                    'venta_id': venta.id,
+                    **result,
+                })
+            else:
+                errores.append({'venta_id': venta.id, 'detail': result})
+
+        return Response(
+            {
+                'procesadas': procesadas,
+                'errores': errores,
+                'estado': estado_slug,
+                'estado_pedido': resultados[0]['estado_pedido'] if resultados else None,
+                'estado_pedido_slug': resultados[0]['estado_pedido_slug'] if resultados else None,
+                'resultados': resultados,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 class AbonoMasivoPreview(APIView):
     def get(self, request):
@@ -1539,7 +1676,7 @@ class AbonoMasivoApply(APIView):
                     'abono_masivo': abono_masivo.id,
                 }
                 if fecha:
-                    abono_data['fecha'] = fecha
+                    abono_data['fecha_abono'] = fecha
 
                 serializer = AbonoSerializer(data=abono_data)
                 if serializer.is_valid():
@@ -1563,7 +1700,7 @@ class AbonoMasivoApply(APIView):
 
                 venta.save()
                 saldo_obj.save()
-                maybe_mark_para_fabricacion(venta)
+                maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
 
         return Response({'accion': 'ok', 'creados': creados}, status=status.HTTP_201_CREATED)
 
@@ -1605,7 +1742,8 @@ class AbonoMasivoDetail(APIView):
                             .first()
                         ),
                         'precio': abono.precio,
-                        'fecha': abono.fecha,
+                        'fecha': abono.fecha_abono,
+                'fecha_registro': abono.fecha,
                         'descripcion': abono.descripcion,
                         'medioDePago': abono.medioDePago.nombre if abono.medioDePago else None,
                     }
@@ -1655,7 +1793,7 @@ class RemisionView(APIView):
         if serializer.is_valid():
             remision = serializer.save()
             totales_map = self._build_totals_map(remision.venta_id)
-            mark_entregado_si_corresponde(remision.venta)
+            mark_entregado_si_corresponde(remision.venta, usuario=request.user, origen='automatico')
             remision_data = RemisionSerializer(
                 remision,
                 context={'remision_totals': totales_map}

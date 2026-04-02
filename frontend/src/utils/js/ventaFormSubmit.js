@@ -97,6 +97,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     const cantidad = formData.getAll("cantidad")
     const tipo_descuento = formData.getAll("tipo_descuento")
     const descripcionAbono = formData.getAll("descripcionAbono")
+    const fechaAbono = formData.getAll("fechaAbono")
 
     console.log(numero_articulo)
     console.log(metodoPago)
@@ -126,7 +127,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     // agregarArrayAFormData(formData, 'descripcionAbono', descripcionAbono, true);
 
     eliminarElementosFormData(formData, ['descuento', 'precio_articulo', 'totalArticulo', 'tipo_descuento', 'cantidad', 'numero_articulo'])
-    eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', ])
+    eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', 'fechaAbono'])
 
     const articulos = numero_articulo.map((numeroArticulo, index) => {
         return {
@@ -147,6 +148,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
             precio: precioAbonos[index],
+            fecha_abono: fechaAbono[index],
 
         };
     });
@@ -262,6 +264,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     const cantidad = formData.getAll("cantidad")
     const tipo_descuento = formData.getAll("tipo_descuento")
     const descripcionAbono = formData.getAll("descripcionAbono")
+    const fechaAbono = formData.getAll("fechaAbono")
 
     console.log(numero_articulo)
     console.log(metodoPago)
@@ -291,7 +294,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     // agregarArrayAFormData(formData, 'descripcionAbono', descripcionAbono, true);
 
     eliminarElementosFormData(formData, ['descuento', 'precio_articulo', 'totalArticulo', 'tipo_descuento', 'cantidad', 'numero_articulo'])
-    eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', ])
+    eliminarElementosFormData(formData, ['metodoPago', 'descripcionAbono', 'precioAbono', 'fechaAbono'])
 
     const articulos = numero_articulo.map((numeroArticulo, index) => {
         return {
@@ -312,6 +315,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
             precio: precioAbonos[index],
+            fecha_abono: fechaAbono[index],
 
         };
     });

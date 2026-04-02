@@ -15,6 +15,7 @@ type AbonoRow = {
   precio: number | string;
   fecha: string;
   fechaRaw: string;
+  fechaRegistro?: string;
   medioDePago_id: number | string;
   abono_masivo_id: number | string | null;
   descripcion: string | null;
@@ -67,12 +68,14 @@ async function page() {
   }
 
   data = data.map((item: AbonoRow) => {
-    const fechaOriginal = item.fecha;
+    const fechaAbonoOriginal = item.fechaRaw ?? item.fecha_raw ?? item.fecha;
+    const fechaRegistroOriginal = item.fechaRegistro ?? item.fecha_registro ?? item.fechaRegistro;
     return {
       ...item,
       precio: moneyformat(item.precio),
       fecha: fechaFormat(item.fecha),
-      fechaRaw: fechaOriginal,
+      fechaRaw: fechaAbonoOriginal,
+      fechaRegistro: fechaRegistroOriginal ? fechaFormat(fechaRegistroOriginal) : "-",
     };
   });
 

@@ -12,6 +12,7 @@ from .models import (
     Articulos,
     Saldos,
     HistoricoSaldos,
+    HistoricoEstadoPedidoVenta,
     EstadoVenta,
     PedidoVenta,
     ItemsPEdidoVenta,
@@ -197,10 +198,32 @@ class VentaSerializer(serializers.ModelSerializer):
         if total > 0 and abono >= math.ceil(total / 2):
             estado_slug = 'para_fabricacion'
 
-        validated_data['estado_pedido'] = get_estado_pedido_by_slug(estado_slug)
+        estado_inicial = get_estado_pedido_by_slug('creado')
+        estado_final = get_estado_pedido_by_slug(estado_slug)
+        validated_data['estado_pedido'] = estado_final
         validated_data['estado_pedido_actualizado'] = timezone.now()
 
-        return super().create(validated_data)
+        venta = super().create(validated_data)
+        fecha_base = venta.fechaCreacion or timezone.now()
+
+        HistoricoEstadoPedidoVenta.objects.create(
+            venta=venta,
+            estado_anterior=None,
+            estado_nuevo=estado_inicial,
+            origen='automatico',
+            fecha=fecha_base,
+        )
+
+        if estado_final.id != estado_inicial.id:
+            HistoricoEstadoPedidoVenta.objects.create(
+                venta=venta,
+                estado_anterior=estado_inicial,
+                estado_nuevo=estado_final,
+                origen='automatico',
+                fecha=venta.estado_pedido_actualizado or fecha_base,
+            )
+
+        return venta
 
     def update(self, instance, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
@@ -261,12 +284,13 @@ class AbonoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Abonos
-        fields = ['venta','cliente_id','precio','medioDePago', 'descripcion', 'abono_masivo', 'fecha']
+        fields = ['venta','cliente_id','precio','medioDePago', 'descripcion', 'abono_masivo', 'fecha', 'fecha_abono']
     
     extra_kwargs = {
         'descripcion': {'required': False},
         'abono_masivo': {'required': False, 'allow_null': True},
         'fecha': {'required': False, 'allow_null': True},
+        'fecha_abono': {'required': False, 'allow_null': True},
     }
 
 
@@ -425,6 +449,9 @@ class RemisionSerializer(serializers.ModelSerializer):
     empresaCliente = serializers.SerializerMethodField(read_only=True)
     totalRemision = serializers.SerializerMethodField(read_only=True)
     abonos = serializers.SerializerMethodField(read_only=True)
+    totalVenta = serializers.SerializerMethodField(read_only=True)
+    totalAbonado = serializers.SerializerMethodField(read_only=True)
+    saldoVenta = serializers.SerializerMethodField(read_only=True)
     condicionPago = serializers.SerializerMethodField(read_only=True)
     compromisoPago = serializers.SerializerMethodField(read_only=True)
     numeroCuotas = serializers.SerializerMethodField(read_only=True)
@@ -448,6 +475,9 @@ class RemisionSerializer(serializers.ModelSerializer):
             'creado_en',
             'totalRemision',
             'abonos',
+            'totalVenta',
+            'totalAbonado',
+            'saldoVenta',
             'condicionPago',
             'compromisoPago',
             'numeroCuotas',
@@ -500,6 +530,26 @@ class RemisionSerializer(serializers.ModelSerializer):
             }
             for abono in abonos_qs
         ]
+
+    def get_totalVenta(self, obj):
+        venta = self._get_venta(obj)
+        if not venta:
+            return 0
+        return venta.precio or 0
+
+    def get_totalAbonado(self, obj):
+        venta = self._get_venta(obj)
+        if not venta:
+            return 0
+        return venta.totalAbono or 0
+
+    def get_saldoVenta(self, obj):
+        venta = self._get_venta(obj)
+        if not venta:
+            return 0
+        total = venta.precio or 0
+        total_abono = venta.totalAbono or 0
+        return max(total - total_abono, 0)
 
     def _get_venta(self, obj):
         try:

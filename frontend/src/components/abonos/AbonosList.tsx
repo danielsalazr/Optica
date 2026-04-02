@@ -17,6 +17,8 @@ type AbonoListVenta = {
 
 type AbonoListRow = {
   fecha?: string;
+  fecha_raw?: string;
+  fecha_registro?: string;
   imagenMedioPago?: string;
   medioDePago?: string;
   precio: number | string;

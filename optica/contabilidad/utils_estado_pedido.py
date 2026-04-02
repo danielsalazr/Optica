@@ -7,7 +7,7 @@ from django.db.models import F, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from .models import EstadoPedidoVenta, ItemsVenta
+from .models import EstadoPedidoVenta, HistoricoEstadoPedidoVenta, ItemsVenta
 
 ESTADOS_PEDIDO_DEFINICIONES: Sequence[Tuple[int, str, str]] = (
     (1, "creado", "Pedido tomado"),
@@ -55,17 +55,33 @@ def identify_estado_pedido_slug(nombre: Optional[str]) -> str:
     return "creado"
 
 
+def _registrar_historico_estado(venta, estado_anterior, estado_nuevo, *, usuario=None, motivo=None, origen='manual') -> None:
+    HistoricoEstadoPedidoVenta.objects.create(
+        venta=venta,
+        estado_anterior=estado_anterior,
+        estado_nuevo=estado_nuevo,
+        usuario=usuario if getattr(usuario, 'is_authenticated', False) else None,
+        motivo=motivo or None,
+        origen=origen,
+        fecha=timezone.now(),
+    )
+
+
 def _save_estado(
     venta,
     slug: str,
     *,
     motivo_sin_anticipo: Optional[str] = None,
     clear_detalle: bool = False,
+    usuario=None,
+    origen: str = 'manual',
 ) -> bool:
     estado = get_estado_pedido_by_slug(slug)
     updated_fields = []
+    estado_anterior = venta.estado_pedido
+    cambio_estado = venta.estado_pedido_id != estado.id
 
-    if venta.estado_pedido_id != estado.id:
+    if cambio_estado:
         venta.estado_pedido = estado
         updated_fields.append("estado_pedido")
 
@@ -83,10 +99,20 @@ def _save_estado(
     venta.estado_pedido_actualizado = timezone.now()
     updated_fields.append("estado_pedido_actualizado")
     venta.save(update_fields=updated_fields)
+
+    if cambio_estado:
+        _registrar_historico_estado(
+            venta,
+            estado_anterior,
+            estado,
+            usuario=usuario,
+            motivo=motivo_sin_anticipo,
+            origen=origen,
+        )
     return True
 
 
-def maybe_mark_para_fabricacion(venta) -> bool:
+def maybe_mark_para_fabricacion(venta, *, usuario=None, origen: str = 'automatico') -> bool:
     precio = venta.precio or 0
     total_abono = venta.totalAbono or 0
 
@@ -101,7 +127,7 @@ def maybe_mark_para_fabricacion(venta) -> bool:
     if ESTADO_PEDIDO_ORDER.get(actual, 0) >= ESTADO_PEDIDO_ORDER["para_fabricacion"]:
         return False
 
-    return _save_estado(venta, "para_fabricacion", clear_detalle=True)
+    return _save_estado(venta, "para_fabricacion", clear_detalle=True, usuario=usuario, origen=origen)
 
 
 def mark_estado_pedido(
@@ -110,6 +136,8 @@ def mark_estado_pedido(
     *,
     motivo_sin_anticipo: Optional[str] = None,
     clear_detalle: bool = False,
+    usuario=None,
+    origen: str = 'manual',
 ) -> bool:
     actual = identify_estado_pedido_slug(getattr(venta.estado_pedido, "nombre", None))
     if ESTADO_PEDIDO_ORDER[target_slug] < ESTADO_PEDIDO_ORDER.get(actual, 0):
@@ -119,10 +147,12 @@ def mark_estado_pedido(
         target_slug,
         motivo_sin_anticipo=motivo_sin_anticipo,
         clear_detalle=clear_detalle,
+        usuario=usuario,
+        origen=origen,
     )
 
 
-def mark_entregado_si_corresponde(venta) -> bool:
+def mark_entregado_si_corresponde(venta, *, usuario=None, origen: str = 'automatico') -> bool:
     pendientes = ItemsVenta.objects.filter(
         venta_id=venta.id
     ).annotate(
@@ -138,4 +168,4 @@ def mark_entregado_si_corresponde(venta) -> bool:
     if ESTADO_PEDIDO_ORDER.get(actual, 0) >= ESTADO_PEDIDO_ORDER["entregado"]:
         return False
 
-    return _save_estado(venta, "entregado", clear_detalle=True)
+    return _save_estado(venta, "entregado", clear_detalle=True, usuario=usuario, origen=origen)

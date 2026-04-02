@@ -54,6 +54,9 @@ type RemisionRow = {
   items: RemisionItem[];
   totalRemision: number;
   abonos: Abono[];
+  totalVenta?: number | null;
+  totalAbonado?: number | null;
+  saldoVenta?: number | null;
   condicionPago: string | null;
   compromisoPago: number | null;
   numeroCuotas: number | null;
@@ -99,7 +102,8 @@ const formatDate = (value: string) => {
 };
 
 const RemisionesData: React.FC<Props> = ({ data }) => {
-  const [selected, setSelected] = useState<PreparedRemisionRow | null>(null);
+  const [activeRemision, setActiveRemision] = useState<PreparedRemisionRow | null>(null);
+  const [expandedRows, setExpandedRows] = useState(null);
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: "", matchMode: FilterMatchMode.CONTAINS },
   });
@@ -119,14 +123,15 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     return buildMediaUrl(`media/${path.replace(/^\/+/, "")}`);
   };
 
-  const handleFormulaModal = useCallback(async () => {
-    if (!selected.venta) return;
+  const handleFormulaModal = useCallback(async (row: PreparedRemisionRow) => {
+    if (!row?.venta) return;
+    setActiveRemision(row);
     setFormulaOpen(true);
     setFormulaLoading(true);
     setFormulaError(null);
     setFormulaImages([]);
     try {
-      const req = await callApi(`venta/${selected.venta}`);
+      const req = await callApi(`venta/${row.venta}`);
       if (!req.res.ok) {
         throw new Error(req.data.detail || "No fue posible obtener la f?rmula.");
       }
@@ -153,10 +158,11 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     } finally {
       setFormulaLoading(false);
     }
-  }, [selected]);
+  }, []);
 
-  const handlePrintRemision = useCallback(async () => {
-    if (!selected) return;
+  const handlePrintRemision = useCallback(async (row: PreparedRemisionRow) => {
+    if (!row) return;
+    setActiveRemision(row);
 
     setPrinting(true);
     try {
@@ -168,13 +174,13 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         agentHeaders.Authorization = `Bearer ${token.trim()}`;
       }
 
-      const ventaReq = await callApi(`venta/${selected.venta}`);
+      const ventaReq = await callApi(`venta/${row.venta}`);
       if (!ventaReq.res.ok) {
         throw new Error(ventaReq.data.detail || "No fue posible obtener el detalle de la venta para imprimir.");
       }
 
       const ventaData = ventaReq.data || {};
-      const abonos = Array.isArray(selected.abonos) ? selected.abonos : [];
+      const abonos = Array.isArray(row.abonos) ? row.abonos : [];
       const abonado = ventaData.totalAbonoRaw ?? ventaData.totalAbono ?? abonos.reduce((acc: number, abono: Abono) => acc + Number(abono.precio || 0), 0);
       const valorVenta = ventaData.precioRaw ?? ventaData.precio ?? 0;
       const saldo = ventaData.saldoRaw ?? ventaData.saldo ?? Math.max(Number(valorVenta || 0) - Number(abonado || 0), 0);
@@ -184,10 +190,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         format: "pos",
         copies: 1,
         data: {
-          numero: `REM-${selected.id}`,
-          fecha: selected.fecha,
-          cliente: selected.clienteNombre,
-          items: (selected.items || []).map((item) => ({
+          numero: `REM-${row.id}`,
+          fecha: row.fecha,
+          cliente: row.clienteNombre,
+          items: (row.items || []).map((item) => ({
             descripcion: item.articulo?.nombre || `Item ${item.itemVenta}`,
             cantidad: item.cantidad,
             valor_unitario: Number(item.precioUnitario || 0),
@@ -201,7 +207,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             fecha: abono.fecha || "",
             valor: Number(abono.precio || 0),
           })),
-          observaciones: selected.observacion || "",
+          observaciones: row.observacion || "",
         },
       };
 
@@ -223,7 +229,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     } finally {
       setPrinting(false);
     }
-  }, [selected]);
+  }, []);
 
 
   const preparedData = useMemo<PreparedRemisionRow[]>(() => {
@@ -286,12 +292,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     []
   );
 
-  const handleSelectionChange = useCallback(
-    (event: { value: PreparedRemisionRow | null }) => {
-      setSelected(event.value ?? null);
-    },
-    []
-  );
 
   const tableHeader = useMemo(
     () => ( 
@@ -334,15 +334,153 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     []
   );
 
-  const totalRemisionSeleccionada = useMemo(() => {
-    if (!selected) return 0;
-    return (selected.items ?? []).reduce((acc, item) => {
+  const getTotalRemision = useCallback((row: PreparedRemisionRow) => {
+    return (row.items ?? []).reduce((acc, item) => {
       const totalItem =
         Number(item.totalRemisionado || 0) ||
         (Number(item.precioUnitario || 0) * Number(item.cantidad || 0));
       return acc + (Number.isNaN(totalItem) ? 0 : totalItem);
     }, 0);
-  }, [selected]);
+  }, []);
+
+  const rowExpansionTemplate = (row: PreparedRemisionRow) => {
+    const totalRemisionSeleccionada = getTotalRemision(row);
+    return (
+      <div className="ventas-card mt-3">
+        <div className="row g-3 mb-3 align-items-stretch">
+          <div className="col-12 col-xl-4">
+            <div className="border rounded h-100 p-3 bg-light-subtle">
+              <div className="text-muted small text-uppercase">Remision</div>
+              <h4 className="mb-1">Detalle remision #{row.id}</h4>
+              <div className="text-muted small">
+                Venta #{row.venta} - {row.fechaFormateada}
+              </div>
+              {row.observacion && (
+                <div className="text-muted small mt-2">
+                  Observacion: {row.observacion}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="col-12 col-xl-4">
+            <div className="border rounded h-100 p-3 bg-light-subtle">
+              <div className="text-muted small text-uppercase">Cliente</div>
+              <div className="fw-semibold mt-1">{row.clienteNombre}</div>
+              <div className="text-muted small">Documento: {row.clienteCedula}</div>
+              <div className="text-muted small">Empresa: {row.empresaCliente || "Sin empresa"}</div>
+            </div>
+          </div>
+          <div className="col-12 col-xl-4">
+            <div className="border rounded h-100 p-3 bg-light-subtle d-flex flex-column justify-content-between">
+              <div>
+                <div className="text-muted small text-uppercase">Resumen financiero</div>
+                <div className="mt-2 d-flex justify-content-between gap-3">
+                  <span className="text-muted small">Total venta</span>
+                  <span className="fw-semibold">{moneyformat(Number(row.totalVenta || 0))}</span>
+                </div>
+                <div className="mt-2 d-flex justify-content-between gap-3">
+                  <span className="text-muted small">Total abonado</span>
+                  <span className="fw-semibold text-success">{moneyformat(Number(row.totalAbonado || 0))}</span>
+                </div>
+                <div className="mt-2 d-flex justify-content-between gap-3">
+                  <span className="text-muted small">Saldo venta</span>
+                  <span className="fw-semibold text-danger">{moneyformat(Number(row.saldoVenta || 0))}</span>
+                </div>
+                <div className="mt-2 d-flex justify-content-between gap-3">
+                  <span className="text-muted small">Total remision</span>
+                  <span className="fw-semibold">{moneyformat(totalRemisionSeleccionada)}</span>
+                </div>
+              </div>
+              <div className="mt-3 d-flex gap-2 justify-content-end flex-wrap">
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => handleFormulaModal(row)}>
+                  Ver formula
+                </button>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => handlePrintRemision(row)} disabled={printing}>
+                  {printing ? "Imprimiendo..." : "Imprimir ticket"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="table-modern table-responsive remisiones-detail-table">
+          <table className="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Articulo</th>
+                <th className="text-center">Remitido</th>
+                <th className="text-center">Precio</th>
+                <th className="text-center">Descuento</th>
+                <th className="text-center">Total</th>
+                <th className="text-center">Total despachado</th>
+                <th className="text-center">Pendiente</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(row.items ?? []).map((item) => (
+                <tr key={item.id}>
+                  <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
+                  <td className="text-center fw-semibold">{item.cantidad}</td>
+                  <td className="text-center">{moneyformat(Number(item.precioUnitario || 0))}</td>
+                  <td className="text-center">{item.descuento ? `${item.descuento}%` : "0%"}</td>
+                  <td className="text-center fw-semibold">
+                    {moneyformat(item.totalRemisionado - (Number(item.precioUnitario || 0) * Number(item.cantidad || 0)))}
+                  </td>
+                  <td className="text-center text-primary">{item.cantidadDespachada}</td>
+                  <td className="text-center text-danger">{item.restante}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4">
+          <h5 className="mb-3">Abonos asociados</h5>
+          {(row.abonos ?? []).length === 0 ? (
+            <div className="text-muted small">No hay abonos registrados.</div>
+          ) : (
+            <div className="table-modern table-responsive remisiones-detail-table">
+              <table className="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Medio de pago</th>
+                    <th>Descripcion</th>
+                    <th className="text-end">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(row.abonos ?? []).map((abono) => (
+                    <tr key={abono.id}>
+                      <td>{formatDate(abono.fecha)}</td>
+                      <td>{abono.medioPagoNombre || abono.medioDePago || "-"}</td>
+                      <td>{abono.descripcion || "-"}</td>
+                      <td className="text-end fw-semibold">{moneyformat(Number(abono.precio || 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} className="text-end fw-semibold">Total abonos</td>
+                    <td className="text-end fw-semibold">
+                      {moneyformat((row.abonos ?? []).reduce((acc, abono) => acc + Number(abono.precio || 0), 0))}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <div className="mt-3 text-muted small">
+            <div>Condicion de pago: <strong>{row.condicionPago || "-"}</strong></div>
+            <div>Compromiso de pago: <strong>{row.compromisoPago || "-"}</strong></div>
+            <div>Numero de cuotas: <strong>{row.numeroCuotas || "-"}</strong></div>
+            <div>Valor por cuota: <strong>{moneyformat(Number(row.valorCuota || 0))}</strong></div>
+            <div>Cuotas pagadas: <strong>{Number(row.cuotasPagadas || 0)}</strong></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="remisiones-module">
@@ -364,11 +502,9 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           // rowHover
           showGridlines
           dataKey="id"
-          selectionMode="single"
-          selection={selected}
-          onSelectionChange={(event) =>
-            handleSelectionChange(event as unknown as { value: PreparedRemisionRow | null })
-          }
+          expandedRows={expandedRows}
+          onRowToggle={(e) => setExpandedRows(e.data)}
+          rowExpansionTemplate={rowExpansionTemplate}
           filters={filters}
           globalFilterFields={globalFilterFields}
           emptyMessage="No se encontraron remisiones."
@@ -379,6 +515,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
         >
+          <Column expander style={{ width: "3rem" }} />
           {columns.map((column) => {
             const field = String(column.field);
 
@@ -538,150 +675,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         </DataTable>
       </div>
 
-      {selected && (
-        <>
-          {/* <hr className="remisiones-divider" /> */}
-        <div className="ventas-card ">
-          <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <div>
-              <h4 className="mb-1">Detalle remisi?n #{selected.id}</h4>
-              <div className="text-muted small">
-                Venta #{selected.venta} - {selected.fechaFormateada}
-              </div>
-              {selected.observacion && (
-                <div className="text-muted small mt-1">
-                  Observacion: {selected.observacion}
-                </div>
-              )}
-            </div>
-            <div className="text-end">
-              <div className="fw-semibold">Cliente</div>
-              <div className="text-muted small">
-                {selected.clienteNombre} - {selected.clienteCedula}
-              </div>
-              <div className="mt-2">
-                <div className="text-muted small">Total remisi?n</div>
-                <div className="fw-semibold">
-                  {moneyformat(totalRemisionSeleccionada)}
-                </div>
-              </div>
-              <div className="mt-3 d-flex gap-2 justify-content-end flex-wrap">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={handleFormulaModal}
-                >
-                  Ver formula
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={handlePrintRemision}
-                  disabled={printing}
-                >
-                  {printing ? "Imprimiendo..." : "Imprimir ticket"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="table-modern table-responsive remisiones-detail-table">
-            <table className="table table-sm align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Art?culo</th>
-                  <th className="text-center">Remitido</th>
-                  <th className="text-center">Precio</th>
-                  <th className="text-center">Descuento</th>
-                  <th className="text-center">Total</th>
-                  <th className="text-center">Total despachado</th>
-                  <th className="text-center">Pendiente</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(selected.items ?? []).map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
-                    <td className="text-center fw-semibold">{item.cantidad}</td>
-                    <td className="text-center">{moneyformat(Number(item.precioUnitario || 0))}</td>
-                    <td className="text-center">
-                      {item.descuento ? `${item.descuento}%` : "0%"}
-                    </td>
-                    <td className="text-center fw-semibold">
-                      {moneyformat(
-                        item.totalRemisionado -
-                          (Number(item.precioUnitario || 0) * Number(item.cantidad || 0))
-                      )}
-                    </td>
-                    <td className="text-center text-primary">
-                      {item.cantidadDespachada}
-                    </td>
-                    <td className="text-center text-danger">{item.restante}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4">
-            <h5 className="mb-3">Abonos asociados</h5>
-            {(selected.abonos ?? []).length === 0 ? (
-              <div className="text-muted small">No hay abonos registrados.</div>
-            ) : (
-              <div className="table-modern table-responsive remisiones-detail-table">
-                <table className="table table-sm align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Medio de pago</th>
-                      <th>Descripcion</th>
-                      <th className="text-end">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(selected.abonos ?? []).map((abono) => (
-                      <tr key={abono.id}>
-                        <td>{formatDate(abono.fecha)}</td>
-                        <td>{abono.medioPagoNombre || abono.medioDePago || "-"}</td>
-                        <td>{abono.descripcion || "-"}</td>
-                        <td className="text-end fw-semibold">
-                          {moneyformat(Number(abono.precio || 0))}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={3} className="text-end fw-semibold">
-                        Total abonos
-                      </td>
-                      <td className="text-end fw-semibold">
-                        {moneyformat(
-                          (selected.abonos ?? []).reduce(
-                            (acc, abono) => acc + Number(abono.precio || 0),
-                            0
-                          )
-                        )}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-            <div className="mt-3 text-muted small">
-              <div>Condici?n de pago: <strong>{selected.condicionPago || "-"}</strong></div>
-              <div>Compromiso de pago: <strong>{selected.compromisoPago || "-"}</strong></div>
-              <div>N?mero de cuotas: <strong>{selected.numeroCuotas || "-"}</strong></div>
-              <div>Valor por cuota: <strong>{moneyformat(Number(selected.valorCuota || 0))}</strong></div>
-              <div>Cuotas pagadas: <strong>{Number(selected.cuotasPagadas || 0)}</strong></div>
-            </div>
-          </div>
-        </div>
-        </>
-      )}
-
       <Dialog
-        header={`F?rmula - Venta #${selected?.venta ?? "--"}`}
+        header={`Formula - Venta #${activeRemision?.venta ?? "--"}`}
         visible={formulaOpen}
         style={{ width: "70vw", maxWidth: "900px" }}
         onHide={() => setFormulaOpen(false)}

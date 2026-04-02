@@ -37,6 +37,25 @@ import { Row } from 'react-bootstrap';
 const moneyformat = (amount: unknown) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(amount || 0));
 
+const formatDateTime = (value: unknown) => {
+  if (!value) return 'Sin fecha';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+const ORIGEN_ESTADO_LABELS = {
+  manual: 'Manual',
+  masivo: 'Masivo',
+  automatico: 'Automatico',
+};
+
 const ESTADO_PEDIDO_FLOW = ['creado', 'para_fabricacion', 'en_fabricacion', 'listo_entrega', 'entregado'];
 const ESTADO_PEDIDO_LABELS = {
   creado: 'Pedido tomado',
@@ -134,9 +153,14 @@ function VentasData(props) {
   const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedVentas, setSelectedVentas] = useState([]);
+  const [estadoModalOpen, setEstadoModalOpen] = useState(false);
+  const [estadoModalRow, setEstadoModalRow] = useState(null);
+  const [estadoTargetSlug, setEstadoTargetSlug] = useState('');
+  const [estadoMotivoSinAnticipo, setEstadoMotivoSinAnticipo] = useState('');
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkMotivoSinAnticipo, setBulkMotivoSinAnticipo] = useState('');
+  const [bulkEstadoDestino, setBulkEstadoDestino] = useState('');
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -285,28 +309,18 @@ function VentasData(props) {
     return Boolean(jornadaId);
   };
 
-  const buildEstadoAction = (row) => {
-    const key = identifyEstadoPedidoKey(row.estadoPedidoNombre);
-    if (key === 'creado') {
-      return {
-        slug: 'para_fabricacion',
-        label: 'Marcar para enviar a fabricaciÃ³n',
-        needsHalfPayment: true,
-      };
-    }
-    if (key === 'para_fabricacion') {
-      return {
-        slug: 'en_fabricacion',
-        label: 'Enviar a fabricaciÃ³n',
-      };
-    }
-    if (key === 'en_fabricacion') {
-      return {
-        slug: 'listo_entrega',
-        label: 'Marcar listo para entrega',
-      };
-    }
-    return null;
+  const getEstadoOrder = (slug) => ESTADO_PEDIDO_FLOW.indexOf(slug);
+
+  const getAvailableEstadoTargets = (row) => {
+    const actualKey = identifyEstadoPedidoKey(row?.estadoPedidoNombre);
+    const actualOrder = getEstadoOrder(actualKey);
+    return ESTADO_PEDIDO_FLOW.filter((slug) => getEstadoOrder(slug) > actualOrder && slug !== 'entregado');
+  };
+
+  const requiresMotivoSinAnticipo = (row, targetSlug) => {
+    if (!targetSlug) return false;
+    if (ventaPerteneceAJornada(row) || cumpleMitadPago(row)) return false;
+    return getEstadoOrder(targetSlug) >= getEstadoOrder('para_fabricacion');
   };
 
   const normalize = (value) => String(value ?? '').toLowerCase().trim();
@@ -401,11 +415,14 @@ function VentasData(props) {
 
   const bulkMixedStates = bulkEstadoKeys.length > 1;
   const bulkBaseRow = selectedVentas[0] ?? null;
-  const bulkActionConfig = !bulkMixedStates && bulkBaseRow ? buildEstadoAction(bulkBaseRow) : null;
+  const bulkAvailableTargets = useMemo(() => {
+    if (bulkMixedStates || !bulkBaseRow) return [];
+    return getAvailableEstadoTargets(bulkBaseRow);
+  }, [bulkMixedStates, bulkBaseRow]);
   const bulkRowsRequiringMotivo = useMemo(() => {
-    if (!bulkActionConfig || bulkActionConfig.slug !== 'para_fabricacion') return [];
-    return (selectedVentas ?? []).filter((row) => !ventaPerteneceAJornada(row) && !cumpleMitadPago(row));
-  }, [selectedVentas, bulkActionConfig]);
+    if (!bulkEstadoDestino) return [];
+    return (selectedVentas ?? []).filter((row) => requiresMotivoSinAnticipo(row, bulkEstadoDestino));
+  }, [selectedVentas, bulkEstadoDestino]);
   const bulkRowsWithoutMotivo = useMemo(() => {
     const requiringIds = new Set(bulkRowsRequiringMotivo.map((row) => row.id));
     return (selectedVentas ?? []).filter((row) => !requiringIds.has(row.id));
@@ -413,7 +430,7 @@ function VentasData(props) {
   const bulkCanConfirm =
     Boolean(selectedVentas.length) &&
     !bulkMixedStates &&
-    Boolean(bulkActionConfig) &&
+    Boolean(bulkEstadoDestino) &&
     (bulkRowsRequiringMotivo.length === 0 || Boolean(bulkMotivoSinAnticipo.trim()));
 
   const handleOpenBulkModal = async () => {
@@ -421,13 +438,23 @@ function VentasData(props) {
       await swalErr('Selecciona al menos una venta.');
       return;
     }
+    if (bulkMixedStates) {
+      await swalErr('No puedes mezclar ventas con diferentes estados de pedido en una misma accion.');
+      return;
+    }
+    const availableTargets = getAvailableEstadoTargets(selectedVentas[0]);
+    if (!availableTargets.length) {
+      await swalErr('Las ventas seleccionadas ya no tienen estados disponibles para avanzar.');
+      return;
+    }
+    setBulkEstadoDestino(availableTargets[0]);
     setBulkMotivoSinAnticipo('');
     setBulkModalOpen(true);
   };
 
   const handleBulkEstadoSubmit = async () => {
-    if (!bulkActionConfig) {
-      await swalErr('La selecciÃ³n no permite un cambio masivo.');
+    if (!bulkEstadoDestino) {
+      await swalErr('Debes seleccionar el estado destino.');
       return;
     }
     if (bulkRowsRequiringMotivo.length > 0 && !bulkMotivoSinAnticipo.trim()) {
@@ -444,7 +471,7 @@ function VentasData(props) {
         },
         body: JSON.stringify({
           venta_ids: selectedVentas.map((row) => row.id),
-          estado: bulkActionConfig.slug,
+          estado: bulkEstadoDestino,
           ...(bulkRowsRequiringMotivo.length > 0
             ? { motivo_sin_anticipo: bulkMotivoSinAnticipo.trim() }
             : {}),
@@ -466,8 +493,14 @@ function VentasData(props) {
         await swalconfirmation(`Se actualizaron ${Number(req.data.procesadas || 0)} ventas correctamente.`);
       }
 
+      selectedVentas.forEach((row) => {
+        if (row?.id) {
+          detailCache.current.delete(row.id);
+        }
+      });
       setBulkModalOpen(false);
       setSelectedVentas([]);
+      setBulkEstadoDestino('');
       await handleFetchVentas(false);
     } catch (error) {
       console.error(error);
@@ -476,8 +509,6 @@ function VentasData(props) {
       setBulkLoading(false);
     }
   };
-
-
 
   const handleFetchVentas = async (withToggle = true) => {
     //etLoading(true);
@@ -568,41 +599,39 @@ function VentasData(props) {
   };
 
   const handleEstadoPedidoAction = async (rowData) => {
-    const config = buildEstadoAction(rowData);
-    if (!config) {
+    const availableTargets = getAvailableEstadoTargets(rowData);
+    if (!availableTargets.length) {
       await swalErr('Este pedido ya completo todos los estados configurados.');
       return;
     }
+    setEstadoModalRow(rowData);
+    setEstadoTargetSlug(availableTargets[0]);
+    setEstadoMotivoSinAnticipo('');
+    setEstadoModalOpen(true);
+  };
 
-    const cumpleMitad = cumpleMitadPago(rowData);
-    const esVentaJornada = ventaPerteneceAJornada(rowData);
-    const requiereMitadPago = Boolean(config.needsHalfPayment) && !esVentaJornada;
-    const faltaMitadPago = requiereMitadPago && !cumpleMitad;
-    const requiereDetallePorPago =
-      !esVentaJornada && !cumpleMitad && (Boolean(config.requiresDetail) || faltaMitadPago);
-
-    let motivoSinAnticipo = null;
-    if (requiereDetallePorPago) {
-      motivoSinAnticipo = await swalInput('Estas enviando a fabricar sin cumplir con la mitad del pago. Cual es el motivo');
-      if (motivoSinAnticipo === null) {
-        return;
-      }
-      if (!motivoSinAnticipo.trim()) {
-        await swalErr('Debe ingresar un motivo valido.');
-        return;
-      }
+  const handleEstadoPedidoSubmit = async () => {
+    if (!estadoModalRow || !estadoTargetSlug) {
+      await swalErr('Debes seleccionar el estado destino.');
+      return;
+    }
+    if (requiresMotivoSinAnticipo(estadoModalRow, estadoTargetSlug) && !estadoMotivoSinAnticipo.trim()) {
+      await swalErr('Debes indicar un motivo para continuar sin anticipo suficiente.');
+      return;
     }
 
-    setEstadoLoading(rowData.id);
+    setEstadoLoading(estadoModalRow.id);
     try {
-      const req = await callApi('venta/' + rowData.id + '/estado-pedido/', {
+      const req = await callApi('venta/' + estadoModalRow.id + '/estado-pedido/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          estado: config.slug,
-          ...(motivoSinAnticipo ? { motivo_sin_anticipo: motivoSinAnticipo } : {}),
+          estado: estadoTargetSlug,
+          ...(requiresMotivoSinAnticipo(estadoModalRow, estadoTargetSlug)
+            ? { motivo_sin_anticipo: estadoMotivoSinAnticipo.trim() }
+            : {}),
         }),
       });
 
@@ -611,7 +640,14 @@ function VentasData(props) {
         return;
       }
 
-      await swalconfirmation('Estado actualizado: ' + (req.data.estado || config.label) + '.');
+      await swalconfirmation('Estado actualizado: ' + (req.data.estado || ESTADO_PEDIDO_LABELS[estadoTargetSlug]) + '.');
+      if (estadoModalRow?.id) {
+        detailCache.current.delete(estadoModalRow.id);
+      }
+      setEstadoModalOpen(false);
+      setEstadoModalRow(null);
+      setEstadoTargetSlug('');
+      setEstadoMotivoSinAnticipo('');
       await handleFetchVentas(false);
     } catch (error) {
       console.error(error);
@@ -620,7 +656,6 @@ function VentasData(props) {
       setEstadoLoading(null);
     }
   };
-
 
   const getEstadoPagoBadge = (value) => {
     const v = normalize(value);
@@ -796,6 +831,7 @@ function VentasData(props) {
     const observacion = detalle.observacion || '';
     const estadoPedido = detalle.estadoPedidoNombre ?? detalle.estado_pedido_nombre ?? '';
     const motivoSinAnticipo = detalle.motivoSinAnticipo ?? detalle.motivo_sin_anticipo ?? '';
+    const historicoEstadoPedido = Array.isArray(detalle.historicoEstadoPedido) ? detalle.historicoEstadoPedido : [];
     const tieneFormula = Boolean(
       detalle.foto_formula ||
       detalle.fotoFormula ||
@@ -827,6 +863,41 @@ function VentasData(props) {
           )}
           {motivoSinAnticipo && <div className="text-muted small">Motivo sin anticipo: {motivoSinAnticipo}</div>}
           {observacion && <div className="text-muted small">ObservaciÃ³n: {observacion}</div>}
+
+          <div className="mt-3">
+            <div className="fw-semibold mb-2">Historico de estados</div>
+            {historicoEstadoPedido.length === 0 ? (
+              <div className="text-muted small">Sin cambios de estado registrados.</div>
+            ) : (
+              <div className="d-flex flex-column gap-2">
+                {historicoEstadoPedido.map((item) => (
+                  <div key={item.id} className="border rounded px-3 py-2 bg-light-subtle">
+                    <div className="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+                      <div className="d-flex flex-wrap align-items-center gap-2">
+                        <span className="text-muted small">Estado:</span>
+                        <span className={`badge ${estadoPedidoBadgeClass(identifyEstadoPedidoKey(item.estadoNuevo || ''))} badge-estado-pedido`}>
+                          {item.estadoNuevo || "Sin estado final"}
+                        </span>
+                      </div>
+                      <div className="text-muted small">{formatDateTime(item.fecha)}</div>
+                    </div>
+                    {item.estadoAnterior ? (
+                      <div className="text-muted small mt-1">
+                        Estado previo: <span className={`badge ${estadoPedidoBadgeClass(identifyEstadoPedidoKey(item.estadoAnterior || ''))} badge-estado-pedido`}>{item.estadoAnterior}</span>
+                      </div>
+                    ) : null}
+                    <div className="text-muted small mt-1">
+                      Origen: {ORIGEN_ESTADO_LABELS[item.origen] || item.origen || "Manual"}
+                      {item.usuario ? ` | Usuario: ${item.usuario}` : ""}
+                    </div>
+                    {item.motivo ? (
+                      <div className="text-muted small mt-1">Motivo: {item.motivo}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         <div className="table-modern table-responsive">
           <table className="table table-sm align-middle mb-0">
@@ -1035,6 +1106,61 @@ function VentasData(props) {
         </Modal.Body>
       </Modal>
 
+      <Modal size="lg" show={estadoModalOpen} onHide={() => setEstadoModalOpen(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Cambiar estado del pedido</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {!estadoModalRow ? (
+            <div className="alert alert-warning mb-0">No hay venta seleccionada.</div>
+          ) : (
+            <>
+              <div className="mb-3">
+                <div className="fw-semibold">Pedido #{estadoModalRow.id}</div>
+                <div className="text-muted small mt-1">Estado actual: {renderEstadoPedidoBadge(estadoModalRow.estadoPedidoNombre)}</div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Estado destino</label>
+                <select
+                  className="form-select"
+                  value={estadoTargetSlug}
+                  onChange={(event) => {
+                    setEstadoTargetSlug(event.target.value);
+                    setEstadoMotivoSinAnticipo('');
+                  }}
+                  disabled={estadoLoading === estadoModalRow.id}
+                >
+                  {getAvailableEstadoTargets(estadoModalRow).map((slug) => (
+                    <option key={slug} value={slug}>{ESTADO_PEDIDO_LABELS[slug]}</option>
+                  ))}
+                </select>
+              </div>
+              {requiresMotivoSinAnticipo(estadoModalRow, estadoTargetSlug) && (
+                <div className="mb-3">
+                  <label className="form-label">Motivo sin anticipo</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={estadoMotivoSinAnticipo}
+                    onChange={(event) => setEstadoMotivoSinAnticipo(event.target.value)}
+                    placeholder="Motivo para avanzar el pedido sin cumplir el anticipo minimo..."
+                    disabled={estadoLoading === estadoModalRow.id}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEstadoModalOpen(false)} disabled={estadoLoading === estadoModalRow?.id}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={handleEstadoPedidoSubmit} disabled={!estadoTargetSlug || estadoLoading === estadoModalRow?.id}>
+            {estadoLoading === estadoModalRow?.id ? 'Aplicando...' : 'Confirmar cambio'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <Modal size="lg" show={bulkModalOpen} onHide={() => !bulkLoading && setBulkModalOpen(false)} centered>
         <Modal.Header closeButton={!bulkLoading}>
           <Modal.Title>Cambio masivo de estado</Modal.Title>
@@ -1046,17 +1172,40 @@ function VentasData(props) {
             <>
               <div className="mb-3">
                 <div className="fw-semibold">Ventas seleccionadas: {selectedVentas.length}</div>
-                {bulkActionConfig && !bulkMixedStates && (
+                {!bulkMixedStates && bulkEstadoKeys[0] && (
                   <div className="text-muted small mt-1">
-                    Siguiente estado: {ESTADO_PEDIDO_LABELS[bulkActionConfig.slug]}
+                    Estado actual compartido: {ESTADO_PEDIDO_LABELS[bulkEstadoKeys[0]]}
                   </div>
                 )}
               </div>
 
               {bulkMixedStates && (
                 <div className="alert alert-danger">
-                  No puedes mezclar ventas con diferentes estados de pedido en una misma acciÃ³n.
+                  No puedes mezclar ventas con diferentes estados de pedido en una misma accion.
                 </div>
+              )}
+
+              {!bulkMixedStates && bulkAvailableTargets.length > 0 && (
+                <div className="mb-3">
+                  <label className="form-label">Estado destino</label>
+                  <select
+                    className="form-select"
+                    value={bulkEstadoDestino}
+                    onChange={(event) => {
+                      setBulkEstadoDestino(event.target.value);
+                      setBulkMotivoSinAnticipo('');
+                    }}
+                    disabled={bulkLoading}
+                  >
+                    {bulkAvailableTargets.map((slug) => (
+                      <option key={slug} value={slug}>{ESTADO_PEDIDO_LABELS[slug]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!bulkMixedStates && !bulkAvailableTargets.length && (
+                <div className="alert alert-warning">Las ventas seleccionadas ya no tienen estados disponibles para avanzar.</div>
               )}
 
               <div className="table-responsive mb-3">
@@ -1071,10 +1220,7 @@ function VentasData(props) {
                   </thead>
                   <tbody>
                     {(selectedVentas ?? []).map((row) => {
-                      const requiereMotivo =
-                        bulkActionConfig.slug === 'para_fabricacion' &&
-                        !ventaPerteneceAJornada(row) &&
-                        !cumpleMitadPago(row);
+                      const requiereMotivo = requiresMotivoSinAnticipo(row, bulkEstadoDestino);
                       return (
                         <tr key={row.id}>
                           <td className="fw-semibold">#{row.id}</td>
@@ -1082,7 +1228,7 @@ function VentasData(props) {
                           <td>{renderEstadoPedidoBadge(row.estadoPedidoNombre)}</td>
                           <td>
                             {requiereMotivo ? (
-                              <span className="badge bg-warning text-dark">SÃ­</span>
+                              <span className="badge bg-warning text-dark">Si</span>
                             ) : (
                               <span className="badge bg-success">No</span>
                             )}

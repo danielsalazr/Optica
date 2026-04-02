@@ -415,6 +415,7 @@ class Abonos(models.Model):
     precio = models.IntegerField(default=0, verbose_name="valor")
     medioDePago = models.ForeignKey(MediosDePago, on_delete=DO_NOTHING, verbose_name="Medio de Pago")
     fecha = models.DateTimeField(verbose_name="Fecha de registro", default=timezone.now)
+    fecha_abono = models.DateField(verbose_name="Fecha real del abono", default=timezone.now)
     descripcion = models.TextField(max_length=200, default=None, blank=True, null=True)
     abono_masivo = models.ForeignKey(AbonoMasivo, on_delete=DO_NOTHING, blank=True, null=True)
     # abono debe mostrar el saldo, osea el valor a pagar
@@ -557,6 +558,32 @@ class EstadoPedidoVenta(models.Model):
 
     def __str__(self):
         return f"{self.nombre}"
+
+
+class HistoricoEstadoPedidoVenta(models.Model):
+    ORIGENES = [
+        ('manual', 'Manual'),
+        ('masivo', 'Masivo'),
+        ('automatico', 'Automatico'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    venta = models.ForeignKey(Ventas, on_delete=models.CASCADE, related_name='historicoEstadosPedido')
+    estado_anterior = models.ForeignKey(EstadoPedidoVenta, on_delete=models.SET_NULL, null=True, blank=True, related_name='historicos_como_origen')
+    estado_nuevo = models.ForeignKey(EstadoPedidoVenta, on_delete=models.SET_NULL, null=True, blank=True, related_name='historicos_como_destino')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='cambios_estado_pedido')
+    motivo = models.TextField(blank=True, null=True)
+    origen = models.CharField(max_length=20, choices=ORIGENES, default='manual')
+    fecha = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        managed = True
+        verbose_name = 'Historico estado pedido'
+        verbose_name_plural = 'Historicos estados pedido'
+        ordering = ['-fecha', '-id']
+
+    def __str__(self):
+        return f"Venta {self.venta_id}: {self.estado_anterior} -> {self.estado_nuevo}"
 
 class PedidoVenta(models.Model):
     id = models.AutoField(primary_key=True)
