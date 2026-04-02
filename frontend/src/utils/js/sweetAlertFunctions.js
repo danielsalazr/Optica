@@ -91,23 +91,30 @@ export async function swalHtml(title, htmltext) {
 
     let TextError = '';
 
-    for (let key in htmltext) {
-        if (htmltext.hasOwnProperty(key)) {
-            console.log(key);
-            console.log(htmltext[key]) // This will print each own key in the object
-            TextError += `<b>${key}: </b><span>${htmltext[key]}</span>\n`
+    if (typeof htmltext === 'string') {
+        TextError = `<span>${htmltext}</span>`;
+    } else if (Array.isArray(htmltext)) {
+        TextError = htmltext.map((item) => `<div>${item}</div>`).join('');
+    } else if (htmltext && typeof htmltext === 'object') {
+        for (let key in htmltext) {
+            if (Object.prototype.hasOwnProperty.call(htmltext, key)) {
+                console.log(key);
+                console.log(htmltext[key]);
+                TextError += `<b>${key}: </b><span>${htmltext[key]}</span><br>`;
+            }
         }
+    }
+
+    if (!TextError) {
+        TextError = '<span>Ocurrio un error inesperado.</span>';
     }
 
     await Swal.fire({
         title: `<strong><u>${title}</u></strong>`,
         icon: 'info',
-        html:
-        //htmltext,
-            TextError,
+        html: TextError,
         showCloseButton: true,
         showCancelButton: false,
-        // focusConfirm: false,
         confirmButtonText: '<i class="fa fa-thumbs-up"></i> OK!',
         confirmButtonAriaLabel: 'Thumbs up, great!',
         cancelButtonText: '<i class="fa fa-thumbs-down"></i>',

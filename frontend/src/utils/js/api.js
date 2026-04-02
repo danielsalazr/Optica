@@ -55,6 +55,29 @@ export function IP_URL() {
   return ensureBaseUrl();
 }
 
+async function parseResponseBody(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return await response.json();
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (_error) {
+    return { detail: text };
+  }
+}
+
 async function fetchJson(endPoint, options = {}) {
   const url = buildUrl(endPoint);
   const method = options.method || "GET";
@@ -75,7 +98,7 @@ async function fetchJson(endPoint, options = {}) {
   };
 
   const response = await fetch(url, config);
-  const data = await response.json();
+  const data = await parseResponseBody(response);
   return { res: response, data };
 }
 

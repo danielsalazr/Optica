@@ -47,6 +47,25 @@ function eliminarElementosFormData(formData, tags) {
     // return nuevoFormData;
 }
 
+function tieneAbonoSinMedioDePago(abonos) {
+    return abonos.some((item) => Number(item?.precio || 0) > 0 && !item?.medioDePago);
+}
+
+function obtenerDetalleError(errorData) {
+    if (!errorData) return '';
+    if (typeof errorData === 'string') return errorData;
+    if (typeof errorData.detail === 'string') return errorData.detail;
+    return '';
+}
+
+async function mostrarErrorVenta(errorData) {
+    const detalle = obtenerDetalleError(errorData);
+    const mensaje = detalle
+        ? `Hubo un error y no se pudo completar la venta.<br><br><small>${detalle}</small>`
+        : 'Hubo un error y no se pudo completar la venta.';
+    await swalHtml('Error', mensaje);
+}
+
 export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     e.preventDefault();
@@ -182,7 +201,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
         return
     }
 
-    if (contieneValorVacio(metodoPago) && abono[0].precio > 0) {
+    if (tieneAbonoSinMedioDePago(abono)) {
         await swalErr("Ingrese un medio de pago para la venta.");
         return
     }
@@ -198,13 +217,26 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
         console.log(`${key}:`, value);
     }
 
-    const req = await callApiFile('venta/', {
-        method: 'POST',
-        body: formData, //JSON.stringify(Object.fromEntries(formData)),
-    });
+    let req;
+    try {
+        req = await callApiFile('venta/', {
+            method: 'POST',
+            body: formData,
+        });
+    } catch (error) {
+        console.error('Error creando venta', error);
+        await mostrarErrorVenta(error instanceof Error ? error.message : 'Error de red al crear la venta.');
+        return
+    }
 
     console.log(req.res);
     console.log(req.data);
+
+    if (req.res.status >= 500) {
+        console.error('Error 500 creando venta', req.data);
+        await mostrarErrorVenta(req.data);
+        return
+    }
 
     if (req.res.status != 200) {
         await swalHtml('Error', req.data)
@@ -349,7 +381,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
         return
     }
 
-    if (contieneValorVacio(metodoPago) && abono[0].precio > 0) {
+    if (tieneAbonoSinMedioDePago(abono)) {
         await swalErr("Ingrese un medio de pago para la venta.");
         return
     }
@@ -365,13 +397,26 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
         console.log(`${key}:`, value);
     }
 
-    const req = await callApiFile('venta/', {
-        method: 'PUT',
-        body: formData, //JSON.stringify(Object.fromEntries(formData)),
-    });
+    let req;
+    try {
+        req = await callApiFile('venta/', {
+            method: 'PUT',
+            body: formData,
+        });
+    } catch (error) {
+        console.error('Error actualizando venta', error);
+        await mostrarErrorVenta(error instanceof Error ? error.message : 'Error de red al actualizar la venta.');
+        return
+    }
 
     console.log(req.res);
     console.log(req.data);
+
+    if (req.res.status >= 500) {
+        console.error('Error 500 actualizando venta', req.data);
+        await mostrarErrorVenta(req.data);
+        return
+    }
 
     if (req.res.status != 200) {
         await swalHtml('Error', req.data)

@@ -859,12 +859,13 @@ class Venta(APIView):
         abono = json.loads(request.data['abonos'])
         saldo = json.loads(request.data['saldo'])
 
-        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago'] if len(json.loads(request.data['abonos'])) > 0 else ""
-        precio = json.loads(request.data['abonos'])[0]['precio'] if len(json.loads(request.data['abonos'])) > 0 else 0
+        primer_abono = abono[0] if isinstance(abono, list) and abono else {}
+        medioDePago = primer_abono.get('medioDePago', '')
+        precio = primer_abono.get('precio', 0)
 
-        console.log(json.loads(request.data['venta'])) 
-        console.log(json.loads(request.data['abonos']))
-        console.log(json.loads(request.data['saldo']))
+        console.log(venta) 
+        console.log(abono)
+        console.log(saldo)
 
         fotos_venta = request.FILES.getlist('foto')
 
@@ -963,12 +964,9 @@ class Venta(APIView):
         venta_items = json.loads(request.data.get('venta', '[]'))
         abonos = json.loads(request.data.get('abonos', '[]'))
         saldo = json.loads(request.data.get('saldo', '{}'))
-        medioDePago = json.loads(request.data['abonos'])[0]['medioDePago']
-        precio = json.loads(request.data['abonos'])[0]['precio']
-
-        console.log(json.loads(request.data['venta'])) 
-        console.log(json.loads(request.data['abonos']))
-        console.log(json.loads(request.data['saldo']))
+        console.log(venta_items)
+        console.log(abonos)
+        console.log(saldo)
 
         fotos_venta = request.FILES.getlist('foto')
 
