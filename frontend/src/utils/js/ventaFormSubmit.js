@@ -66,6 +66,19 @@ async function mostrarErrorVenta(errorData) {
     await swalHtml('Error', mensaje);
 }
 
+function validarCondicionContado(condicionPago, compromisoPago, total, totalAbono) {
+    if ((condicionPago || '').trim().toLowerCase() !== 'contado') {
+        return '';
+    }
+    if (Number(compromisoPago || 0) !== 1) {
+        return 'La condicion de pago de contado solo permite 1 cuota.';
+    }
+    if (Number(totalAbono || 0) !== Number(total || 0)) {
+        return 'En condicion de pago de contado el abono debe ser igual al total de la compra.';
+    }
+    return '';
+}
+
 export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     e.preventDefault();
@@ -210,6 +223,12 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
 
     if (totalAbono > total) {
         await swalErr("El abono no puede ser mayor al precio.");
+        return
+    }
+
+    const errorContado = validarCondicionContado(condicionPago, compromisoPago, total, totalAbono);
+    if (errorContado) {
+        await swalErr(errorContado);
         return
     }
 
@@ -390,6 +409,12 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
 
     if (totalAbono > total) {
         await swalErr("El abono no puede ser mayor al precio.");
+        return
+    }
+
+    const errorContado = validarCondicionContado(condicionPago, compromisoPago, total, totalAbono);
+    if (errorContado) {
+        await swalErr(errorContado);
         return
     }
 

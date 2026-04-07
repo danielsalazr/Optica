@@ -117,6 +117,16 @@ const galleryResponsiveOptions = [
   },
 ];
 
+const toDateTimeLocalValue = (value?: string | null) => {
+  const base = value ? new Date(value) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    return '';
+  }
+  const offset = base.getTimezoneOffset();
+  const localDate = new Date(base.getTime() - offset * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
 function VentasData(props) {
   let { header, data, generalData } = props;
   const [templateAbono, setTemplateAbono] = useState(0);
@@ -157,10 +167,12 @@ function VentasData(props) {
   const [estadoModalRow, setEstadoModalRow] = useState(null);
   const [estadoTargetSlug, setEstadoTargetSlug] = useState('');
   const [estadoMotivoSinAnticipo, setEstadoMotivoSinAnticipo] = useState('');
+  const [estadoFecha, setEstadoFecha] = useState('');
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkMotivoSinAnticipo, setBulkMotivoSinAnticipo] = useState('');
   const [bulkEstadoDestino, setBulkEstadoDestino] = useState('');
+  const [bulkEstadoFecha, setBulkEstadoFecha] = useState('');
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -449,6 +461,7 @@ function VentasData(props) {
     }
     setBulkEstadoDestino(availableTargets[0]);
     setBulkMotivoSinAnticipo('');
+    setBulkEstadoFecha(toDateTimeLocalValue());
     setBulkModalOpen(true);
   };
 
@@ -472,6 +485,7 @@ function VentasData(props) {
         body: JSON.stringify({
           venta_ids: selectedVentas.map((row) => row.id),
           estado: bulkEstadoDestino,
+          fecha_estado: bulkEstadoFecha || null,
           ...(bulkRowsRequiringMotivo.length > 0
             ? { motivo_sin_anticipo: bulkMotivoSinAnticipo.trim() }
             : {}),
@@ -501,6 +515,7 @@ function VentasData(props) {
       setBulkModalOpen(false);
       setSelectedVentas([]);
       setBulkEstadoDestino('');
+      setBulkEstadoFecha('');
       await handleFetchVentas(false);
     } catch (error) {
       console.error(error);
@@ -607,6 +622,7 @@ function VentasData(props) {
     setEstadoModalRow(rowData);
     setEstadoTargetSlug(availableTargets[0]);
     setEstadoMotivoSinAnticipo('');
+    setEstadoFecha(toDateTimeLocalValue());
     setEstadoModalOpen(true);
   };
 
@@ -629,6 +645,7 @@ function VentasData(props) {
         },
         body: JSON.stringify({
           estado: estadoTargetSlug,
+          fecha_estado: estadoFecha || null,
           ...(requiresMotivoSinAnticipo(estadoModalRow, estadoTargetSlug)
             ? { motivo_sin_anticipo: estadoMotivoSinAnticipo.trim() }
             : {}),
@@ -648,6 +665,7 @@ function VentasData(props) {
       setEstadoModalRow(null);
       setEstadoTargetSlug('');
       setEstadoMotivoSinAnticipo('');
+      setEstadoFecha('');
       await handleFetchVentas(false);
     } catch (error) {
       console.error(error);
@@ -1135,6 +1153,16 @@ function VentasData(props) {
                   ))}
                 </select>
               </div>
+              <div className="mb-3">
+                <label className="form-label">Fecha del cambio</label>
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={estadoFecha}
+                  onChange={(event) => setEstadoFecha(event.target.value)}
+                  disabled={estadoLoading === estadoModalRow.id}
+                />
+              </div>
               {requiresMotivoSinAnticipo(estadoModalRow, estadoTargetSlug) && (
                 <div className="mb-3">
                   <label className="form-label">Motivo sin anticipo</label>
@@ -1186,22 +1214,34 @@ function VentasData(props) {
               )}
 
               {!bulkMixedStates && bulkAvailableTargets.length > 0 && (
-                <div className="mb-3">
-                  <label className="form-label">Estado destino</label>
-                  <select
-                    className="form-select"
-                    value={bulkEstadoDestino}
-                    onChange={(event) => {
-                      setBulkEstadoDestino(event.target.value);
-                      setBulkMotivoSinAnticipo('');
-                    }}
-                    disabled={bulkLoading}
-                  >
-                    {bulkAvailableTargets.map((slug) => (
-                      <option key={slug} value={slug}>{ESTADO_PEDIDO_LABELS[slug]}</option>
-                    ))}
-                  </select>
-                </div>
+                <>
+                  <div className="mb-3">
+                    <label className="form-label">Estado destino</label>
+                    <select
+                      className="form-select"
+                      value={bulkEstadoDestino}
+                      onChange={(event) => {
+                        setBulkEstadoDestino(event.target.value);
+                        setBulkMotivoSinAnticipo('');
+                      }}
+                      disabled={bulkLoading}
+                    >
+                      {bulkAvailableTargets.map((slug) => (
+                        <option key={slug} value={slug}>{ESTADO_PEDIDO_LABELS[slug]}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Fecha del cambio</label>
+                    <input
+                      type="datetime-local"
+                      className="form-control"
+                      value={bulkEstadoFecha}
+                      onChange={(event) => setBulkEstadoFecha(event.target.value)}
+                      disabled={bulkLoading}
+                    />
+                  </div>
+                </>
               )}
 
               {!bulkMixedStates && !bulkAvailableTargets.length && (

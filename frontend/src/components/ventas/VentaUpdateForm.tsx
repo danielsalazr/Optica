@@ -182,6 +182,13 @@ function VentaUpdateForm(props) {
         formulaActualUrl && formulaPreviewPrincipal === formulaActualUrl
     );
 
+
+    const esVentaContadoRemisionada = useMemo(() => {
+        const condicion = String(dataVenta?.condicion_pago || '').trim().toLowerCase();
+        const totalRemisiones = Array.isArray(dataVenta?.remisiones) ? dataVenta.remisiones.length : 0;
+        return condicion === 'contado' && totalRemisiones > 0;
+    }, [dataVenta?.condicion_pago, dataVenta?.remisiones]);
+
     const clienteInfo = useMemo(() => {
         const clienteEncontrado = clientes.find(
             (elemento) => Number(elemento.cedula) === Number(dataVenta.cliente_id)
@@ -292,6 +299,10 @@ function VentaUpdateForm(props) {
         };
 
         const handleFormSubmitWrapperUpdate = async (e, formRef, usuario, empresa, telefonoRef) => {
+            if (esVentaContadoRemisionada) {
+                e.preventDefault();
+                return;
+            }
             const formulario = await handleFormSubmitUpdate(e, formRef, usuario, empresa, telefonoRef);
 
             console.log(formulario)
@@ -337,6 +348,12 @@ function VentaUpdateForm(props) {
             </BootstrapModal>  
 
         <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapperUpdate(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
+            {esVentaContadoRemisionada && (
+                <div className="alert alert-warning" role="alert">
+                    Esta venta tiene condicion de pago de contado y ya fue remisionada. No se permite editarla.
+                </div>
+            )}
+            <fieldset disabled={esVentaContadoRemisionada}>
 
                 <div className="row"> 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3">
@@ -509,13 +526,13 @@ function VentaUpdateForm(props) {
                     fechaVencimientoInit={dataVenta.fecha_vencimiento}
                 />
                 
-                    <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
+                    <button type="submit" className="btn btn-primary col-12" id="submitVenta" disabled={esVentaContadoRemisionada}>
                     Actualizar venta
                     </button>
                 </div>
                 </div>
 
-            
+            </fieldset>
         </form>
 
         <div className="container-md px-0 mt-5">

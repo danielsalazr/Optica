@@ -54,8 +54,11 @@ function Abonos(props: AbonosProps) {
   console.log(data)
   console.log(totalAbonoLoad)
 
+  const todayDate = new Date()
+  const todayISO = todayDate.toISOString().split('T')[0]
+
   const [rows, setRows] = useState<MedioPagoRow[]>(
-    ventaData
+    ventaData && ventaData.length
       ? ventaData.map((item) => ({
           precio: fromNumberToMoney(item.precio),
           descripcion: item.descripcion,
@@ -64,10 +67,12 @@ function Abonos(props: AbonosProps) {
           medioDePago_id: item.medioDePago_id,
           medioPago: item.medioPago,
           total: item.precio,
+          fecha_abono: item.fecha_abono || todayISO,
         }))
       : [
           {
             precio: '$ 0',
+            fecha_abono: todayISO,
           },
         ]
   )
@@ -75,9 +80,9 @@ function Abonos(props: AbonosProps) {
   const [abonoTotal, setAbonoTotal] = useState(totalAbonoLoad || 0)
   const [totalVenta, setTotalVenta] = useState(0)
 
-  const todayDate = new Date()
   const [fechaInicioDate, setFechaInicioDate] = useState<Date | null>(todayDate)
   const [condicionPago, setCondicionPago] = useState('quincenal')
+  const esContado = condicionPago === 'contado'
   const [compromisoPago, setCompromisoPago] = useState(1)
   const [fechaVencimientoDate, setFechaVencimientoDate] = useState<Date | null>(todayDate)
 
@@ -121,6 +126,11 @@ function Abonos(props: AbonosProps) {
   }
 
   useEffect(() => {
+    if (condicionPago === 'contado') {
+      setCompromisoPago(1)
+      setFechaVencimientoDate(fechaInicioDate)
+      return
+    }
     const multiplicador = condicionPago === 'mensual' ? 30 : 15
     const cuotas = Number(compromisoPago) || 0
     const dias = cuotas * multiplicador
@@ -157,7 +167,7 @@ function Abonos(props: AbonosProps) {
       ...prevRows,
       {
         precio: '$ 0',
-        fecha_abono: new Date().toISOString().split('T')[0],
+        fecha_abono: todayISO,
       },
     ])
   }
@@ -242,6 +252,7 @@ function Abonos(props: AbonosProps) {
             value={compromisoPago}
             onChange={(e) => setCompromisoPago(Number(e.target.value))}
             required
+            readOnly={esContado}
           />
         </div>
 
@@ -254,6 +265,7 @@ function Abonos(props: AbonosProps) {
             value={condicionPago}
             onChange={(e) => setCondicionPago(e.target.value)}
           >
+            <option value="contado">Contado</option>
             <option value="quincenal">Quincenal</option>
             <option value="mensual">Mensual</option>
           </select>
@@ -375,6 +387,11 @@ function Abonos(props: AbonosProps) {
           <div className="text-muted small">
             Saldo: <strong>{fromNumberToMoney(saldo)}</strong>
           </div>
+          {esContado && (
+            <div className="text-muted small">
+              En contado el abono debe cubrir el total de la compra y la venta queda a 1 cuota.
+            </div>
+          )}
           <div className="text-muted small">
             Cuotas ({cuotasNumero || 0}):{' '}
             <strong>{fromNumberToMoney(valorCuota)}</strong>

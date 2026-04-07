@@ -204,7 +204,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://192.168.130.22:3000', 'http://127.0.0.1:3000', 'http://localhost:3000',
+    'http://192.168.130.22:3000', 'http://127.0.0.1:4720', 'http://localhost:4720',
     'http://192.168.130.22:3001', 'http://127.0.0.1:3001', 'http://localhost:3001',
     'http://127.0.0.1:4720', 'http://localhost:4720',
     'http://127.0.0.1',

@@ -6,6 +6,7 @@ from typing import Optional, Sequence, Tuple
 from django.db.models import F, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from .models import EstadoPedidoVenta, HistoricoEstadoPedidoVenta, ItemsVenta
 
@@ -55,7 +56,7 @@ def identify_estado_pedido_slug(nombre: Optional[str]) -> str:
     return "creado"
 
 
-def _registrar_historico_estado(venta, estado_anterior, estado_nuevo, *, usuario=None, motivo=None, origen='manual') -> None:
+def _registrar_historico_estado(venta, estado_anterior, estado_nuevo, *, usuario=None, motivo=None, origen='manual', fecha=None) -> None:
     HistoricoEstadoPedidoVenta.objects.create(
         venta=venta,
         estado_anterior=estado_anterior,
@@ -63,7 +64,7 @@ def _registrar_historico_estado(venta, estado_anterior, estado_nuevo, *, usuario
         usuario=usuario if getattr(usuario, 'is_authenticated', False) else None,
         motivo=motivo or None,
         origen=origen,
-        fecha=timezone.now(),
+        fecha=fecha or timezone.now(),
     )
 
 
@@ -75,6 +76,7 @@ def _save_estado(
     clear_detalle: bool = False,
     usuario=None,
     origen: str = 'manual',
+    fecha=None,
 ) -> bool:
     estado = get_estado_pedido_by_slug(slug)
     updated_fields = []
@@ -96,7 +98,7 @@ def _save_estado(
     if not updated_fields:
         return False
 
-    venta.estado_pedido_actualizado = timezone.now()
+    venta.estado_pedido_actualizado = fecha or timezone.now()
     updated_fields.append("estado_pedido_actualizado")
     venta.save(update_fields=updated_fields)
 
@@ -108,6 +110,7 @@ def _save_estado(
             usuario=usuario,
             motivo=motivo_sin_anticipo,
             origen=origen,
+            fecha=venta.estado_pedido_actualizado,
         )
     return True
 
@@ -138,6 +141,7 @@ def mark_estado_pedido(
     clear_detalle: bool = False,
     usuario=None,
     origen: str = 'manual',
+    fecha=None,
 ) -> bool:
     actual = identify_estado_pedido_slug(getattr(venta.estado_pedido, "nombre", None))
     if ESTADO_PEDIDO_ORDER[target_slug] < ESTADO_PEDIDO_ORDER.get(actual, 0):
@@ -149,6 +153,7 @@ def mark_estado_pedido(
         clear_detalle=clear_detalle,
         usuario=usuario,
         origen=origen,
+        fecha=fecha,
     )
 
 

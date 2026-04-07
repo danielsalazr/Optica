@@ -144,6 +144,26 @@ class VentaSerializer(serializers.ModelSerializer):
                 return None
             return Empresa.objects.filter(nombre__iexact=nombre).first()
 
+    def _normalizar_condicion_pago(self, condicion):
+        return (condicion or '').strip().lower()
+
+    def _validar_reglas_condicion_pago(self, attrs, instance=None):
+        condicion = self._normalizar_condicion_pago(attrs.get('condicion_pago', getattr(instance, 'condicion_pago', '')))
+        total = int(attrs.get('precio', getattr(instance, 'precio', 0) or 0) or 0)
+        abono = int(attrs.get('totalAbono', getattr(instance, 'totalAbono', 0) or 0) or 0)
+
+        if condicion == 'contado':
+            attrs['cuotas'] = 1
+            fecha_inicio = attrs.get('fecha_inicio', getattr(instance, 'fecha_inicio', None))
+            if fecha_inicio:
+                attrs['fecha_vencimiento'] = fecha_inicio
+            if total > 0 and abono != total:
+                raise serializers.ValidationError({
+                    'totalAbono': 'Para condicion de pago de contado el abono debe ser igual al total de la compra.'
+                })
+
+        return attrs
+
     def _assign_empresa_nombre(self, validated_data):
         empresa = getattr(self, '_empresa_obj', None)
         raw_value = validated_data.get('empresaCliente')
@@ -171,11 +191,11 @@ class VentaSerializer(serializers.ModelSerializer):
             if jornada.estado == 'closed':
                 raise serializers.ValidationError({'jornada': 'La jornada seleccionada ya se encuentra cerrada.'})
             if not empresa:
-                raise serializers.ValidationError({'empresaCliente': 'Seleccione una empresa válida antes de asociar una jornada.'})
+                raise serializers.ValidationError({'empresaCliente': 'Seleccione una empresa valida antes de asociar una jornada.'})
             if jornada.empresa_id != empresa.id:
                 raise serializers.ValidationError({'jornada': 'La jornada pertenece a otra empresa.'})
 
-        return attrs
+        return self._validar_reglas_condicion_pago(attrs, instance=getattr(self, 'instance', None))
 
     def create(self, validated_data):
         # Obtenemos el ID de la empresa enviado en la solicitud
@@ -185,6 +205,8 @@ class VentaSerializer(serializers.ModelSerializer):
         console.log(f"El empresa ID es {empresa.id if empresa else None}")
         if not validated_data.get('empresaCliente'):
             validated_data['empresaCliente'] = 'Particular'
+
+        validated_data = self._validar_reglas_condicion_pago(validated_data)
 
         if total > 0:
             if abono <= 0:
@@ -200,11 +222,12 @@ class VentaSerializer(serializers.ModelSerializer):
 
         estado_inicial = get_estado_pedido_by_slug('creado')
         estado_final = get_estado_pedido_by_slug(estado_slug)
+        fecha_base = validated_data.get('fechaCreacion') or timezone.now()
         validated_data['estado_pedido'] = estado_final
-        validated_data['estado_pedido_actualizado'] = timezone.now()
+        validated_data['estado_pedido_actualizado'] = fecha_base if estado_slug == 'creado' else timezone.now()
 
         venta = super().create(validated_data)
-        fecha_base = venta.fechaCreacion or timezone.now()
+        fecha_base = venta.fechaCreacion or fecha_base
 
         HistoricoEstadoPedidoVenta.objects.create(
             venta=venta,
@@ -234,6 +257,7 @@ class VentaSerializer(serializers.ModelSerializer):
         console.log(empresa.nombre if empresa else None)
         console.log(validated_data)
         validated_data['totalAbono'] = abono
+        validated_data = self._validar_reglas_condicion_pago(validated_data, instance=instance)
         if not validated_data.get('empresaCliente'):
             validated_data['empresaCliente'] = instance.empresaCliente or 'Particular'
 

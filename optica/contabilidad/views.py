@@ -9,6 +9,7 @@ from django.forms.models import model_to_dict
 from django.db import connection, IntegrityError, transaction
 from django.db.models import Prefetch, Sum, Q, Max, OuterRef, Subquery, Count, F
 from django.db.models.functions import Coalesce
+from django.utils.dateparse import parse_datetime
 
 from django.contrib.auth.decorators import login_required
 
@@ -972,6 +973,13 @@ class Venta(APIView):
 
         venta = Ventas.objects.get(id=factura)
 
+        condicion_pago_objetivo = (request.data.get('condicion_pago') or venta.condicion_pago or '').strip().lower()
+        if condicion_pago_objetivo == 'contado' and venta.remisiones.exists():
+            return Response(
+                {'detail': 'No es posible editar una venta de contado despues de haber sido remisionada.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # console.log(venta.__dict__)
 
         # try:
@@ -1400,6 +1408,24 @@ class JornadaDetailView(APIView):
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+def _parse_estado_pedido_fecha(raw_value):
+    if not raw_value:
+        return None
+    parsed = parse_datetime(str(raw_value))
+    if parsed is None:
+        return None
+
+    if settings.USE_TZ:
+        if timezone.is_naive(parsed):
+            parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+        return parsed
+
+    if timezone.is_aware(parsed):
+        parsed = timezone.make_naive(parsed, timezone.get_current_timezone())
+    return parsed
+
 def _sync_total_abono_venta(venta):
     total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
         total=Coalesce(Sum('precio'), 0)
@@ -1412,7 +1438,7 @@ def _sync_total_abono_venta(venta):
 
 
 
-def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, usuario=None, origen='manual'):
+def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, usuario=None, origen='manual', fecha_estado=None):
     estado_slug = (estado_slug or '').strip()
     motivo_sin_anticipo = (motivo_sin_anticipo or '').strip()
 
@@ -1456,6 +1482,7 @@ def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, u
         clear_detalle=not requiere_motivo,
         usuario=usuario,
         origen=origen,
+        fecha=_parse_estado_pedido_fecha(fecha_estado),
     )
 
     current_estado = venta.estado_pedido.nombre if venta.estado_pedido else None
@@ -1482,6 +1509,7 @@ class VentaEstadoPedidoView(APIView):
             request.data.get('motivo_sin_anticipo') or request.data.get('detalle') or '',
             usuario=request.user,
             origen='manual',
+            fecha_estado=request.data.get('fecha_estado'),
         )
         if not ok:
             return Response({'detail': result}, status=status.HTTP_400_BAD_REQUEST)
@@ -1512,7 +1540,7 @@ class VentaEstadoPedidoMasivoView(APIView):
         procesadas = 0
         resultados = []
         for venta in ventas:
-            ok, result = _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo, usuario=request.user, origen='masivo')
+            ok, result = _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo, usuario=request.user, origen='masivo', fecha_estado=request.data.get('fecha_estado'))
             if ok:
                 procesadas += 1
                 resultados.append({
