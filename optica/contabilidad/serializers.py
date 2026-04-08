@@ -241,7 +241,7 @@ class VentaSerializer(serializers.ModelSerializer):
             fallback=validated_data.get('fechaCreacion'),
         )
         validated_data['estado_pedido'] = estado_final
-        validated_data['estado_pedido_actualizado'] = fecha_estado_creado if estado_slug == 'creado' else timezone.now()
+        validated_data['estado_pedido_actualizado'] = fecha_estado_creado
 
         venta = super().create(validated_data)
         fecha_base = self._build_estado_pedido_creado_fecha(venta.fecha, fallback=venta.fechaCreacion)
@@ -316,7 +316,7 @@ class VentaSerializer(serializers.ModelSerializer):
             instance.estado_pedido_actualizado = fecha_estado_creado
             instance.save(update_fields=['estado_pedido_actualizado'])
 
-        maybe_mark_para_fabricacion(instance)
+        maybe_mark_para_fabricacion(instance, fecha=fecha_estado_creado)
         return instance
 
 class ItemsVentaSerializer(serializers.ModelSerializer):

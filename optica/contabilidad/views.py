@@ -1445,18 +1445,55 @@ def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, u
     if estado_slug not in ESTADO_PEDIDO_ORDER:
         return False, 'Estado solicitado no es valido.'
 
-    if estado_slug == 'entregado':
-        return False, 'El estado Entregado se actualiza automaticamente luego de la remision completa.'
-
     actual_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
     actual_order = ESTADO_PEDIDO_ORDER.get(actual_slug, 0)
     target_order = ESTADO_PEDIDO_ORDER[estado_slug]
+    parsed_fecha = _parse_estado_pedido_fecha(fecha_estado)
 
     if target_order < actual_order:
         return False, 'No es posible retroceder el estado del pedido.'
 
     if target_order == actual_order:
-        return False, 'La venta ya se encuentra en el estado seleccionado.'
+        if parsed_fecha is None:
+            return False, 'La venta ya se encuentra en el estado seleccionado.'
+
+        venta.estado_pedido_actualizado = parsed_fecha
+        venta.save(update_fields=['estado_pedido_actualizado'])
+
+        historico_actual = (
+            HistoricoEstadoPedidoVenta.objects.filter(venta=venta, estado_nuevo=venta.estado_pedido)
+            .order_by('-fecha', '-id')
+            .first()
+        )
+        if historico_actual:
+            if historico_actual.fecha != parsed_fecha:
+                historico_actual.fecha = parsed_fecha
+                historico_actual.save(update_fields=['fecha'])
+        else:
+            HistoricoEstadoPedidoVenta.objects.create(
+                venta=venta,
+                estado_anterior=None,
+                estado_nuevo=venta.estado_pedido,
+                usuario=usuario if getattr(usuario, 'is_authenticated', False) else None,
+                origen=origen,
+                fecha=parsed_fecha,
+            )
+
+        current_estado = venta.estado_pedido.nombre if venta.estado_pedido else None
+        data = {
+            'estado': current_estado,
+            'estado_slug': actual_slug,
+            'estado_pedido': current_estado,
+            'estado_pedido_slug': actual_slug,
+            'detalle': venta.estado_pedido_detalle,
+            'motivo_sin_anticipo': venta.motivo_sin_anticipo,
+            'actualizado': venta.estado_pedido_actualizado,
+            'updated': True,
+        }
+        return True, data
+
+    if estado_slug == 'entregado':
+        return False, 'El estado Entregado se actualiza automaticamente luego de la remision completa.'
 
     minimo = 0
     precio = venta.precio or 0
@@ -1482,7 +1519,7 @@ def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, u
         clear_detalle=not requiere_motivo,
         usuario=usuario,
         origen=origen,
-        fecha=_parse_estado_pedido_fecha(fecha_estado),
+        fecha=parsed_fecha,
     )
 
     current_estado = venta.estado_pedido.nombre if venta.estado_pedido else None

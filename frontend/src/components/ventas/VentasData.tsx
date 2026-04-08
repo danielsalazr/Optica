@@ -326,7 +326,10 @@ function VentasData(props) {
   const getAvailableEstadoTargets = (row) => {
     const actualKey = identifyEstadoPedidoKey(row?.estadoPedidoNombre);
     const actualOrder = getEstadoOrder(actualKey);
-    return ESTADO_PEDIDO_FLOW.filter((slug) => getEstadoOrder(slug) > actualOrder && slug !== 'entregado');
+    return ESTADO_PEDIDO_FLOW.filter((slug) => {
+      const order = getEstadoOrder(slug);
+      return order >= actualOrder;
+    });
   };
 
   const requiresMotivoSinAnticipo = (row, targetSlug) => {
@@ -456,12 +459,12 @@ function VentasData(props) {
     }
     const availableTargets = getAvailableEstadoTargets(selectedVentas[0]);
     if (!availableTargets.length) {
-      await swalErr('Las ventas seleccionadas ya no tienen estados disponibles para avanzar.');
+      await swalErr('No hay estados disponibles para las ventas seleccionadas.');
       return;
     }
-    setBulkEstadoDestino(availableTargets[0]);
+    setBulkEstadoDestino(identifyEstadoPedidoKey(selectedVentas[0]?.estadoPedidoNombre) || availableTargets[0]);
     setBulkMotivoSinAnticipo('');
-    setBulkEstadoFecha(toDateTimeLocalValue());
+    setBulkEstadoFecha(toDateTimeLocalValue(selectedVentas[0]?.estadoPedidoFecha));
     setBulkModalOpen(true);
   };
 
@@ -616,13 +619,13 @@ function VentasData(props) {
   const handleEstadoPedidoAction = async (rowData) => {
     const availableTargets = getAvailableEstadoTargets(rowData);
     if (!availableTargets.length) {
-      await swalErr('Este pedido ya completo todos los estados configurados.');
+      await swalErr('No hay estados disponibles para esta venta.');
       return;
     }
     setEstadoModalRow(rowData);
-    setEstadoTargetSlug(availableTargets[0]);
+    setEstadoTargetSlug(identifyEstadoPedidoKey(rowData?.estadoPedidoNombre) || availableTargets[0]);
     setEstadoMotivoSinAnticipo('');
-    setEstadoFecha(toDateTimeLocalValue());
+    setEstadoFecha(toDateTimeLocalValue(rowData?.estadoPedidoFecha));
     setEstadoModalOpen(true);
   };
 
@@ -1376,7 +1379,7 @@ function VentasData(props) {
           onSelectionChange={(e) => setSelectedVentas(e.value)}
           rowExpansionTemplate={rowExpansionTemplate}
           className="ventas-table p-datatable-sm"
-          paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
+          paginatorTemplate="RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />

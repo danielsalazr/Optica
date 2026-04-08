@@ -115,7 +115,7 @@ def _save_estado(
     return True
 
 
-def maybe_mark_para_fabricacion(venta, *, usuario=None, origen: str = 'automatico') -> bool:
+def maybe_mark_para_fabricacion(venta, *, usuario=None, origen: str = 'automatico', fecha=None) -> bool:
     precio = venta.precio or 0
     total_abono = venta.totalAbono or 0
 
@@ -130,7 +130,7 @@ def maybe_mark_para_fabricacion(venta, *, usuario=None, origen: str = 'automatic
     if ESTADO_PEDIDO_ORDER.get(actual, 0) >= ESTADO_PEDIDO_ORDER["para_fabricacion"]:
         return False
 
-    return _save_estado(venta, "para_fabricacion", clear_detalle=True, usuario=usuario, origen=origen)
+    return _save_estado(venta, "para_fabricacion", clear_detalle=True, usuario=usuario, origen=origen, fecha=fecha)
 
 
 def mark_estado_pedido(

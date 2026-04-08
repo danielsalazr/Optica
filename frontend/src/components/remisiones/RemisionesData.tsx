@@ -91,7 +91,15 @@ type Props = {
 
 const formatDate = (value: string | null | undefined) => {
   if (!value) return "-";
-  const date = new Date(value);
+
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return `${day}/${month}/${year}`;
+  }
+
+  const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
     return "-";
   }
@@ -515,7 +523,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           emptyMessage="No se encontraron remisiones."
           responsiveLayout="scroll"
           className="remisiones-table p-datatable-sm"
-          paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
+          paginatorTemplate="RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
         >
           <Column expander style={{ width: "3rem" }} />
