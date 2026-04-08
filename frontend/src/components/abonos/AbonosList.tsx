@@ -73,13 +73,14 @@ function AbonosList(props: AbonosListProps) {
               <input type="text" className="form-control" id="factura" name="factura" defaultValue={data.precio} readOnly/>
           </div>
           <div className="col-md-6">
-              <label htmlFor="inputPassword4" className="form-label">Saldo</label>
-              <input type="text" className="form-control" id="clienteName" name="clienteName" defaultValue={data.saldo} readOnly />
-          </div>
-          <div className="col-md-6">
               <label htmlFor="inputPassword4" className="form-label">Abonado</label>
               <input type="text" className="form-control" id="clienteName" name="clienteName" defaultValue={data.totalAbono} readOnly />
           </div>
+          <div className="col-md-6">
+              <label htmlFor="inputPassword4" className="form-label">Saldo</label>
+              <input type="text" className="form-control" id="clienteName" name="clienteName" defaultValue={data.saldo} readOnly />
+          </div>
+          
         </div>
 
         <table className="table table-bordered">

@@ -273,8 +273,14 @@ export function almacenarInputs() {
 
 export function fechaFormat(data) {
 
-    const fechaISO = data;
-    const fecha = new Date(fechaISO);
+    if (!data) {
+        return '-';
+    }
+
+    const fecha = new Date(data);
+    if (Number.isNaN(fecha.getTime())) {
+        return '-';
+    }
 
     const formateador = new Intl.DateTimeFormat('es-ES', {
         day: '2-digit',
@@ -283,7 +289,7 @@ export function fechaFormat(data) {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: true, // Usar formato de 24 horas
+        hour12: true,
     });
 
     return formateador.format(fecha);

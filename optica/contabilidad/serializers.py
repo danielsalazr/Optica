@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, time
 
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
@@ -164,6 +165,19 @@ class VentaSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def _build_estado_pedido_creado_fecha(self, fecha_venta, fallback=None):
+        base = fecha_venta or fallback or timezone.now()
+        if isinstance(base, datetime):
+            result = base
+        elif hasattr(base, 'year') and hasattr(base, 'month') and hasattr(base, 'day'):
+            result = datetime.combine(base, time.min)
+        else:
+            result = timezone.now()
+
+        if timezone.is_naive(result) and timezone.is_aware(timezone.now()):
+            return timezone.make_aware(result, timezone.get_current_timezone())
+        return result
+
     def _assign_empresa_nombre(self, validated_data):
         empresa = getattr(self, '_empresa_obj', None)
         raw_value = validated_data.get('empresaCliente')
@@ -222,12 +236,15 @@ class VentaSerializer(serializers.ModelSerializer):
 
         estado_inicial = get_estado_pedido_by_slug('creado')
         estado_final = get_estado_pedido_by_slug(estado_slug)
-        fecha_base = validated_data.get('fechaCreacion') or timezone.now()
+        fecha_estado_creado = self._build_estado_pedido_creado_fecha(
+            validated_data.get('fecha'),
+            fallback=validated_data.get('fechaCreacion'),
+        )
         validated_data['estado_pedido'] = estado_final
-        validated_data['estado_pedido_actualizado'] = fecha_base if estado_slug == 'creado' else timezone.now()
+        validated_data['estado_pedido_actualizado'] = fecha_estado_creado if estado_slug == 'creado' else timezone.now()
 
         venta = super().create(validated_data)
-        fecha_base = venta.fechaCreacion or fecha_base
+        fecha_base = self._build_estado_pedido_creado_fecha(venta.fecha, fallback=venta.fechaCreacion)
 
         HistoricoEstadoPedidoVenta.objects.create(
             venta=venta,
@@ -274,6 +291,31 @@ class VentaSerializer(serializers.ModelSerializer):
             validated_data['estado'] = nuevo_estado
 
         instance = super().update(instance, validated_data)
+
+        fecha_estado_creado = self._build_estado_pedido_creado_fecha(instance.fecha, fallback=instance.fechaCreacion)
+        historico_creado = (
+            HistoricoEstadoPedidoVenta.objects.filter(venta=instance, estado_anterior__isnull=True)
+            .order_by('id')
+            .first()
+        )
+        if historico_creado:
+            if historico_creado.fecha != fecha_estado_creado:
+                historico_creado.fecha = fecha_estado_creado
+                historico_creado.save(update_fields=['fecha'])
+        else:
+            HistoricoEstadoPedidoVenta.objects.create(
+                venta=instance,
+                estado_anterior=None,
+                estado_nuevo=get_estado_pedido_by_slug('creado'),
+                origen='automatico',
+                fecha=fecha_estado_creado,
+            )
+
+        estado_actual_slug = identify_estado_pedido_slug(getattr(instance.estado_pedido, 'nombre', None))
+        if estado_actual_slug == 'creado' and instance.estado_pedido_actualizado != fecha_estado_creado:
+            instance.estado_pedido_actualizado = fecha_estado_creado
+            instance.save(update_fields=['estado_pedido_actualizado'])
+
         maybe_mark_para_fabricacion(instance)
         return instance
 
@@ -542,14 +584,15 @@ class RemisionSerializer(serializers.ModelSerializer):
         return total
 
     def get_abonos(self, obj):
-        abonos_qs = Abonos.objects.filter(venta_id=obj.venta_id).select_related('medioDePago').order_by('fecha')
+        abonos_qs = Abonos.objects.filter(venta_id=obj.venta_id).select_related('medioDePago').order_by('fecha_abono', 'fecha', 'id')
         return [
             {
                 'id': abono.id,
                 'precio': abono.precio,
                 'medioDePago': abono.medioDePago_id,
                 'medioPagoNombre': abono.medioDePago.nombre if abono.medioDePago else None,
-                'fecha': abono.fecha,
+                'fecha': abono.fecha_abono or abono.fecha,
+                'fechaRegistro': abono.fecha,
                 'descripcion': abono.descripcion,
             }
             for abono in abonos_qs

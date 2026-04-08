@@ -35,7 +35,8 @@ type Abono = {
   precio: number;
   medioDePago: number;
   medioPagoNombre: string | null;
-  fecha: string;
+  fecha: string | null;
+  fechaRegistro?: string | null;
   descripcion: string | null;
 };
 
@@ -88,11 +89,11 @@ type Props = {
   data: RemisionRow[];
 };
 
-const formatDate = (value: string) => {
-  if (!value) return "";
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return "-";
   }
   return date.toLocaleDateString("es-CO", {
     year: "numeric",
@@ -263,6 +264,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       };
     });
   }, [data]);
+
+  const orderedData = useMemo<PreparedRemisionRow[]>(() => {
+    return [...preparedData].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+  }, [preparedData]);
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
@@ -493,7 +498,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
       <div className="ventas-card">
         <DataTable
-          value={preparedData}
+          value={orderedData}
           header={tableHeader}
           paginator
           rows={10}
@@ -509,8 +514,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           globalFilterFields={globalFilterFields}
           emptyMessage="No se encontraron remisiones."
           responsiveLayout="scroll"
-          sortMode="multiple"
-          removableSort
           className="remisiones-table p-datatable-sm"
           paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"

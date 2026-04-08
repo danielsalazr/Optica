@@ -1360,12 +1360,14 @@ function VentasData(props) {
           paginator
           rows={10}
           rowsPerPageOptions={[5, 10, 20, 50]}
+          sortField="id"
+          sortOrder={-1}
           stripedRows
           rowHover
           showGridlines
           dataKey="id"
           responsiveLayout="scroll"
-          sortMode="multiple"
+          sortMode="single"
           removableSort
           expandedRows={expandedRows}
           onRowToggle={onRowToggle}

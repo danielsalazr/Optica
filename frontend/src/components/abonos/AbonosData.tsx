@@ -114,6 +114,14 @@ function formatDateForApi(value: Date | null) {
   return localDate.toISOString().split("T")[0];
 }
 
+
+function safeDateLabel(value: unknown) {
+  if (!value) return "-";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("es-CO");
+}
+
 function parseCurrencyValue(value: string | number | undefined) {
   if (typeof value === "number") return value;
   return Number(String(value ?? 0).replace(/\D/g, "")) || 0;
@@ -605,8 +613,8 @@ function AbonosData({ data = [], generalData = { mediosPago: [] } }: AbonosDataP
                       <td>#{item.venta_id || "-"}</td>
                       <td>{item.cliente_nombre || item.cliente_id || "-"}</td>
                       <td>{item.medioDePago || "-"}</td>
-                      <td>{item.fecha ? new Date(item.fecha).toLocaleDateString("es-CO") : "-"}</td>
-                      <td>{item.fecha_registro ? new Date(item.fecha_registro).toLocaleDateString("es-CO") : "-"}</td>
+                      <td>{safeDateLabel(item.fecha)}</td>
+                      <td>{safeDateLabel(item.fecha_registro)}</td>
                       <td className="text-end">
                         {new Intl.NumberFormat("es-CO", {
                           style: "currency",

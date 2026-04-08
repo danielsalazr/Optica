@@ -162,7 +162,7 @@ class PublicVentaTrackingView(APIView):
         estado_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
         actual_index = ESTADO_PEDIDO_ORDER.get(estado_slug, 0)
 
-        historico_fechas = {'creado': venta.fechaCreacion or venta.fecha}
+        historico_fechas = {'creado': venta.fecha or venta.fechaCreacion}
         historicos = sorted(
             venta.historicoEstadosPedido.all(),
             key=lambda item: (item.fecha or timezone.make_aware(datetime.min), item.id or 0),

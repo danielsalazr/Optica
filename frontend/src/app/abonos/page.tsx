@@ -31,6 +31,16 @@ type GeneralData = {
   [key: string]: unknown;
 };
 
+
+function safeDateLabel(value: unknown) {
+  if (!value) return "-";
+  try {
+    return fechaFormat(String(value));
+  } catch (_error) {
+    return "-";
+  }
+}
+
 async function getDataAbonos() {
   const res = await fetch(buildServerBackendUrl("abono/"), {
     cache: "no-store",
@@ -73,9 +83,9 @@ async function page() {
     return {
       ...item,
       precio: moneyformat(item.precio),
-      fecha: fechaFormat(item.fecha),
+      fecha: safeDateLabel(fechaAbonoOriginal),
       fechaRaw: fechaAbonoOriginal,
-      fechaRegistro: fechaRegistroOriginal ? fechaFormat(fechaRegistroOriginal) : "-",
+      fechaRegistro: safeDateLabel(fechaRegistroOriginal),
     };
   });
 

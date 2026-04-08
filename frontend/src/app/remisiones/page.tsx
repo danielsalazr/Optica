@@ -1,7 +1,6 @@
 // @ts-nocheck
-import RemisionesData from "@/components/remisiones/RemisionesData";
+import RemisionesDataClient from "@/components/remisiones/RemisionesDataClient";
 import { buildServerBackendUrl } from "@/utils/js/env";
-
 
 async function getRemisiones() {
   const res = await fetch(buildServerBackendUrl("remisiones/"), {
@@ -20,7 +19,7 @@ export default async function RemisionesPage() {
 
   return (
     <div className="page-shell" >
-      <RemisionesData data={remisiones} />
+      <RemisionesDataClient data={remisiones} />
     </div>
   );
 }
