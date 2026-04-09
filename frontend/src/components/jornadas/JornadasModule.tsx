@@ -2,8 +2,10 @@
 "use client";
 
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { IP_URL } from "@/utils/js/api";
+import { callApi } from "@/utils/js/api";
 import { Calendar } from "primereact/calendar";
+import BootstrapModal from "@/components/bootstrap/BootstrapModal";
+import EmpresaForm from "@/components/usuarios/EmpresaForm";
 import "@/styles/style.css"
 
 
@@ -94,6 +96,8 @@ const sortJornadas = (records: Jornada[] = []) =>
 
 const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }) => {
   const [jornadas, setJornadas] = useState<Jornada[]>(() => sortJornadas(initialJornadas));
+  const [listaEmpresas, setListaEmpresas] = useState<Empresa[]>(() => empresas ?? []);
+  const [modalEmpresaShow, setModalEmpresaShow] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState<"all" | JornadaEstado>("all");
   const [busqueda, setBusqueda] = useState("");
   const [mensaje, setMensaje] = useState<AlertState>(null);
@@ -110,9 +114,13 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     observaciones: "",
   });
 
-  const empresasOrdenadas = useMemo(() => {
-    return [...(empresas ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  useEffect(() => {
+    setListaEmpresas(empresas ?? []);
   }, [empresas]);
+
+  const empresasOrdenadas = useMemo(() => {
+    return [...(listaEmpresas ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [listaEmpresas]);
 
   const resumen = useMemo(() => {
     return jornadas.reduce(
@@ -237,6 +245,23 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     }, 5000);
   };
 
+  const handleNuevaEmpresa = (nuevaEmpresa: Empresa & { nit?: string; email?: string; personas_contacto?: string }) => {
+    setListaEmpresas((prev) => {
+      const maxId = prev.reduce((max, item) => (Number(item.id) > max ? Number(item.id) : max), 0);
+      const empresaConId = {
+        ...nuevaEmpresa,
+        id: Number(nuevaEmpresa?.id) || maxId + 1,
+      };
+
+      setFormData((current) => ({
+        ...current,
+        empresa: String(empresaConId.id),
+      }));
+
+      return [...prev, empresaConId];
+    });
+  };
+
   const handleCrearJornada = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!formData.empresa) {
@@ -262,17 +287,15 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         observaciones: formData.observaciones.trim(),
       };
 
-      const response = await fetch(`${IP_URL()}jornadas/`, {
+      const { res, data } = await callApi("jornadas/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data) {
+      if (!res.ok || !data) {
         const detail = data?.detail || "No fue posible crear la jornada.";
         throw new Error(detail);
       }
@@ -292,17 +315,15 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     setActualizando(jornada.id);
     setMensaje(null);
     try {
-      const response = await fetch(`${IP_URL()}jornadas/${jornada.id}/`, {
+      const { res, data } = await callApi(`jornadas/${jornada.id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({ estado: siguiente }),
       });
 
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data) {
+      if (!res.ok || !data) {
         const detail = data?.detail || "No fue posible actualizar el estado de la jornada.";
         throw new Error(detail);
       }
@@ -319,306 +340,329 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   };
 
   return (
-    <section className="jornadas-module">
-      <div className="ventas-toolbar mb-4">
-        <div>
-          <h1 className="ventas-page-title mb-1">Jornadas comerciales</h1>
-          <p className="text-muted mb-0">
-            Crea y monitorea las jornadas de venta por empresa y sucursal para validar los pedidos generados.
-          </p>
-        </div>
-        <span className="badge text-bg-primary px-3 py-2">
-          {resumen.total} registro{resumen.total === 1 ? "" : "s"}
-        </span>
-      </div>
+    <>
+      <BootstrapModal
+        show={modalEmpresaShow}
+        onHide={() => setModalEmpresaShow(false)}
+        title="Crear Empresa"
+        onSubmit={handleNuevaEmpresa}
+        submitBtn="Crear"
+      >
+        <EmpresaForm />
+      </BootstrapModal>
 
-      <div className="jornadas-stats mb-4">
-        <div className="ventas-card">
-          <div className="text-muted small text-uppercase">Ventas en jornadas</div>
-          <div className="display-6 fw-semibold">{resumen.ventas}</div>
+      <section className="jornadas-module">
+        <div className="ventas-toolbar mb-4">
+          <div>
+            <h1 className="ventas-page-title mb-1">Jornadas comerciales</h1>
+            <p className="text-muted mb-0">
+              Crea y monitorea las jornadas de venta por empresa y sucursal para validar los pedidos generados.
+            </p>
+          </div>
+          <span className="badge text-bg-primary px-3 py-2">
+            {resumen.total} registro{resumen.total === 1 ? "" : "s"}
+          </span>
         </div>
-        <div className="ventas-card">
-          <div className="text-muted small text-uppercase">Total vendido</div>
-          <div className="display-6 fw-semibold">{formatCurrency(resumen.vendido)}</div>
-        </div>
-        <div className="ventas-card">
-          <div className="text-muted small text-uppercase">Total abonos</div>
-          <div className="display-6 fw-semibold">{formatCurrency(resumen.abonos)}</div>
-        </div>
-        <div className="ventas-card">
-          <div className="text-muted small text-uppercase">Activas</div>
-          <div className="display-6 fw-semibold">
-            {resumen.estados.planned + resumen.estados.in_progress}
+
+        <div className="jornadas-stats mb-4">
+          <div className="ventas-card">
+            <div className="text-muted small text-uppercase">Ventas en jornadas</div>
+            <div className="display-6 fw-semibold">{resumen.ventas}</div>
+          </div>
+          <div className="ventas-card">
+            <div className="text-muted small text-uppercase">Total vendido</div>
+            <div className="display-6 fw-semibold">{formatCurrency(resumen.vendido)}</div>
+          </div>
+          <div className="ventas-card">
+            <div className="text-muted small text-uppercase">Total abonos</div>
+            <div className="display-6 fw-semibold">{formatCurrency(resumen.abonos)}</div>
+          </div>
+          <div className="ventas-card">
+            <div className="text-muted small text-uppercase">Activas</div>
+            <div className="display-6 fw-semibold">
+              {resumen.estados.planned + resumen.estados.in_progress}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="jornadas-grid">
-        <div className="ventas-card jornadas-form">
-          <h4 className="mb-3">Nueva jornada</h4>
-          <form className="row g-3" onSubmit={handleCrearJornada}>
-            <div className="col-12">
-              <label className="form-label" htmlFor="empresa">
-                Empresa
-              </label>
-              <select
-                id="empresa"
-                className="form-select"
-                value={formData.empresa}
-                onChange={handleFormChange("empresa")}
-                required
-              >
-                <option value="">Selecciona una empresa</option>
-                {empresasOrdenadas.map((empresa) => (
-                  <option key={empresa.id} value={empresa.id}>
-                    {empresa.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-12">
-              <label className="form-label" htmlFor="sucursal">
-                Sucursal o punto
-              </label>
-              <input
-                type="text"
-                id="sucursal"
-                className="form-control"
-                placeholder="Ej. Sede Norte, Planta 2"
-                value={formData.sucursal}
-                onChange={handleFormChange("sucursal")}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label" htmlFor="fecha">
-                Fecha
-              </label>
-              <Calendar
-                inputId="fecha"
-                value={new Date(formData.fecha)}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    fecha: toISODate(e.value),
-                  }))
-                }
-                dateFormat="dd/mm/yy"
-                showIcon
-                className="w-100"
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label" htmlFor="fecha_inicio">
-                Fecha de inicio
-              </label>
-              <Calendar
-                inputId="fecha_inicio"
-                value={new Date(formData.fecha_inicio)}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    fecha_inicio: toISODate(e.value),
-                  }))
-                }
-                dateFormat="dd/mm/yy"
-                showIcon
-                className="w-100"
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label" htmlFor="condicion_pago">
-                Condición de pago
-              </label>
-              <select
-                id="condicion_pago"
-                className="form-select"
-                value={formData.condicion_pago}
-                onChange={handleFormChange("condicion_pago")}
-              >
-                <option value="quincenal">Quincenal</option>
-                <option value="mensual">Mensual</option>
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label" htmlFor="cantidad_cuotas">
-                Cantidad de cuotas
-              </label>
-              <input
-                type="number"
-                id="cantidad_cuotas"
-                className="form-control"
-                min={1}
-                value={formData.cantidad_cuotas}
-                onChange={handleFormChange("cantidad_cuotas")}
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label" htmlFor="fecha_vencimiento">
-                Fecha de vencimiento
-              </label>
-              <Calendar
-                inputId="fecha_vencimiento"
-                value={new Date(formData.fecha_vencimiento)}
-                dateFormat="dd/mm/yy"
-                showIcon
-                className="w-100"
-                readOnlyInput
-              />
-            </div>
-            <div className="col-12">
-              <label className="form-label" htmlFor="observaciones">
-                Observaciones
-              </label>
-              <textarea
-                id="observaciones"
-                className="form-control"
-                rows={3}
-                placeholder="Detalle objetivo, responsable o notas de la jornada"
-                value={formData.observaciones}
-                onChange={handleFormChange("observaciones")}
-              />
-              <small className="text-muted">
-                Se evita crear jornadas duplicadas para una misma empresa, sucursal y fecha.
-              </small>
-            </div>
-            <div className="col-12 d-grid">
-              <button type="submit" className="btn btn-primary" disabled={creando}>
-                {creando ? "Creando..." : "Crear jornada"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="ventas-card jornadas-panel">
-          <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
-            <div className="flex-grow-1 jornadas-filtros">
-              {filtros.map((filtro) => (
-                <button
-                  key={filtro.value}
-                  type="button"
-                  className={`btn btn-sm ${
-                    filtroEstado === filtro.value ? "btn-primary" : "btn-outline-primary"
-                  }`}
-                  onClick={() => setFiltroEstado(filtro.value)}
-                >
-                  {filtro.label}
-                  <span className="badge text-bg-light ms-2">{filtro.count}</span>
-                </button>
-              ))}
-            </div>
-            <div className="jornadas-busqueda">
-              <div className="input-group input-group-sm">
-                <span className="input-group-text">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                    aria-hidden="true"
+        <div className="jornadas-grid">
+          <div className="ventas-card jornadas-form">
+            <h4 className="mb-3">Nueva jornada</h4>
+            <form className="row g-3" onSubmit={handleCrearJornada}>
+              <div className="col-12">
+                <label className="form-label" htmlFor="empresa">
+                  Empresa
+                </label>
+                <div className="input-group">
+                  <select
+                    id="empresa"
+                    className="form-select"
+                    value={formData.empresa}
+                    onChange={handleFormChange("empresa")}
+                    required
                   >
-                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10" />
-                  </svg>
-                </span>
+                    <option value="">Selecciona una empresa</option>
+                    {empresasOrdenadas.map((empresa) => (
+                      <option key={empresa.id} value={empresa.id}>
+                        {empresa.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-outline-dark"
+                    onClick={() => setModalEmpresaShow(true)}
+                    aria-label="Crear empresa"
+                    title="Crear empresa"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 1024 1024"><path fill="currentColor" d="M839.7 734.7c0 33.3-17.9 41-17.9 41S519.7 949.8 499.2 960c-10.2 5.1-20.5 5.1-30.7 0c0 0-314.9-184.3-325.1-192c-5.1-5.1-10.2-12.8-12.8-20.5V368.6c0-17.9 20.5-28.2 20.5-28.2L466 158.6q19.2-7.65 38.4 0s279 161.3 309.8 179.2c17.9 7.7 28.2 25.6 25.6 46.1c-.1-5-.1 317.5-.1 350.8M714.2 371.2c-64-35.8-217.6-125.4-217.6-125.4c-7.7-5.1-20.5-5.1-30.7 0L217.6 389.1s-17.9 10.2-17.9 23v297c0 5.1 5.1 12.8 7.7 17.9c7.7 5.1 256 148.5 256 148.5c7.7 5.1 17.9 5.1 25.6 0c15.4-7.7 250.9-145.9 250.9-145.9s12.8-5.1 12.8-30.7v-74.2l-276.5 169v-64c0-17.9 7.7-30.7 20.5-46.1L745 535c5.1-7.7 10.2-20.5 10.2-30.7v-66.6l-279 169v-69.1c0-15.4 5.1-30.7 17.9-38.4zM919 135.7c0-5.1-5.1-7.7-7.7-7.7h-58.9V66.6c0-5.1-5.1-5.1-10.2-5.1l-30.7 5.1c-5.1 0-5.1 2.6-5.1 5.1V128h-56.3c-5.1 0-5.1 5.1-7.7 5.1v38.4h69.1v64c0 5.1 5.1 5.1 10.2 5.1l30.7-5.1c5.1 0 5.1-2.6 5.1-5.1v-56.3h64z"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div className="col-12">
+                <label className="form-label" htmlFor="sucursal">
+                  Sucursal o punto
+                </label>
                 <input
-                  type="search"
+                  type="text"
+                  id="sucursal"
                   className="form-control"
-                  placeholder="Buscar empresa, responsable o nota"
-                  value={busqueda}
-                  onChange={(event) => setBusqueda(event.target.value)}
+                  placeholder="Ej. Sede Norte, Planta 2"
+                  value={formData.sucursal}
+                  onChange={handleFormChange("sucursal")}
                 />
               </div>
-            </div>
+              <div className="col-md-6">
+                <label className="form-label" htmlFor="fecha">
+                  Fecha
+                </label>
+                <Calendar
+                  inputId="fecha"
+                  value={new Date(formData.fecha)}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      fecha: toISODate(e.value),
+                    }))
+                  }
+                  dateFormat="dd/mm/yy"
+                  showIcon
+                  className="w-100"
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label" htmlFor="fecha_inicio">
+                  Fecha de inicio
+                </label>
+                <Calendar
+                  inputId="fecha_inicio"
+                  value={new Date(formData.fecha_inicio)}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      fecha_inicio: toISODate(e.value),
+                    }))
+                  }
+                  dateFormat="dd/mm/yy"
+                  showIcon
+                  className="w-100"
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label" htmlFor="condicion_pago">
+                  Condición de pago
+                </label>
+                <select
+                  id="condicion_pago"
+                  className="form-select"
+                  value={formData.condicion_pago}
+                  onChange={handleFormChange("condicion_pago")}
+                >
+                  <option value="quincenal">Quincenal</option>
+                  <option value="mensual">Mensual</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label" htmlFor="cantidad_cuotas">
+                  Cantidad de cuotas
+                </label>
+                <input
+                  type="number"
+                  id="cantidad_cuotas"
+                  className="form-control"
+                  min={1}
+                  value={formData.cantidad_cuotas}
+                  onChange={handleFormChange("cantidad_cuotas")}
+                />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label" htmlFor="fecha_vencimiento">
+                  Fecha de vencimiento
+                </label>
+                <Calendar
+                  inputId="fecha_vencimiento"
+                  value={new Date(formData.fecha_vencimiento)}
+                  dateFormat="dd/mm/yy"
+                  showIcon
+                  className="w-100"
+                  readOnlyInput
+                />
+              </div>
+              <div className="col-12">
+                <label className="form-label" htmlFor="observaciones">
+                  Observaciones
+                </label>
+                <textarea
+                  id="observaciones"
+                  className="form-control"
+                  rows={3}
+                  placeholder="Detalle objetivo, responsable o notas de la jornada"
+                  value={formData.observaciones}
+                  onChange={handleFormChange("observaciones")}
+                />
+                <small className="text-muted">
+                  Se evita crear jornadas duplicadas para una misma empresa, sucursal y fecha.
+                </small>
+              </div>
+              <div className="col-12 d-grid">
+                <button type="submit" className="btn btn-primary" disabled={creando}>
+                  {creando ? "Creando..." : "Crear jornada"}
+                </button>
+              </div>
+            </form>
           </div>
 
-          {mensaje && (
-            <div
-              className={`alert alert-${mensaje.tipo === "error" ? "danger" : "success"} py-2`}
-              role="alert"
-            >
-              {mensaje.mensaje}
+          <div className="ventas-card jornadas-panel">
+            <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+              <div className="flex-grow-1 jornadas-filtros">
+                {filtros.map((filtro) => (
+                  <button
+                    key={filtro.value}
+                    type="button"
+                    className={`btn btn-sm ${
+                      filtroEstado === filtro.value ? "btn-primary" : "btn-outline-primary"
+                    }`}
+                    onClick={() => setFiltroEstado(filtro.value)}
+                  >
+                    {filtro.label}
+                    <span className="badge text-bg-light ms-2">{filtro.count}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="jornadas-busqueda">
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                    >
+                      <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10" />
+                    </svg>
+                  </span>
+                  <input
+                    type="search"
+                    className="form-control"
+                    placeholder="Buscar empresa, responsable o nota"
+                    value={busqueda}
+                    onChange={(event) => setBusqueda(event.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="table-modern table-responsive">
-            <table className="table align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Empresa</th>
-                  <th>Fecha</th>
-                  <th className="text-center">Ventas</th>
-                  <th className="text-center">Total vendido</th>
-                  <th className="text-center">Abonos</th>
-                  <th>Responsable</th>
-                  <th>Estado</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {jornadasFiltradas.length === 0 && (
+            {mensaje && (
+              <div
+                className={`alert alert-${mensaje.tipo === "error" ? "danger" : "success"} py-2`}
+                role="alert"
+              >
+                {mensaje.mensaje}
+              </div>
+            )}
+
+            <div className="table-modern table-responsive">
+              <table className="table align-middle mb-0">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="text-center text-muted py-4">
-                      No hay jornadas para los filtros seleccionados.
-                    </td>
+                    <th>Empresa</th>
+                    <th>Fecha</th>
+                    <th className="text-center">Ventas</th>
+                    <th className="text-center">Total vendido</th>
+                    <th className="text-center">Abonos</th>
+                    <th>Responsable</th>
+                    <th>Estado</th>
+                    <th></th>
                   </tr>
-                )}
-                {jornadasFiltradas.map((jornada) => {
-                  const accion = ESTADO_ACCIONES[jornada.estado];
-                  return (
-                    <tr key={jornada.id}>
-                      <td>
-                        <div className="fw-semibold">{jornada.empresa_nombre}</div>
-                        <div className="text-muted small">
-                          {jornada.sucursal ? `Sucursal: ${jornada.sucursal}` : "Sin sucursal"}
-                        </div>
-                        {(jornada.condicion_pago ||
-                          jornada.cantidad_cuotas ||
-                          jornada.fecha_vencimiento) && (
-                          <div className="text-muted small mt-1">
-                            Pago: {jornada.condicion_pago || "-"} - Cuotas:{" "}
-                            {Number(jornada.cantidad_cuotas || 0)} - Vence:{" "}
-                            {formatDate(jornada.fecha_vencimiento)}
-                          </div>
-                        )}
-                        {jornada.observaciones && (
-                          <div className="text-muted small fst-italic mt-1">
-                            {jornada.observaciones}
-                          </div>
-                        )}
-                      </td>
-                      <td>{formatDate(jornada.fecha)}</td>
-                      <td className="text-center fw-semibold">{Number(jornada.ventas_count || 0)}</td>
-                      <td className="text-center">{formatCurrency(jornada.total_vendido)}</td>
-                      <td className="text-center">{formatCurrency(jornada.total_abonos)}</td>
-                      <td>{jornada.responsable_nombre || "-"}</td>
-                      <td>
-                        <span className={`badge text-bg-${ESTADO_BADGES[jornada.estado]} px-3 py-2`}>
-                          {ESTADO_LABELS[jornada.estado]}
-                        </span>
-                      </td>
-                      <td className="text-end">
-                        {accion ? (
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary btn-sm"
-                            disabled={actualizando === jornada.id}
-                            onClick={() => handleActualizarEstado(jornada, accion.value)}
-                          >
-                            {actualizando === jornada.id ? "Actualizando..." : accion.label}
-                          </button>
-                        ) : (
-                          <span className="text-muted small">Jornada cerrada</span>
-                        )}
+                </thead>
+                <tbody>
+                  {jornadasFiltradas.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center text-muted py-4">
+                        No hay jornadas para los filtros seleccionados.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {jornadasFiltradas.map((jornada) => {
+                    const accion = ESTADO_ACCIONES[jornada.estado];
+                    return (
+                      <tr key={jornada.id}>
+                        <td>
+                          <div className="fw-semibold">{jornada.empresa_nombre}</div>
+                          <div className="text-muted small">
+                            {jornada.sucursal ? `Sucursal: ${jornada.sucursal}` : "Sin sucursal"}
+                          </div>
+                          {(jornada.condicion_pago ||
+                            jornada.cantidad_cuotas ||
+                            jornada.fecha_vencimiento) && (
+                            <div className="text-muted small mt-1">
+                              Pago: {jornada.condicion_pago || "-"} - Cuotas:{" "}
+                              {Number(jornada.cantidad_cuotas || 0)} - Vence:{" "}
+                              {formatDate(jornada.fecha_vencimiento)}
+                            </div>
+                          )}
+                          {jornada.observaciones && (
+                            <div className="text-muted small fst-italic mt-1">
+                              {jornada.observaciones}
+                            </div>
+                          )}
+                        </td>
+                        <td>{formatDate(jornada.fecha)}</td>
+                        <td className="text-center fw-semibold">{Number(jornada.ventas_count || 0)}</td>
+                        <td className="text-center">{formatCurrency(jornada.total_vendido)}</td>
+                        <td className="text-center">{formatCurrency(jornada.total_abonos)}</td>
+                        <td>{jornada.responsable_nombre || "-"}</td>
+                        <td>
+                          <span className={`badge text-bg-${ESTADO_BADGES[jornada.estado]} px-3 py-2`}>
+                            {ESTADO_LABELS[jornada.estado]}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          {accion ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary btn-sm"
+                              disabled={actualizando === jornada.id}
+                              onClick={() => handleActualizarEstado(jornada, accion.value)}
+                            >
+                              {actualizando === jornada.id ? "Actualizando..." : accion.label}
+                            </button>
+                          ) : (
+                            <span className="text-muted small">Jornada cerrada</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 };
 

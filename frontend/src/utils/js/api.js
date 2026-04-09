@@ -1,25 +1,37 @@
 /* Utilidades para centralizar llamadas HTTP al backend */
 
-import { BACKEND_BASE_URL, buildBackendUrl } from "./env";
+import { BACKEND_BASE_URL, SSR_BACKEND_BASE_URL, buildBackendUrl, buildServerBackendUrl } from "./env";
 
 const DEFAULT_API_BASE = `${BACKEND_BASE_URL || "http://localhost:8000"}/`;
 
+const withTrailingSlash = (value = "") => {
+  if (!value) return "";
+  return value.endsWith("/") ? value : `${value}/`;
+};
+
 const resolveBaseUrl = () => {
   if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    const url = new URL(`${protocol}//${hostname}`);
-    url.port = "8000";
-    return `${url.origin}/`;
+    if (process.env.NEXT_PUBLIC_API_BASE) {
+      return withTrailingSlash(process.env.NEXT_PUBLIC_API_BASE);
+    }
+
+    if (BACKEND_BASE_URL) {
+      return withTrailingSlash(BACKEND_BASE_URL);
+    }
+
+    return DEFAULT_API_BASE;
+  }
+
+  if (SSR_BACKEND_BASE_URL) {
+    return withTrailingSlash(SSR_BACKEND_BASE_URL);
   }
 
   if (process.env.NEXT_PUBLIC_API_BASE) {
-    return process.env.NEXT_PUBLIC_API_BASE.endsWith("/")
-      ? process.env.NEXT_PUBLIC_API_BASE
-      : `${process.env.NEXT_PUBLIC_API_BASE}/`;
+    return withTrailingSlash(process.env.NEXT_PUBLIC_API_BASE);
   }
 
   if (BACKEND_BASE_URL) {
-    return `${BACKEND_BASE_URL}/`;
+    return withTrailingSlash(BACKEND_BASE_URL);
   }
 
   return DEFAULT_API_BASE;
@@ -34,7 +46,12 @@ const ensureBaseUrl = () => {
   return cachedBaseUrl;
 };
 
-const buildUrl = (endPoint = "") => buildBackendUrl(endPoint).replace(/([^:]\/)\/+/g, "$1");
+const buildUrl = (endPoint = "") => {
+  const normalized = typeof window === "undefined"
+    ? buildServerBackendUrl(endPoint)
+    : buildBackendUrl(endPoint);
+  return normalized.replace(/([^:]\/)\/+/g, "$1");
+};
 
 const getCookie = (name) => {
   if (typeof document === "undefined") return null;
