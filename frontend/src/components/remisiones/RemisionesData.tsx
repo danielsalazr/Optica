@@ -243,7 +243,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         throw new Error(responseData.detail || "No fue posible enviar la remisión al servicio de impresión.");
       }
 
-      await swalconfirmation(`Remisión #${selected.id} enviada a impresión.`);
+      await swalconfirmation(`Remisión #${row.id} enviada a impresión.`);
     } catch (error) {
       console.error(error);
       await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remisi?n.");
