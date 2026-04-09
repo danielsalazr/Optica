@@ -12,6 +12,7 @@ import { buildMediaUrl, buildPrintAgentUrl } from "@/utils/js/env";
 import { swalErr, swalconfirmation } from "@/utils/js/sweetAlertFunctions";
 import { callApi } from "@/utils/js/api";
 import { Dialog } from "primereact/dialog";
+import { Tooltip } from "primereact/tooltip";
 
 import "@/styles/style.css";
 
@@ -24,6 +25,7 @@ type RemisionItem = {
   precioUnitario: number;
   totalRemisionado: number;
   descuento: number;
+  tipoDescuento?: string | null;
   articulo: {
     id: number;
     nombre: string;
@@ -87,6 +89,14 @@ type ColumnMeta = {
 
 type Props = {
   data: RemisionRow[];
+};
+
+const formatDescuento = (descuento: number | null | undefined, tipo: string | null | undefined) => {
+  const value = Number(descuento || 0);
+  if (!value) {
+    return tipo === 'porcentaje' ? '0 %' : '$ 0';
+  }
+  return tipo === 'porcentaje' ? `${value} %` : `$ ${value.toLocaleString('es-CO')}`;
 };
 
 const formatDate = (value: string | null | undefined) => {
@@ -207,6 +217,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             cantidad: item.cantidad,
             valor_unitario: Number(item.precioUnitario || 0),
             valor_total: Number(item.totalRemisionado || 0) || (Number(item.precioUnitario || 0) * Number(item.cantidad || 0)),
+            descuento: Number(item.descuento || 0),
+            tipo_descuento: item.tipoDescuento || 'precio',
           })),
           valor_venta: valorVenta,
           abonado: abonado,
@@ -405,10 +417,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                 </div>
               </div>
               <div className="mt-3 d-flex gap-2 justify-content-end flex-wrap">
-                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => handleFormulaModal(row)}>
+                <button type="button" className="btn btn-sm btn-outline-primary remisiones-action-tooltip" data-pr-tooltip="Ver formula" data-pr-position="top" onClick={() => handleFormulaModal(row)}>
                   Ver formula
                 </button>
-                <button type="button" className="btn btn-sm btn-primary" onClick={() => handlePrintRemision(row)} disabled={printing}>
+                <button type="button" className="btn btn-sm btn-primary remisiones-action-tooltip" data-pr-tooltip="Imprimir ticket" data-pr-position="top" onClick={() => handlePrintRemision(row)} disabled={printing}>
                   {printing ? "Imprimiendo..." : "Imprimir ticket"}
                 </button>
               </div>
@@ -435,9 +447,9 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                   <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
                   <td className="text-center fw-semibold">{item.cantidad}</td>
                   <td className="text-center">{moneyformat(Number(item.precioUnitario || 0))}</td>
-                  <td className="text-center">{item.descuento ? `${item.descuento}%` : "0%"}</td>
+                  <td className="text-center">{formatDescuento(item.descuento, item.tipoDescuento)}</td>
                   <td className="text-center fw-semibold">
-                    {moneyformat(item.totalRemisionado - (Number(item.precioUnitario || 0) * Number(item.cantidad || 0)))}
+                    {moneyformat(Number(item.totalRemisionado || 0) || (Number(item.precioUnitario || 0) * Number(item.cantidad || 0)))}
                   </td>
                   <td className="text-center text-primary">{item.cantidadDespachada}</td>
                   <td className="text-center text-danger">{item.restante}</td>

@@ -6,7 +6,7 @@
 
 const DEFAULT_BACKEND_URL = "http://localhost:8000";
 const DEFAULT_FRONTEND_URL = "http://localhost:3000";
-const DEFAULT_PRINT_AGENT_URL = "http://127.0.0.1:7719";
+const DEFAULT_PRINT_AGENT_URL = "https://127.0.0.1:7719";
 
 export const BACKEND_BASE_URL = normalizeBaseUrl(
   process.env.NEXT_PUBLIC_BACKEND_URL,

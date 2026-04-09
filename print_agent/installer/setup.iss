@@ -27,5 +27,7 @@ Source: "..\dist\{#MyServiceExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\{#MyServiceXmlName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Run]
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--prepare-runtime"; Flags: runhidden waituntilterminated
+Filename: "{sys}\certutil.exe"; Parameters: "-f -addstore Root ""{commonappdata}\OpticaPrintAgent\certs\localhost.crt"""; Flags: runhidden waituntilterminated
 Filename: "{app}\{#MyServiceExeName}"; Parameters: "install"; Flags: runhidden waituntilterminated
 Filename: "{app}\{#MyServiceExeName}"; Parameters: "start"; Flags: runhidden waituntilterminated

@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import "datatables.net-dt/css/dataTables.dataTables.css";
+import { Tooltip } from "primereact/tooltip";
 
 const DataTable = dynamic(async () => {
     const DataTableComponentModule = await import("datatables.net-react");
@@ -58,8 +59,9 @@ type JQueryDataTableLike = {
             show: () => void;
         };
     };
-    on: (event: string, selector: string, handler: (event: Event) => void) => void;
-    off: (event: string, selector: string, handler: (event: Event) => void) => void;
+    on: (...args: any[]) => void;
+    off: (...args: any[]) => void;
+    draw: () => void;
     column: (name: string) => any;
     cells: (...args: unknown[]) => any;
 };
@@ -67,6 +69,8 @@ type JQueryDataTableLike = {
 const DataTables = (props: DataTablesProps) => {
     // const tableRef = useRef(null);
     const tableRef = useRef<{ dt: () => JQueryDataTableLike | undefined } | null>(null);
+    const tooltipRef = useRef<any>(null);
+    const [tooltipVersion, setTooltipVersion] = useState(0);
     const [activeFilter, setActiveFilter] = useState("todos");
     const [activeEstadoPedidoFilter, setActiveEstadoPedidoFilter] = useState("todos");
     const {
@@ -84,35 +88,65 @@ const DataTables = (props: DataTablesProps) => {
 
     console.log("columns", columns);
 
+    const refreshTooltipTargets = (forceRemount = false) => {
+      window.setTimeout(() => {
+        if (tooltipRef.current?.unloadTargetEvents) {
+          tooltipRef.current.unloadTargetEvents();
+        }
+        if (tooltipRef.current?.updateTargetEvents) {
+          tooltipRef.current.updateTargetEvents();
+        }
+        if (tooltipRef.current?.loadTargetEvents) {
+          tooltipRef.current.loadTargetEvents();
+        }
+        if (forceRemount) {
+          setTooltipVersion((value) => value + 1);
+        }
+      }, 0);
+    };
 
     // const headers = ['Nombre', 'telefono', 'vinilla']  
   useEffect(() => {
-        let cleanup: (() => void) | undefined;
+    if (typeof document === "undefined") {
+      return;
+    }
 
-        (async () => {
-            if (typeof window === "undefined") {
-                return;
-            }
+    const syncTooltips = (forceRemount = false) => {
+      const root = tableRef.current ? (tableRef.current as any).el || null : null;
+      const scope = root instanceof HTMLElement ? root.parentElement || root : document;
+      scope.querySelectorAll('button[title], a[title]').forEach((element) => {
+        const htmlElement = element as HTMLElement;
+        const title = htmlElement.getAttribute('title');
+        if (title) {
+          htmlElement.setAttribute('data-pr-tooltip', title);
+          htmlElement.setAttribute('data-pr-position', 'top');
+          htmlElement.classList.add('datatable-action-tooltip');
+        }
+      });
+      refreshTooltipTargets(forceRemount);
+    };
 
-            const { Popover } = await import("bootstrap/dist/js/bootstrap.bundle.min.js");
+    syncTooltips(true);
 
-            const popoverTriggerList = [].slice.call(
-                document.querySelectorAll('[data-bs-toggle="popover"]')
-            );
+    const root = tableRef.current ? (tableRef.current as any).el || null : null;
+    const scope = root instanceof HTMLElement ? root.parentElement || root : null;
+    const observer = scope
+      ? new MutationObserver((mutations) => {
+          const changed = mutations.some((mutation) => mutation.type === 'childList' && (mutation.addedNodes.length || mutation.removedNodes.length));
+          if (changed) {
+            syncTooltips(true);
+          }
+        })
+      : null;
 
-            const popoverList = popoverTriggerList.map(
-                (popoverTriggerEl: Element) => new Popover(popoverTriggerEl, {})
-            );
-
-            cleanup = () => {
-                popoverList.forEach((popoverInstance) => popoverInstance.dispose());
-            };
-        })();
+    if (observer && scope) {
+      observer.observe(scope, { childList: true, subtree: true });
+    }
 
     return () => {
-      cleanup?.();
+      observer?.disconnect();
     };
-  }, []);
+  }, [data]);
 
   useEffect(() => {
     if (!rowDetail) return;
@@ -147,6 +181,9 @@ const DataTables = (props: DataTablesProps) => {
       if (!dt) return;
       dt.off('click', 'tbody tr', handler);
       dt.on('click', 'tbody tr', handler);
+      dt.off('draw', refreshTooltipTargets as any);
+      dt.on('draw', () => refreshTooltipTargets(true));
+      refreshTooltipTargets(true);
     };
 
     intervalId = setInterval(() => {
@@ -266,9 +303,11 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
         : []);
 
   return (
-    <div 
-    className="data-table-shell"
-    >
+    <>
+      <Tooltip key={tooltipVersion} ref={tooltipRef} target=".datatable-action-tooltip" showDelay={120} hideDelay={80} />
+      <div 
+      className="data-table-shell"
+      >
 
       {/* <button className="btn btn-outline-secondary mb-2" onClick={debugEstado}>
   Debug columna estado
@@ -403,6 +442,7 @@ const setEstadoPedido = (expr: string, regex = true, smart = false, ci = true) =
 
         
     </div>
+    </>
   );
 };
 

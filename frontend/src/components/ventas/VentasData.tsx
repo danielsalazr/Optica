@@ -162,6 +162,10 @@ function VentasData(props) {
   const [estadoPagoFilter, setEstadoPagoFilter] = useState('todos');
   const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
   const [globalFilter, setGlobalFilter] = useState('');
+  const tooltipRef = useRef<any>(null);
+  const [tooltipVersion, setTooltipVersion] = useState(0);
+  const [first, setFirst] = useState(0);
+  const [rows, setRows] = useState(10);
   const [selectedVentas, setSelectedVentas] = useState([]);
   const [estadoModalOpen, setEstadoModalOpen] = useState(false);
   const [estadoModalRow, setEstadoModalRow] = useState(null);
@@ -174,8 +178,32 @@ function VentasData(props) {
   const [bulkEstadoDestino, setBulkEstadoDestino] = useState('');
   const [bulkEstadoFecha, setBulkEstadoFecha] = useState('');
 
+  const refreshVentasTooltips = (forceRemount = false) => {
+    if (typeof window === 'undefined') return;
+    window.setTimeout(() => {
+      if (tooltipRef.current?.unloadTargetEvents) {
+        tooltipRef.current.unloadTargetEvents();
+      }
+      if (forceRemount) {
+        setTooltipVersion((value) => value + 1);
+      }
+      window.setTimeout(() => {
+        if (tooltipRef.current?.loadTargetEvents) {
+          tooltipRef.current.loadTargetEvents();
+        }
+        if (tooltipRef.current?.updateTargetEvents) {
+          tooltipRef.current.updateTargetEvents();
+        }
+      }, 0);
+    }, 0);
+  };
+
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  useEffect(() => {
+    refreshVentasTooltips(true);
+  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter, first, rows]);
 
   const toggleState = () => {
     setShow(!show);
@@ -985,7 +1013,7 @@ function VentasData(props) {
   };
   return (
     <>
-      <Tooltip target=".ventas-action-tooltip" />
+      <Tooltip key={tooltipVersion} ref={tooltipRef} target=".ventas-action-tooltip" showDelay={120} hideDelay={80} />
       <BootstrapModal
         show={modalAnularShow}
         onHide={() => setModalAnularShow(false)}
@@ -1361,8 +1389,14 @@ function VentasData(props) {
         <DataTable
           value={filteredData}
           paginator
-          rows={10}
+          first={first}
+          rows={rows}
           rowsPerPageOptions={[5, 10, 20, 50]}
+          onPage={(event) => {
+            setFirst(event.first);
+            setRows(event.rows);
+            refreshVentasTooltips(true);
+          }}
           sortField="id"
           sortOrder={-1}
           stripedRows

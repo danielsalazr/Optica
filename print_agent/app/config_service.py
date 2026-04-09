@@ -6,9 +6,9 @@ from .db import get_connection
 
 
 DEFAULT_CONFIG = {
-    # "server.host": "127.0.0.1",
-    "server.host": "0.0.0.0",
+    "server.host": "127.0.0.1",
     "server.port": "7719",
+    "server.scheme": "https",
     "server.api_token": "",
     "printer.constancia": "",
     "printer.remision": "",
@@ -93,6 +93,7 @@ def build_runtime_config() -> dict[str, object]:
     return {
         "host": get_value("server.host", DEFAULT_CONFIG["server.host"]),
         "port": int(get_value("server.port", DEFAULT_CONFIG["server.port"])),
+        "scheme": get_value("server.scheme", DEFAULT_CONFIG["server.scheme"]),
         "api_token": get_value("server.api_token"),
         "printers": get_printer_mapping(),
         "company": get_company_config(),

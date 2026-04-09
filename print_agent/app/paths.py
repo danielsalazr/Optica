@@ -40,9 +40,12 @@ BASE_DIR = get_base_dir()
 DATA_DIR = BASE_DIR / "data"
 LOGS_DIR = BASE_DIR / "logs"
 GENERATED_DIR = BASE_DIR / "generated"
+CERTS_DIR = BASE_DIR / "certs"
 DB_PATH = DATA_DIR / "agent.db"
+TLS_CERT_PATH = CERTS_DIR / "localhost.crt"
+TLS_KEY_PATH = CERTS_DIR / "localhost.key"
 
 
 def ensure_runtime_dirs() -> None:
-    for directory in (BASE_DIR, DATA_DIR, LOGS_DIR, GENERATED_DIR):
+    for directory in (BASE_DIR, DATA_DIR, LOGS_DIR, GENERATED_DIR, CERTS_DIR):
         directory.mkdir(parents=True, exist_ok=True)

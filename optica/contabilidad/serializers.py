@@ -444,6 +444,7 @@ class RemisionItemSerializer(serializers.ModelSerializer):
     precioUnitario = serializers.SerializerMethodField(read_only=True)
     totalRemisionado = serializers.SerializerMethodField(read_only=True)
     descuento = serializers.SerializerMethodField(read_only=True)
+    tipoDescuento = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RemisionItem
@@ -458,6 +459,7 @@ class RemisionItemSerializer(serializers.ModelSerializer):
             'precioUnitario',
             'totalRemisionado',
             'descuento',
+            'tipoDescuento',
         ]
         extra_kwargs = {
             'cantidad': {'min_value': 1}
@@ -507,6 +509,9 @@ class RemisionItemSerializer(serializers.ModelSerializer):
 
     def get_descuento(self, obj):
         return obj.item_venta.descuento or 0
+
+    def get_tipoDescuento(self, obj):
+        return obj.item_venta.tipo_descuento or 'precio'
 
 
 class RemisionSerializer(serializers.ModelSerializer):

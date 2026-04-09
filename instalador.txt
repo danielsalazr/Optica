@@ -102,3 +102,7 @@ Eso te evita depurar a ciegas dentro del instalador.
 Si quieres, el siguiente paso lo hago yo: te dejo el empaquetado listo, ajustando setup.iss, agregando un .spec de PyInstaller y dejando preparado el servicio Windows para que solo te falte poner el binario de WinSW.
 
 
+aniadir certificado autofirmado en certificados de confianza para poder utilizar la app de impresion
+    -certutil -f -addstore Root "C:\ProgramData\OpticaPrintAgent\certs\localhost.crt"
+
+

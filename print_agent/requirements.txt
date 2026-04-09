@@ -7,3 +7,4 @@ reportlab==4.4.0
 
 uvicorn
 fastapi
+cryptography==44.0.2

@@ -6,9 +6,9 @@ Agente local para Windows que expone una API REST en `127.0.0.1:7719`, detecta i
 
 Cuando el servicio estÃ¡ arriba, FastAPI publica automÃ¡ticamente:
 
-- Swagger UI: `http://127.0.0.1:7719/docs`
-- ReDoc: `http://127.0.0.1:7719/redoc`
-- OpenAPI JSON: `http://127.0.0.1:7719/openapi.json`
+- Swagger UI: `https://127.0.0.1:7719/docs`
+- ReDoc: `https://127.0.0.1:7719/redoc`
+- OpenAPI JSON: `https://127.0.0.1:7719/openapi.json`
 
 Si quieres exportar el esquema a un archivo local:
 
@@ -51,27 +51,60 @@ TambiÃ©n puedes usar:
 
 ```powershell
 cd print_agent
-uvicorn app.main:app --host 127.0.0.1 --port 7719
+uvicorn app.main:app --host 127.0.0.1 --port 7719 --ssl-certfile runtime/certs/localhost.crt --ssl-keyfile runtime/certs/localhost.key
 ```
+
+## Certificado local HTTPS
+
+El agente local ahora expone la API por `https://127.0.0.1:7719`.
+
+Cuando ejecutas:
+
+```powershell
+python run.py
+```
+
+el servicio genera un certificado local autofirmado para `localhost` y `127.0.0.1`.
+
+Si ejecutas el agente manualmente, el navegador puede mostrar:
+
+- `ERR_CERT_AUTHORITY_INVALID`
+- `Failed to fetch`
+
+Eso no significa que el agente no haya arrancado. Significa que Windows o el navegador todavia no confian en el certificado local.
+
+Si instalas el agente con el instalador, esa confianza se configura automaticamente. Si lo ejecutas manualmente en desarrollo, debes importar el certificado al almacen de certificados de Windows como administrador:
+
+```powershell
+certutil -f -addstore Root "C:\ProgramData\OpticaPrintAgent\certs\localhost.crt"
+```
+
+Despues de ejecutar ese comando:
+
+1. cierra el navegador
+2. vuelve a abrirlo
+3. prueba de nuevo `https://127.0.0.1:7719/health`
+
+Si usas una ruta de runtime distinta mediante `OPTICA_PRINT_AGENT_HOME`, debes importar el `.crt` generado en esa ubicacion en lugar de `C:\ProgramData\OpticaPrintAgent\certs\localhost.crt`.
 
 ## Prueba rÃ¡pida
 
 Listar impresoras:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:7719/printers
+Invoke-RestMethod https://127.0.0.1:7719/printers
 ```
 
 Consultar estado de impresoras:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:7719/printers/status
+Invoke-RestMethod https://127.0.0.1:7719/printers/status
 ```
 
 Consultar una impresora puntual:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:7719/printers/status/EPSON%20TM-T20II%20Receipt"
+Invoke-RestMethod "https://127.0.0.1:7719/printers/status/EPSON%20TM-T20II%20Receipt"
 ```
 
 Guardar impresora por defecto para constancias:
@@ -79,7 +112,7 @@ Guardar impresora por defecto para constancias:
 ```powershell
 Invoke-RestMethod `
   -Method Put `
-  -Uri http://127.0.0.1:7719/config/printers `
+  -Uri https://127.0.0.1:7719/config/printers `
   -ContentType "application/json" `
   -Body '{"document_type":"constancia","printer_name":"EPSON TM-T20II Receipt"}'
 ```
@@ -89,7 +122,7 @@ Guardar informacion de la empresa para el encabezado:
 ```powershell
 Invoke-RestMethod `
   -Method Put `
-  -Uri http://127.0.0.1:7719/config/company `
+  -Uri https://127.0.0.1:7719/config/company `
   -ContentType "application/json" `
   -Body '{
     "name":"Bienestar Optica",
@@ -105,7 +138,7 @@ Enviar constancia:
 ```powershell
 Invoke-RestMethod `
   -Method Post `
-  -Uri http://127.0.0.1:7719/jobs/print `
+  -Uri https://127.0.0.1:7719/jobs/print `
   -ContentType "application/json" `
   -Body '{
     "document_type":"constancia",
@@ -125,7 +158,7 @@ Enviar remision:
 ```powershell
 Invoke-RestMethod `
   -Method Post `
-  -Uri http://127.0.0.1:7719/jobs/print `
+  -Uri https://127.0.0.1:7719/jobs/print `
   -ContentType "application/json" `
   -Body '{
     "document_type":"remision",
