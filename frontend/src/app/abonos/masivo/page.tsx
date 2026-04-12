@@ -663,7 +663,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-4">
-                 <label className="form-label">Descripci?n</label>
+                 <label className="form-label">Descripcion</label>
                 <input
                   type="text"
                   className="form-control"
@@ -681,7 +681,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribuci?n
+                Previsualizar distribucion
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -766,7 +766,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-8">
-                 <label className="form-label">Descripci?n</label>
+                 <label className="form-label">Descripcion</label>
                 <input
                   type="text"
                   className="form-control"
@@ -784,7 +784,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribuci?n
+                Previsualizar distribucion
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -865,7 +865,7 @@ function AbonosMasivosPage() {
                 </select>
               </div>
               <div className="col-md-8">
-                 <label className="form-label">Descripci?n</label>
+                 <label className="form-label">Descripcion</label>
                 <input
                   type="text"
                   className="form-control"
@@ -883,7 +883,7 @@ function AbonosMasivosPage() {
                 onClick={handlePrevisualizar}
                 disabled={previewLoading}
               >
-                Previsualizar distribuci?n
+                Previsualizar distribucion
               </button>
               <button className="btn btn-success" type="button" onClick={handleAplicarAbonos} disabled={applyLoading}>
                 Aplicar abonos
@@ -895,13 +895,13 @@ function AbonosMasivosPage() {
 
       <div className="mt-4">
         {previewError ? <div className="alert alert-warning">{previewError}</div> : null}
-        {previewLoading ? <div className="alert alert-info">Cargando previsualizaci?n...</div> : null}
+        {previewLoading ? <div className="alert alert-info">Cargando previsualizacion...</div> : null}
         {applyError ? <div className="alert alert-danger">{applyError}</div> : null}
         {applySuccess ? <div className="alert alert-success">{applySuccess}</div> : null}
         {previewRows.length > 0 ? (
           <div className="card">
             <div className="card-body">
-              <h6 className="card-title">Previsualizaci?n de distribuci?n</h6>
+              <h6 className="card-title">Previsualizacion de distribucion</h6>
               <div className="row g-3 align-items-end mb-3">
                 <div className="col-md-4">
                   <label className="form-label">Monto a distribuir</label>

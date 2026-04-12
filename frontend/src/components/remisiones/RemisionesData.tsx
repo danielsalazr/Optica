@@ -246,7 +246,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       await swalconfirmation(`Remisión #${row.id} enviada a impresión.`);
     } catch (error) {
       console.error(error);
-      await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remisi?n.");
+      await swalErr(error instanceof Error ? error.message : "Error desconocido al imprimir la remision.");
     } finally {
       setPrinting(false);
     }
@@ -291,7 +291,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
-      { field: "id", header: "Remisi?n", sortable: true },
+      { field: "id", header: "Remision", sortable: true },
       { field: "venta", header: "Venta", sortable: true },
       { field: "clienteNombre", header: "Cliente", sortable: true },
       { field: "clienteCedula", header: "Documento" },
@@ -300,7 +300,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
       { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
       { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center" },
-      { field: "totalRemision", header: "Total remisi?n", bodyClassName: "text-end" },
+      { field: "totalRemision", header: "Total remision", bodyClassName: "text-end" },
     ],
     []
   );

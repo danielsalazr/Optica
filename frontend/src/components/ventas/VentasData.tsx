@@ -215,7 +215,7 @@ function VentasData(props) {
     try {
       const req = await callApi(`venta/${ventaId}`);
       if (!req.res.ok) {
-        throw new Error(req.data.detail || 'No fue posible obtener la informaciÃ³n de remisiones.');
+        throw new Error(req.data.detail || 'No fue posible obtener la informacion de remisiones.');
       }
       setRemisionContext(req.data);
     } catch (error) {
@@ -252,7 +252,7 @@ function VentasData(props) {
     try {
       const req = await callApi(`venta/${rowData.id}`);
       if (!req.res.ok) {
-        throw new Error(req.data.detail || 'No fue posible obtener la fÃ³rmula.');
+        throw new Error(req.data.detail || 'No fue posible obtener la formula.');
       }
       const data = req.data || {};
       const candidates: string[] = [];
@@ -269,7 +269,7 @@ function VentasData(props) {
         .filter(Boolean) as string[];
 
       if (!resolved.length) {
-        setFormulaError('No hay fÃ³rmulas asociadas a esta venta.');
+        setFormulaError('No hay formulas asociadas a esta venta.');
       }
       setFormulaImages(resolved);
     } catch (error) {
@@ -640,7 +640,7 @@ function VentasData(props) {
         break;
 
       default:
-        console.log("AcciÃ³n no reconocida:", action);
+        console.log("Accion no reconocida:", action);
     }
   };
 
@@ -774,7 +774,7 @@ function VentasData(props) {
         </button>
         <button
           className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver fÃ³rmula"
+          data-pr-tooltip="Ver formula"
           data-pr-position="top"
           onClick={() => handleFormulaModal(row)}
         >
@@ -799,7 +799,7 @@ function VentasData(props) {
 
         <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver histÃ³rico de abonos"
+          data-pr-tooltip="Ver historico de abonos"
           data-pr-position="top"
           onClick={() => handleAction("verAbonos", row)}
         >
@@ -911,7 +911,7 @@ function VentasData(props) {
             </>
           )}
           {motivoSinAnticipo && <div className="text-muted small">Motivo sin anticipo: {motivoSinAnticipo}</div>}
-          {observacion && <div className="text-muted small">ObservaciÃ³n: {observacion}</div>}
+          {observacion && <div className="text-muted small">Observacion: {observacion}</div>}
 
           <div className="mt-3">
             <div className="fw-semibold mb-2">Historico de estados</div>
@@ -952,7 +952,7 @@ function VentasData(props) {
           <table className="table table-sm align-middle mb-0">
             <thead>
               <tr>
-                <th>ArtÃ­culo</th>
+                <th>Art­culo</th>
                 <th className="text-center">Cantidad</th>
                 <th className="text-end">Precio</th>
                 <th className="text-center">Descuento</th>
@@ -984,7 +984,7 @@ function VentasData(props) {
           <table className="table table-sm align-middle mb-0">
             <thead>
               <tr>
-                <th>RemisiÃ³n</th>
+                <th>Remision</th>
                 <th>Fecha</th>
                 <th className="text-end">Total</th>
               </tr>

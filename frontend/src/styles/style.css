@@ -790,6 +790,81 @@ body {
   color: var(--app-heading);
 }
 
+.jornadas-toolbar-top {
+  align-items: flex-start;
+}
+
+.jornadas-panel-full {
+  width: 100%;
+}
+
+.jornadas-panel-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.jornadas-create-button {
+  border-radius: 999px;
+  padding-inline: 1rem;
+}
+
+.jornadas-modal-button {
+  border-radius: 999px;
+  padding-inline: 1rem;
+}
+
+.jornadas-panel .jornadas-table {
+  width: 100%;
+}
+
+.jornadas-panel .p-datatable-wrapper {
+  border-radius: 16px;
+  overflow: auto;
+}
+
+.jornadas-panel .p-datatable-table {
+  width: 100%;
+}
+
+.jornadas-panel .p-paginator {
+  border: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-inline: 0;
+}
+
+.jornadas-busqueda .p-inputtext {
+  width: 100%;
+}
+
+.jornadas-modal-form .p-calendar,
+.jornadas-modal-form .p-calendar .p-inputtext {
+  width: 100%;
+}
+
+.jornadas-create-dialog-content {
+  padding-top: 0.5rem;
+}
+
+.jornadas-modal-form .form-label {
+  margin-bottom: 0.25rem;
+}
+
+.jornadas-modal-form .form-control,
+.jornadas-modal-form .form-select,
+.jornadas-modal-form .p-inputtext {
+  min-height: 2.5rem;
+}
+
+.jornadas-modal-form textarea.form-control {
+  min-height: 5.25rem;
+}
+
+.jornadas-modal-form small {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+
 @media (max-width: 992px) {
   .jornadas-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
