@@ -179,6 +179,15 @@ body {
   height: 18px;
 }
 
+.ventas-row-actions {
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+}
+
+.ventas-row-actions .btn-action {
+  padding-inline: 0.8rem;
+}
+
 @media (max-width: 992px) {
   .ventas-card {
     padding: 1.5rem;

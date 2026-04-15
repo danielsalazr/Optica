@@ -485,6 +485,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     </div>
   );
 
+  const canManageJornada = (jornada: Jornada) => jornada.estado === "planned";
+
   const renderEstadoBody = (jornada: Jornada) => (
     <Tag
       value={ESTADO_LABELS[jornada.estado]}
@@ -494,7 +496,13 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const renderAccionBody = (jornada: Jornada) => {
     const accion = ESTADO_ACCIONES[jornada.estado];
+    const canManage = canManageJornada(jornada);
     const bloqueado = actualizando === jornada.id || eliminando === jornada.id;
+    const bloqueadoEdicion = bloqueado || !canManage;
+    const manageTooltip = canManage ? "Editar jornada" : "No disponible: la jornada ya fue iniciada";
+    const deleteTooltip = canManage
+      ? (eliminando === jornada.id ? "Eliminando jornada" : "Eliminar jornada")
+      : "No disponible: la jornada ya fue iniciada";
 
     return (
       <div className="gap-2 d-flex justify-content-end flex-wrap">
@@ -520,10 +528,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         <button
           type="button"
           className="btn-action btn btn-sm btn-primary jornadas-action-tooltip"
-          data-pr-tooltip="Editar jornada"
+          data-pr-tooltip={manageTooltip}
           data-pr-position="top"
-          disabled={bloqueado}
-          onClick={() => hydrateForm(jornada)}
+          disabled={bloqueadoEdicion}
+          onClick={() => canManage && hydrateForm(jornada)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
         </button>
@@ -531,10 +539,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         <button
           type="button"
           className="btn-action btn btn-sm btn-danger jornadas-action-tooltip"
-          data-pr-tooltip={eliminando === jornada.id ? "Eliminando jornada" : "Eliminar jornada"}
+          data-pr-tooltip={deleteTooltip}
           data-pr-position="top"
-          disabled={bloqueado}
-          onClick={() => handleEliminarJornada(jornada)}
+          disabled={bloqueadoEdicion}
+          onClick={() => canManage && handleEliminarJornada(jornada)}
         >
           {eliminando === jornada.id ? (
             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>

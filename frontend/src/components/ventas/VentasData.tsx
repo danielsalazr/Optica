@@ -67,6 +67,37 @@ const formatDateOnly = (value: unknown) => {
   }).format(date);
 };
 
+const parseLocalDateValue = (value: unknown) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toLocalDateInputValue = (date: Date | null) => {
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayLocalDate = () => {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+};
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
 const ORIGEN_ESTADO_LABELS = {
   manual: 'Manual',
   masivo: 'Masivo',
@@ -179,6 +210,9 @@ function VentasData(props) {
   const [estadoPagoFilter, setEstadoPagoFilter] = useState('todos');
   const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
   const [globalFilter, setGlobalFilter] = useState('');
+  const [datePreset, setDatePreset] = useState('todos');
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
   const tooltipRef = useRef<any>(null);
   const [tooltipVersion, setTooltipVersion] = useState(0);
   const [first, setFirst] = useState(0);
@@ -220,7 +254,7 @@ function VentasData(props) {
 
   useEffect(() => {
     refreshVentasTooltips(true);
-  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter, first, rows]);
+  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter, datePreset, fechaDesde, fechaHasta, first, rows]);
 
   const toggleState = () => {
     setShow(!show);
@@ -428,6 +462,59 @@ function VentasData(props) {
     return `$ ${valor}`;
   };
 
+  const applyDatePreset = (preset) => {
+    const today = getTodayLocalDate();
+    let desde = '';
+    let hasta = '';
+
+    if (preset === 'hoy') {
+      desde = toLocalDateInputValue(today);
+      hasta = toLocalDateInputValue(today);
+    } else if (preset === 'semana') {
+      const dayOfWeek = today.getDay();
+      const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const weekStart = addDays(today, -offset);
+      desde = toLocalDateInputValue(weekStart);
+      hasta = toLocalDateInputValue(today);
+    } else if (preset === 'mes_actual') {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      desde = toLocalDateInputValue(monthStart);
+      hasta = toLocalDateInputValue(monthEnd);
+    } else if (preset === 'mes_anterior') {
+      const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const previousMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      desde = toLocalDateInputValue(previousMonthStart);
+      hasta = toLocalDateInputValue(previousMonthEnd);
+    } else if (preset === 'ultimos_30') {
+      desde = toLocalDateInputValue(addDays(today, -29));
+      hasta = toLocalDateInputValue(today);
+    }
+
+    setDatePreset(preset);
+    setFechaDesde(desde);
+    setFechaHasta(hasta);
+    setFirst(0);
+  };
+
+  const handleFechaDesdeChange = (value) => {
+    setDatePreset('personalizado');
+    setFechaDesde(value);
+    setFirst(0);
+  };
+
+  const handleFechaHastaChange = (value) => {
+    setDatePreset('personalizado');
+    setFechaHasta(value);
+    setFirst(0);
+  };
+
+  const clearDateFilter = () => {
+    setDatePreset('todos');
+    setFechaDesde('');
+    setFechaHasta('');
+    setFirst(0);
+  };
 
   const filteredData = useMemo(() => {
     return (dataTablee ?? []).filter((row) => {
@@ -444,6 +531,15 @@ function VentasData(props) {
 
       if (estadoPedidoFilter !== 'todos' && estadoPedidoKey !== estadoPedidoFilter) {
         return false;
+      }
+
+      if (fechaDesde || fechaHasta) {
+        const ventaDate = parseLocalDateValue(row.fecha);
+        const desde = parseLocalDateValue(fechaDesde);
+        const hasta = parseLocalDateValue(fechaHasta);
+        if (!ventaDate) return false;
+        if (desde && ventaDate < desde) return false;
+        if (hasta && ventaDate > hasta) return false;
       }
 
       if (globalFilter.trim()) {
@@ -466,7 +562,7 @@ function VentasData(props) {
 
       return true;
     });
-  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter]);
+  }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, fechaDesde, fechaHasta, globalFilter]);
 
   const bulkEstadoKeys = useMemo(
     () => [...new Set((selectedVentas ?? []).map((row) => identifyEstadoPedidoKey(row.estadoPedidoNombre)))],
@@ -744,7 +840,7 @@ function VentasData(props) {
     //   );
     // },
     Acciones: (data, row) => (
-      <div className='gap-2 d-flex justify-content-center flex-wrap'>
+      <div className='gap-1 d-flex justify-content-center flex-nowrap ventas-row-actions'>
         <button
           className="btn-action btn btn-sm btn-outline-secondary ventas-action-tooltip"
           data-pr-tooltip="Actualizar estado del pedido"
@@ -759,16 +855,6 @@ function VentasData(props) {
           )}
         </button>
 
-        <button
-          className="btn-action btn btn-sm btn-danger ventas-action-tooltip"
-          data-pr-tooltip="Anular venta"
-          data-pr-position="top"
-          onClick={() => handleAction("eliminar", row)}
-
-        >
-
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
-        </button>
         <button
           className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
           data-pr-tooltip="Remisiones"
@@ -786,24 +872,6 @@ function VentasData(props) {
           <Link href={`ventas/${row.id}`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
           </Link>
-          {/* <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4"/></svg> */}
-
-        </button>
-        <button
-          className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver formula"
-          data-pr-position="top"
-          onClick={() => handleFormulaModal(row)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></g></svg>
-        </button>
-        <button
-          className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver fotos de la venta"
-          data-pr-position="top"
-          onClick={() => handleFotosVentaModal(row)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="m3 15l4-4a3 5 0 0 1 3 0l5 5"/><path d="m14 14l1-1a3 5 0 0 1 3 0l.5 .5"/></g></svg>
         </button>
         <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
@@ -812,25 +880,6 @@ function VentasData(props) {
           onClick={() => handleAction("abonar", row)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M21 15h-2.5a1.503 1.503 0 0 0-1.5 1.5a1.503 1.503 0 0 0 1.5 1.5h1a1.503 1.503 0 0 1 1.5 1.5a1.503 1.503 0 0 1-1.5 1.5H17m2 0v1m0-8v1m-6 6H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2m12 3.12V9a2 2 0 0 0-2-2h-2" /><path d="M16 10V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6m8 0H8m8 0h1m-9 0H7m1 4v.01M8 17v.01m4-3.02V14m0 3v.01" /></g></svg>
-        </button>
-
-        <button
-          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
-          data-pr-tooltip="Ver historico de abonos"
-          data-pr-position="top"
-          onClick={() => handleAction("verAbonos", row)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2m5 6h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3H10m2 0v1m0-8v1" /></g></svg>
-        </button>
-        <button
-          className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
-          data-pr-tooltip="Devoluciones"
-          data-pr-position="top"
-          onClick={() => handleAction("verAbonos", row)}
-        >
-
-          <svg style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-u-turn-right"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M7 20v-11.5a4.5 4.5 0 0 1 9 0v8.5" /><path d="M13 14l3 3l3 -3" /></svg>
-
         </button>
       </div>
     )
@@ -968,6 +1017,52 @@ function VentasData(props) {
           )}
 
           {detalleAnulacion && <div className="small mt-2"><span className="fw-semibold text-danger">Detalle de anulacion:</span> <span className="text-danger-emphasis">{detalleAnulacion}</span></div>}
+
+          <div className="mt-3 pt-3 border-top">
+            <div className="fw-semibold mb-2">Acciones adicionales</div>
+            <div className='gap-2 d-flex flex-wrap'>
+              <button
+                className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
+                data-pr-tooltip="Ver formula"
+                data-pr-position="top"
+                onClick={() => handleFormulaModal(rowData)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></g></svg>
+              </button>
+              <button
+                className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
+                data-pr-tooltip="Ver fotos de la venta"
+                data-pr-position="top"
+                onClick={() => handleFotosVentaModal(rowData)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="m3 15l4-4a3 5 0 0 1 3 0l5 5"/><path d="m14 14l1-1a3 5 0 0 1 3 0l.5 .5"/></g></svg>
+              </button>
+              <button
+                className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+                data-pr-tooltip="Ver historico de abonos"
+                data-pr-position="top"
+                onClick={() => handleAction("verAbonos", rowData)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2m5 6h-2.5a1.5 1.5 0 0 0 0 3h1a1.5 1.5 0 0 1 0 3H10m2 0v1m0-8v1" /></g></svg>
+              </button>
+              <button
+                className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
+                data-pr-tooltip="Devoluciones"
+                data-pr-position="top"
+                onClick={() => handleAction("verAbonos", rowData)}
+              >
+                <svg style={{ transform: 'rotate(90deg)', transformOrigin: 'center' }} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-u-turn-right"><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path d="M7 20v-11.5a4.5 4.5 0 0 1 9 0v8.5" /><path d="M13 14l3 3l3 -3" /></svg>
+              </button>
+              <button
+                className="btn-action btn btn-sm btn-danger ventas-action-tooltip"
+                data-pr-tooltip="Anular venta"
+                data-pr-position="top"
+                onClick={() => handleAction("eliminar", rowData)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
+              </button>
+            </div>
+          </div>
 
           <div className="mt-3">
             <div className="fw-semibold mb-2">Historico de estados</div>
@@ -1409,24 +1504,84 @@ function VentasData(props) {
 
 
       <div className="data-table-shell">
-        <div className="d-flex flex-wrap gap-2 mb-3">
+        <div className="mb-3">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <div className="small fw-semibold text-dark">Filtro por estado de pago</div>
+            <button
+              type="button"
+              className="btn btn-link p-0 text-muted ventas-action-tooltip"
+              data-pr-tooltip="Usa este grupo para ver ventas pagadas, con abono, sin pago o anuladas."
+              data-pr-position="top"
+              aria-label="Ayuda sobre filtro por estado de pago"
+            >
+              <i className="pi pi-question-circle" />
+            </button>
+            <div className="d-flex flex-wrap gap-2">
           <button type="button" className={`btn ${estadoPagoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPagoFilter('todos')}>Todos</button>
           <button type="button" className={`btn ${estadoPagoFilter === 'con_abono' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setEstadoPagoFilter('con_abono')}>Con abono</button>
           <button type="button" className={`btn ${estadoPagoFilter === 'sin_pago' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setEstadoPagoFilter('sin_pago')}>Sin pago</button>
           <button type="button" className={`btn ${estadoPagoFilter === 'pagado' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setEstadoPagoFilter('pagado')}>Pagado</button>
           <button type="button" className={`btn ${estadoPagoFilter === 'anulado' ? 'btn-danger' : 'btn-outline-danger'}`} onClick={() => setEstadoPagoFilter('anulado')}>Anulado</button>
           <button type="button" className={`btn ${estadoPagoFilter === 'no_anulados' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setEstadoPagoFilter('no_anulados')}>No anulados</button>
+            </div>
+          </div>
         </div>
-        <div className="d-flex flex-wrap gap-2 mb-3">
+        <div className="mb-3">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <div className="small fw-semibold text-dark">Filtro por estado del pedido</div>
+            <button
+              type="button"
+              className="btn btn-link p-0 text-muted ventas-action-tooltip"
+              data-pr-tooltip="Permite revisar en qu? etapa del proceso se encuentra cada venta."
+              data-pr-position="top"
+              aria-label="Ayuda sobre filtro por estado del pedido"
+            >
+              <i className="pi pi-question-circle" />
+            </button>
+            <div className="d-flex flex-wrap gap-2">
           <button type="button" className={`btn ${estadoPedidoFilter === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('todos')}>Todos</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'creado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('creado')}>{ESTADO_PEDIDO_LABELS.creado}</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'para_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('para_fabricacion')}>{ESTADO_PEDIDO_LABELS.para_fabricacion}</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'en_fabricacion' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('en_fabricacion')}>{ESTADO_PEDIDO_LABELS.en_fabricacion}</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'listo_entrega' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('listo_entrega')}>{ESTADO_PEDIDO_LABELS.listo_entrega}</button>
           <button type="button" className={`btn ${estadoPedidoFilter === 'entregado' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoPedidoFilter('entregado')}>{ESTADO_PEDIDO_LABELS.entregado}</button>
+            </div>
+          </div>
         </div>
-        <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
-          <div>
+        <div className="mb-3">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <div className="small fw-semibold text-dark">Filtro por fecha de venta</div>
+            <button
+              type="button"
+              className="btn btn-link p-0 text-muted ventas-action-tooltip"
+              data-pr-tooltip="Puedes usar periodos r?pidos o definir un rango manual entre fechas."
+              data-pr-position="top"
+              aria-label="Ayuda sobre filtro por fecha de venta"
+            >
+              <i className="pi pi-question-circle" />
+            </button>
+            <div className="d-flex flex-wrap gap-2">
+          <button type="button" className={`btn ${datePreset === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={clearDateFilter}>Todas las fechas</button>
+          <button type="button" className={`btn ${datePreset === 'hoy' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('hoy')}>Hoy</button>
+          <button type="button" className={`btn ${datePreset === 'semana' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('semana')}>Esta semana</button>
+          <button type="button" className={`btn ${datePreset === 'mes_actual' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('mes_actual')}>Este mes</button>
+          <button type="button" className={`btn ${datePreset === 'mes_anterior' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('mes_anterior')}>Mes anterior</button>
+          <button type="button" className={`btn ${datePreset === 'ultimos_30' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('ultimos_30')}>Ultimos 30 dias</button>
+            </div>
+          </div>
+        </div>
+        <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+          <div className="d-flex flex-wrap align-items-end gap-2">
+            <div>
+              <label className="form-label small mb-1">Desde</label>
+              <input type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
+            </div>
+            <div>
+              <label className="form-label small mb-1">Hasta</label>
+              <input type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
+            </div>
+          </div>
+          <div className="d-flex flex-wrap align-items-center gap-3">
             <button
               type="button"
               className="btn btn-outline-primary"
@@ -1435,11 +1590,11 @@ function VentasData(props) {
             >
               Cambiar estado masivamente ({selectedVentas.length || 0})
             </button>
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
+            </span>
           </div>
-          <span className="p-input-icon-left">
-            <i className="pi pi-search" />
-            <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
-          </span>
         </div>
 
         <DataTable

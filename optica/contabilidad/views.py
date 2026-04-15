@@ -1397,6 +1397,11 @@ class JornadaView(APIView):
 class JornadaDetailView(APIView):
     def patch(self, request, jornada_id):
         jornada = get_object_or_404(Jornada, pk=jornada_id)
+        if jornada.estado in ['in_progress', 'closed']:
+            return Response(
+                {'detail': 'No es posible editar una jornada que ya fue iniciada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         serializer = JornadaSerializer(jornada, data=request.data, partial=True)
         if serializer.is_valid():
             try:
@@ -1411,6 +1416,11 @@ class JornadaDetailView(APIView):
 
     def delete(self, request, jornada_id):
         jornada = get_object_or_404(Jornada, pk=jornada_id)
+        if jornada.estado in ['in_progress', 'closed']:
+            return Response(
+                {'detail': 'No es posible eliminar una jornada que ya fue iniciada.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if jornada.ventas.exists():
             return Response(
                 {'detail': 'No es posible eliminar la jornada porque ya tiene ventas asociadas.'},
