@@ -50,6 +50,23 @@ const formatDateTime = (value: unknown) => {
   }).format(date);
 };
 
+const formatDateOnly = (value: unknown) => {
+  if (!value) return 'Sin fecha';
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return `${day}/${month}/${year}`;
+  }
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  return new Intl.DateTimeFormat('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+};
+
 const ORIGEN_ESTADO_LABELS = {
   manual: 'Manual',
   masivo: 'Masivo',
@@ -878,9 +895,16 @@ function VentasData(props) {
     const ventasItems = detalle.ventas || [];
     const remisiones = detalle.remisiones || [];
     const observacion = detalle.observacion || '';
+    const detallePedido = detalle.detalle || detalle.detalle_pedido || '';
+    const detalleAnulacion = detalle.detalleAnulacion || detalle.detalle_anulacion || '';
     const estadoPedido = detalle.estadoPedidoNombre ?? detalle.estado_pedido_nombre ?? '';
     const motivoSinAnticipo = detalle.motivoSinAnticipo ?? detalle.motivo_sin_anticipo ?? '';
     const historicoEstadoPedido = Array.isArray(detalle.historicoEstadoPedido) ? detalle.historicoEstadoPedido : [];
+    const fechaCreacion = detalle.fechaCreacion ?? detalle.fecha_creacion ?? detalle.fecha ?? rowData.fechaCreacion ?? rowData.fecha_creacion ?? rowData.fecha;
+    const fechaInicio = detalle.fechaInicio ?? detalle.fecha_inicio ?? rowData.fechaInicio ?? rowData.fecha_inicio;
+    const fechaVencimiento = detalle.fechaVencimiento ?? detalle.fecha_vencimiento ?? rowData.fechaVencimiento ?? rowData.fecha_vencimiento;
+    const condicionPago = detalle.condicionPago ?? detalle.condicion_pago ?? rowData.condicionPago ?? rowData.condicion_pago;
+    const cuotasVenta = detalle.numeroCuotas ?? detalle.cuotas ?? detalle.compromisoPago ?? rowData.numeroCuotas ?? rowData.cuotas ?? rowData.compromisoPago;
     const tieneFormula = Boolean(
       detalle.foto_formula ||
       detalle.fotoFormula ||
@@ -910,8 +934,40 @@ function VentasData(props) {
               </div>
             </>
           )}
-          {motivoSinAnticipo && <div className="text-muted small">Motivo sin anticipo: {motivoSinAnticipo}</div>}
-          {observacion && <div className="text-muted small">Observacion: {observacion}</div>}
+          <div className="row g-2 mt-2">
+            <div className="col-12 col-md-6">
+              <div className="small"><span className="fw-semibold text-dark">Fecha de creacion:</span> <span className="text-muted">{formatDateTime(fechaCreacion)}</span></div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="small"><span className="fw-semibold text-dark">Fecha de inicio:</span> <span className="text-muted">{formatDateOnly(fechaInicio)}</span></div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="small"><span className="fw-semibold text-dark">Fecha de vencimiento:</span> <span className="text-muted">{formatDateOnly(fechaVencimiento)}</span></div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="small"><span className="fw-semibold text-dark">Condicion de pago:</span> <span className="text-muted">{condicionPago || 'Sin definir'}</span></div>
+            </div>
+          </div>
+          {motivoSinAnticipo && <div className="small mt-2"><span className="fw-semibold text-dark">Motivo sin anticipo:</span> <span className="text-muted">{motivoSinAnticipo}</span></div>}
+
+          {(detallePedido || observacion) && <hr className="my-3 text-body-tertiary opacity-50" />}
+
+          {(detallePedido || observacion) && (
+            <div className="row g-2 mt-2">
+              {detallePedido && (
+                <div className="col-12 col-md-6">
+                  <div className="small"><span className="fw-semibold text-dark">Detalle:</span> <span className="text-muted">{detallePedido}</span></div>
+                </div>
+              )}
+              {observacion && (
+                <div className="col-12 col-md-6">
+                  <div className="small"><span className="fw-semibold text-dark">Observacion:</span> <span className="text-muted">{observacion}</span></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {detalleAnulacion && <div className="small mt-2"><span className="fw-semibold text-danger">Detalle de anulacion:</span> <span className="text-danger-emphasis">{detalleAnulacion}</span></div>}
 
           <div className="mt-3">
             <div className="fw-semibold mb-2">Historico de estados</div>

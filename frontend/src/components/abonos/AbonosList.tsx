@@ -21,6 +21,7 @@ type AbonoListRow = {
   fecha_registro?: string;
   imagenMedioPago?: string;
   medioDePago?: string;
+  descripcion?: string | null;
   precio: number | string;
   [key: string]: unknown;
 };
@@ -94,7 +95,12 @@ function AbonosList(props: AbonosListProps) {
           <tbody>
             {listaAbonos.map((abono, index) => (
               <tr key={`${abono.fecha || 'abono'}-${index}`}>
-                <td>{abono.fecha}</td>
+                <td>
+                  <div>{abono.fecha}</div>
+                  {abono.descripcion ? (
+                    <div className="small text-muted mt-1">{abono.descripcion}</div>
+                  ) : null}
+                </td>
                 <td> <img 
                     style={{borderRadius: '30px'}}
                     src={abono.imagenMedioPago || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRbyC6amH2B9H4vu3pEVEms33iwwLjgS1v0iw&s"}
@@ -104,9 +110,6 @@ function AbonosList(props: AbonosListProps) {
                   /> {'  '}
                   {abono.medioDePago}</td>
                 <td>{moneyformat(abono.precio)}</td>
-
-                
-
               </tr>
             ))}
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { callApi } from "@/utils/js/api";
 import { Calendar } from "primereact/calendar";
 import { Dialog } from "primereact/dialog";
@@ -10,6 +10,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
+import { Tooltip } from "primereact/tooltip";
 import BootstrapModal from "@/components/bootstrap/BootstrapModal";
 import EmpresaForm from "@/components/usuarios/EmpresaForm";
 import "@/styles/style.css";
@@ -128,11 +129,15 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   const [listaEmpresas, setListaEmpresas] = useState<Empresa[]>(() => empresas ?? []);
   const [modalEmpresaShow, setModalEmpresaShow] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editingJornadaId, setEditingJornadaId] = useState<number | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<"all" | JornadaEstado>("all");
   const [busqueda, setBusqueda] = useState("");
   const [mensaje, setMensaje] = useState<AlertState>(null);
+  const tooltipRef = useRef<any>(null);
+  const [tooltipVersion, setTooltipVersion] = useState(0);
   const [creando, setCreando] = useState(false);
   const [actualizando, setActualizando] = useState<number | null>(null);
+  const [eliminando, setEliminando] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     empresa: "",
     sucursal: "",
@@ -151,6 +156,26 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   const empresasOrdenadas = useMemo(() => {
     return [...(listaEmpresas ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [listaEmpresas]);
+
+  const refreshTooltips = useCallback((forceRemount = false) => {
+    if (typeof window === "undefined") return;
+    window.setTimeout(() => {
+      if (tooltipRef.current?.unloadTargetEvents) {
+        tooltipRef.current.unloadTargetEvents();
+      }
+      if (forceRemount) {
+        setTooltipVersion((value) => value + 1);
+      }
+      window.setTimeout(() => {
+        if (tooltipRef.current?.loadTargetEvents) {
+          tooltipRef.current.loadTargetEvents();
+        }
+        if (tooltipRef.current?.updateTargetEvents) {
+          tooltipRef.current.updateTargetEvents();
+        }
+      }, 0);
+    }, 0);
+  }, []);
 
   const resumen = useMemo(() => {
     return jornadas.reduce(
@@ -186,6 +211,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     [resumen]
   );
 
+
   const jornadasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
     return jornadas.filter((jornada) => {
@@ -206,8 +232,16 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     });
   }, [busqueda, filtroEstado, jornadas]);
 
+  useEffect(() => {
+    refreshTooltips(true);
+  }, [refreshTooltips, jornadasFiltradas, actualizando, eliminando]);
+
   const upsertJornada = useCallback((registro: Jornada) => {
     setJornadas((prev) => sortJornadas([registro, ...prev.filter((item) => item.id !== registro.id)]));
+  }, []);
+
+  const removeJornada = useCallback((jornadaId: number) => {
+    setJornadas((prev) => prev.filter((item) => item.id !== jornadaId));
   }, []);
 
   const handleFormChange =
@@ -230,6 +264,22 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       fecha_vencimiento: todayLocalISO(),
       observaciones: "",
     });
+    setEditingJornadaId(null);
+  };
+
+  const hydrateForm = (jornada: Jornada) => {
+    setFormData({
+      empresa: String(jornada.empresa || ""),
+      sucursal: jornada.sucursal || "",
+      fecha: jornada.fecha || todayLocalISO(),
+      fecha_inicio: jornada.fecha_inicio || jornada.fecha || todayLocalISO(),
+      condicion_pago: jornada.condicion_pago || "quincenal",
+      cantidad_cuotas: String(Number(jornada.cantidad_cuotas || 1)),
+      fecha_vencimiento: jornada.fecha_vencimiento || jornada.fecha_inicio || jornada.fecha || todayLocalISO(),
+      observaciones: jornada.observaciones || "",
+    });
+    setEditingJornadaId(jornada.id);
+    setCreateModalVisible(true);
   };
 
   const toISODate = (value: Date | string | null | undefined) => {
@@ -339,8 +389,9 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         observaciones: formData.observaciones.trim(),
       };
 
-      const { res, data } = await callApi("jornadas/", {
-        method: "POST",
+      const isEditing = editingJornadaId !== null;
+      const { res, data } = await callApi(isEditing ? `jornadas/${editingJornadaId}/` : "jornadas/", {
+        method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -348,16 +399,16 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       });
 
       if (!res.ok || !data) {
-        const detail = data?.detail || "No fue posible crear la jornada.";
+        const detail = data?.detail || (isEditing ? "No fue posible actualizar la jornada." : "No fue posible crear la jornada.");
         throw new Error(detail);
       }
 
       upsertJornada(data as Jornada);
       resetForm();
       setCreateModalVisible(false);
-      mostrarMensaje("success", "La jornada se creo correctamente.");
+      mostrarMensaje("success", isEditing ? "La jornada se actualizo correctamente." : "La jornada se creo correctamente.");
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "No fue posible crear la jornada.";
+      const detail = error instanceof Error ? error.message : (editingJornadaId !== null ? "No fue posible actualizar la jornada." : "No fue posible crear la jornada.");
       mostrarMensaje("error", detail);
     } finally {
       setCreando(false);
@@ -391,6 +442,36 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     }
   };
 
+  const handleEliminarJornada = async (jornada: Jornada) => {
+    const confirmado = window.confirm(`?Deseas eliminar la jornada de ${jornada.empresa_nombre}${jornada.sucursal ? ` - ${jornada.sucursal}` : ""}?`);
+    if (!confirmado) return;
+
+    setEliminando(jornada.id);
+    setMensaje(null);
+    try {
+      const { res, data } = await callApi(`jornadas/${jornada.id}/`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const detail = data?.detail || "No fue posible eliminar la jornada.";
+        throw new Error(detail);
+      }
+
+      removeJornada(jornada.id);
+      if (editingJornadaId === jornada.id) {
+        resetForm();
+        setCreateModalVisible(false);
+      }
+      mostrarMensaje("success", "La jornada se elimino correctamente.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "No fue posible eliminar la jornada.";
+      mostrarMensaje("error", detail);
+    } finally {
+      setEliminando(null);
+    }
+  };
+
   const renderEmpresaBody = (jornada: Jornada) => (
     <div>
       <div className="fw-semibold">{jornada.empresa_nombre}</div>
@@ -413,24 +494,62 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const renderAccionBody = (jornada: Jornada) => {
     const accion = ESTADO_ACCIONES[jornada.estado];
-    if (!accion) {
-      return <span className="text-muted small">Jornada cerrada</span>;
-    }
+    const bloqueado = actualizando === jornada.id || eliminando === jornada.id;
 
     return (
-      <Button
-        type="button"
-        label={actualizando === jornada.id ? "Actualizando..." : accion.label}
-        outlined
-        size="small"
-        disabled={actualizando === jornada.id}
-        onClick={() => handleActualizarEstado(jornada, accion.value)}
-      />
+      <div className="gap-2 d-flex justify-content-end flex-wrap">
+        {accion ? (
+          <button
+            type="button"
+            className="btn-action btn btn-sm btn-outline-secondary jornadas-action-tooltip"
+            data-pr-tooltip={actualizando === jornada.id ? "Actualizando estado" : accion.label}
+            data-pr-position="top"
+            disabled={bloqueado}
+            onClick={() => handleActualizarEstado(jornada, accion.value)}
+          >
+            {actualizando === jornada.id ? (
+              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M12 6V3m-6.364 4.636L3.514 6.514m14.95 1.122l2.122-2.122M6 12H3m18 0h-3m-9 6v3m11.314-5.314l-2.122 2.122M5.05 17.95l-2.122 2.122"/><circle cx="12" cy="12" r="3"/></g></svg>
+            )}
+          </button>
+        ) : (
+          <span className="text-muted small align-self-center">Jornada cerrada</span>
+        )}
+
+        <button
+          type="button"
+          className="btn-action btn btn-sm btn-primary jornadas-action-tooltip"
+          data-pr-tooltip="Editar jornada"
+          data-pr-position="top"
+          disabled={bloqueado}
+          onClick={() => hydrateForm(jornada)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
+        </button>
+
+        <button
+          type="button"
+          className="btn-action btn btn-sm btn-danger jornadas-action-tooltip"
+          data-pr-tooltip={eliminando === jornada.id ? "Eliminando jornada" : "Eliminar jornada"}
+          data-pr-position="top"
+          disabled={bloqueado}
+          onClick={() => handleEliminarJornada(jornada)}
+        >
+          {eliminando === jornada.id ? (
+            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7h16m-10 4v6m4-6v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" /></svg>
+          )}
+        </button>
+      </div>
     );
   };
 
   return (
     <>
+      <Tooltip key={tooltipVersion} ref={tooltipRef} target=".jornadas-action-tooltip" showDelay={120} hideDelay={80} />
+
       <BootstrapModal
         show={modalEmpresaShow}
         onHide={() => setModalEmpresaShow(false)}
@@ -442,13 +561,13 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       </BootstrapModal>
 
       <Dialog
-        header="Nueva jornada"
+        header={editingJornadaId !== null ? "Editar jornada" : "Nueva jornada"}
         visible={createModalVisible}
         style={{ width: "min(860px, 94vw)" }}
         contentClassName="jornadas-create-dialog-content"
         modal
         draggable={false}
-        onHide={() => setCreateModalVisible(false)}
+        onHide={() => { setCreateModalVisible(false); resetForm(); }}
       >
         <form className="row g-2 jornadas-modal-form" onSubmit={handleCrearJornada}>
           <div className="col-12">
@@ -567,8 +686,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
           </div>
 
           <div className="col-12 d-flex justify-content-end gap-2 pt-1">
-            <Button type="button" label="Cancelar" severity="secondary" outlined className="jornadas-modal-button p-button-rounded" onClick={() => setCreateModalVisible(false)} />
-            <Button type="submit" label={creando ? "Creando..." : "Crear jornada"} loading={creando} className="jornadas-modal-button p-button-rounded" />
+            <Button type="button" label="Cancelar" severity="secondary" outlined className="jornadas-modal-button p-button-rounded" onClick={() => { setCreateModalVisible(false); resetForm(); }} />
+            <Button type="submit" label={creando ? (editingJornadaId !== null ? "Guardando..." : "Creando...") : (editingJornadaId !== null ? "Guardar cambios" : "Crear jornada")} loading={creando} className="jornadas-modal-button p-button-rounded" />
           </div>
         </form>
       </Dialog>
@@ -612,7 +731,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             <Button
               label="Nueva jornada"
               icon="pi pi-plus"
-              onClick={() => setCreateModalVisible(true)}
+              onClick={() => { resetForm(); setCreateModalVisible(true); }}
               className="jornadas-create-button p-button-rounded"
             />
           </div>

@@ -104,20 +104,34 @@ const createEditState = (): EditFormState => ({
 
 function parseDate(value: string) {
   if (!value) return null;
-  const date = new Date(value);
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function formatDateForApi(value: Date | null) {
   if (!value) return null;
-  const localDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
-  return localDate.toISOString().split("T")[0];
+  const yyyy = value.getFullYear();
+  const mm = String(value.getMonth() + 1).padStart(2, "0");
+  const dd = String(value.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 
 function safeDateLabel(value: unknown) {
   if (!value) return "-";
-  const date = new Date(String(value));
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return `${day}/${month}/${year}`;
+  }
+  const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("es-CO");
 }

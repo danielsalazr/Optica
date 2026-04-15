@@ -36,10 +36,28 @@ const currencyFormatter = new Intl.NumberFormat("es-CO", {
 
 const formatCurrency = (value: unknown) => currencyFormatter.format(Number(value || 0));
 
+const parseLocalDate = (value: unknown) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 const formatDate = (value: unknown) => {
   if (!value) return "-";
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return String(value);
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return `${day}/${month}/${year}`;
+  }
+  const date = parseLocalDate(raw);
+  if (!date) return String(value);
   return date.toLocaleDateString("es-CO");
 };
 
@@ -89,8 +107,8 @@ const exportRowsToExcel = (rows: SaldoRow[]) => {
 
 const isOverdue = (value: unknown) => {
   if (!value) return false;
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return false;
+  const date = parseLocalDate(value);
+  if (!date) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);

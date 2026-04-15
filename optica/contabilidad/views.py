@@ -510,7 +510,7 @@ class ReportesDataView(APIView):
                     'precio': venta.precio,
                     'totalAbono': venta.totalAbono,
                     'saldo': saldo.saldo,
-                    'fecha_vencimiento': saldo.fecha_Vencimiento,
+                    'fecha_vencimiento': venta.fecha_vencimiento or saldo.fecha_Vencimiento,
                     'condicion_pago': venta.condicion_pago,
                     'cuotas': venta.cuotas,
                     'estado_pago': venta.estado.nombre if venta.estado else None,
@@ -1190,6 +1190,7 @@ class Abono(APIView):
                     T0.fecha as fecha_registro,
                     T0.id,                                                                                                                                   
                     T0.medioDePago_id,   
+                    T0.descripcion,
                     T2.nombre as "medioDePago",
                     T2.imagen as "imagenMedioPago",
                     T0.precio                                                                                                                                                                                                                                                                
@@ -1407,6 +1408,24 @@ class JornadaDetailView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, jornada_id):
+        jornada = get_object_or_404(Jornada, pk=jornada_id)
+        if jornada.ventas.exists():
+            return Response(
+                {'detail': 'No es posible eliminar la jornada porque ya tiene ventas asociadas.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            jornada.delete()
+        except IntegrityError:
+            return Response(
+                {'detail': 'No fue posible eliminar la jornada porque tiene registros relacionados.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 

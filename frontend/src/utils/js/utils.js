@@ -277,7 +277,14 @@ export function fechaFormat(data) {
         return '-';
     }
 
-    const fecha = new Date(data);
+    const raw = String(data).trim();
+    const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (plainDateMatch) {
+        const [, year, month, day] = plainDateMatch;
+        return `${day}/${month}/${year}`;
+    }
+
+    const fecha = new Date(raw);
     if (Number.isNaN(fecha.getTime())) {
         return '-';
     }
@@ -293,7 +300,6 @@ export function fechaFormat(data) {
     });
 
     return formateador.format(fecha);
-
 }	
 
 // Carga los valores desde localStorage y los asigna a los inputs
