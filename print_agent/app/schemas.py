@@ -47,12 +47,29 @@ class CompanyConfigRequest(BaseModel):
     footer: str = ""
 
 
+class PrinterProfile(BaseModel):
+    receipt_width: int = Field(default=42, ge=20, le=120)
+    item_desc_width: int = Field(default=18, ge=5, le=80)
+    item_qty_width: int = Field(default=4, ge=2, le=20)
+    item_price_width: int = Field(default=10, ge=4, le=30)
+    item_total_width: int = Field(default=10, ge=4, le=30)
+    abono_medio_width: int = Field(default=16, ge=5, le=60)
+    abono_fecha_width: int = Field(default=10, ge=6, le=30)
+    abono_valor_width: int = Field(default=16, ge=4, le=30)
+
+
+class PrinterProfileRequest(BaseModel):
+    printer_name: str = Field(..., examples=["EPSON TM-T20II Receipt"])
+    profile: PrinterProfile
+
+
 class AgentConfigResponse(BaseModel):
     api_token_configured: bool
     host: str
     port: int
     printers: dict[str, str]
     company: CompanyConfig
+    printer_profiles: dict[str, PrinterProfile]
 
 
 class PrintJobRequest(BaseModel):
@@ -79,3 +96,4 @@ class PrintJobResponse(BaseModel):
 class TestPrintRequest(BaseModel):
     printer_name: str | None = None
     message: str = "Prueba de impresion desde Optica Print Agent"
+    profile: PrinterProfile | None = None

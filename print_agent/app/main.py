@@ -7,13 +7,16 @@ from .auth import require_token
 from .config_service import (
     build_runtime_config,
     get_printer_mapping,
+    get_printer_profiles,
     seed_defaults,
     set_company_config,
     set_printer_mapping,
+    set_printer_profile,
 )
 from .db import init_db
 from .job_service import create_job, get_job, list_jobs
 from .printer_service import (
+    build_calibration_test_text,
     build_constancia_text,
     get_printer_status,
     list_printer_statuses,
@@ -27,6 +30,8 @@ from .schemas import (
     PrintJobRequest,
     PrintJobResponse,
     PrinterInfo,
+    PrinterProfile,
+    PrinterProfileRequest,
     PrinterStatus,
     PrinterSelectionRequest,
     TestPrintRequest,
@@ -117,7 +122,8 @@ def test_printer(payload: TestPrintRequest) -> dict[str, str]:
     if not printer_name:
         raise HTTPException(status_code=400, detail="No hay impresora configurada.")
 
-    content = build_constancia_text({"detalle": payload.message})
+    profile_data = payload.profile.model_dump() if payload.profile else get_printer_profiles().get(printer_name)
+    content = build_calibration_test_text(printer_name, profile=profile_data)
     print_text(printer_name, content, copies=1)
     return {"status": "sent", "printer_name": printer_name}
 
@@ -137,6 +143,10 @@ def get_config() -> AgentConfigResponse:
         port=int(config["port"]),
         printers=dict(config["printers"]),
         company=CompanyConfig(**dict(config["company"])),
+        printer_profiles={
+            name: PrinterProfile(**profile)
+            for name, profile in dict(config["printer_profiles"]).items()
+        },
     )
 
 
@@ -152,6 +162,36 @@ def set_default_printer(payload: PrinterSelectionRequest) -> dict[str, str]:
         "status": "saved",
         "document_type": payload.document_type,
         "printer_name": payload.printer_name,
+    }
+
+
+@app.get(
+    "/config/printer-profiles",
+    response_model=dict[str, PrinterProfile],
+    dependencies=[Depends(require_token)],
+    tags=["config"],
+    summary="Consultar perfiles de ancho por impresora",
+)
+def get_configured_printer_profiles() -> dict[str, PrinterProfile]:
+    return {
+        name: PrinterProfile(**profile)
+        for name, profile in get_printer_profiles().items()
+    }
+
+
+@app.put(
+    "/config/printer-profiles",
+    dependencies=[Depends(require_token)],
+    tags=["config"],
+    summary="Guardar perfil de ancho para una impresora",
+)
+def save_printer_profile(payload: PrinterProfileRequest) -> dict[str, object]:
+    profile_data = payload.profile.model_dump()
+    set_printer_profile(payload.printer_name, profile_data)
+    return {
+        "status": "saved",
+        "printer_name": payload.printer_name,
+        "profile": profile_data,
     }
 
 

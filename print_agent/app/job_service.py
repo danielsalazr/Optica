@@ -37,7 +37,7 @@ def create_job(
 
     try:
         update_job_status(job_id, "processing")
-        content = build_document_text(document_type, payload)
+        content = build_document_text(document_type, payload, printer_name=printer_name)
         generated_file = GENERATED_DIR / f"job_{job_id}_{document_type}.txt"
         generated_file.write_text(content, encoding="utf-8")
         print_text(printer_name, content, copies=copies)
