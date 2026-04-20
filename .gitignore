@@ -407,3 +407,7 @@ next-env.d.ts
 
 
 .exe
+
+# Print agent local build artifacts
+print_agent/build-release.ps1
+print_agent/installer/output/
