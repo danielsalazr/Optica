@@ -1,7 +1,7 @@
 // @ts-nocheck
 ﻿"use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { DataTable, DataTableFilterMeta } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
@@ -9,7 +9,7 @@ import { Tag } from "primereact/tag";
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
 import { buildMediaUrl, buildPrintAgentUrl } from "@/utils/js/env";
-import { swalErr, swalconfirmation } from "@/utils/js/sweetAlertFunctions";
+import { swalErr, swalconfirmation, swalQuestion } from "@/utils/js/sweetAlertFunctions";
 import { callApi } from "@/utils/js/api";
 import { Dialog } from "primereact/dialog";
 import { Tooltip } from "primereact/tooltip";
@@ -67,6 +67,10 @@ type RemisionRow = {
   fechaVencimiento: string | null;
   valorCuota: number | null;
   cuotasPagadas: number | null;
+  anulado?: boolean;
+  detalleAnulacion?: string | null;
+  usuarioAnulacion?: number | null;
+  fechaAnulacion?: string | null;
 };
 
 type PreparedRemisionRow = RemisionRow & {
@@ -78,6 +82,7 @@ type PreparedRemisionRow = RemisionRow & {
   totalDespachado: number;
   totalRemision: number;
   empresaCliente: string;
+  estadoRemision: 'activa' | 'anulada';
 };
 
 type ColumnMeta = {
@@ -120,7 +125,39 @@ const formatDate = (value: string | null | undefined) => {
   });
 };
 
+const parseLocalDateValue = (value: string | null | undefined) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const plainDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (plainDateMatch) {
+    const [, year, month, day] = plainDateMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toLocalDateInputValue = (date: Date | null) => {
+  if (!date || Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getTodayLocalDate = () => {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+};
+
+const addDays = (date: Date, days: number) => {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+};
+
 const RemisionesData: React.FC<Props> = ({ data }) => {
+  const [tableData, setTableData] = useState<RemisionRow[]>(data ?? []);
   const [activeRemision, setActiveRemision] = useState<PreparedRemisionRow | null>(null);
   const [expandedRows, setExpandedRows] = useState(null);
   const [filters, setFilters] = useState<DataTableFilterMeta>({
@@ -132,6 +169,40 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   const [formulaLoading, setFormulaLoading] = useState(false);
   const [formulaError, setFormulaError] = useState<string | null>(null);
   const [formulaImages, setFormulaImages] = useState<string[]>([]);
+  const [estadoRemisionFilter, setEstadoRemisionFilter] = useState<'todas' | 'activas' | 'anuladas'>('todas');
+  const [datePreset, setDatePreset] = useState("todos");
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const tooltipRef = useRef<any>(null);
+  const [tooltipVersion, setTooltipVersion] = useState(0);
+
+  const refreshRemisionTooltips = (forceRemount = false) => {
+    if (typeof window === "undefined") return;
+    window.setTimeout(() => {
+      if (tooltipRef.current?.unloadTargetEvents) {
+        tooltipRef.current.unloadTargetEvents();
+      }
+      if (forceRemount) {
+        setTooltipVersion((value) => value + 1);
+      }
+      window.setTimeout(() => {
+        if (tooltipRef.current?.loadTargetEvents) {
+          tooltipRef.current.loadTargetEvents();
+        }
+        if (tooltipRef.current?.updateTargetEvents) {
+          tooltipRef.current.updateTargetEvents();
+        }
+      }, 0);
+    }, 0);
+  };
+
+  useEffect(() => {
+    setTableData(data ?? []);
+  }, [data]);
+
+  useEffect(() => {
+    refreshRemisionTooltips(true);
+  }, [tableData, estadoRemisionFilter, globalFilterValue, datePreset, fechaDesde, fechaHasta, expandedRows]);
 
   const resolveMediaUrl = (path: string | null) => {
     if (!path) return null;
@@ -212,6 +283,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           numero: `REM-${row.id}`,
           fecha: row.fecha,
           cliente: row.clienteNombre,
+          cliente_cedula: row.clienteCedula,
+          detalle: ventaData.detalle || ventaData.detalle_pedido || "",
           items: (row.items || []).map((item) => ({
             descripcion: item.articulo?.nombre || `Item ${item.itemVenta}`,
             cantidad: item.cantidad,
@@ -228,7 +301,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             fecha: abono.fecha || "",
             valor: Number(abono.precio || 0),
           })),
-          observaciones: row.observacion || "",
         },
       };
 
@@ -254,7 +326,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
 
   const preparedData = useMemo<PreparedRemisionRow[]>(() => {
-    return (data ?? []).map((remision) => {
+    return (tableData ?? []).map((remision) => {
       const items = remision.items ?? [];
       const cantidadRemitida = items.reduce(
         (acc, item) => acc + Number(item.cantidad || 0),
@@ -273,6 +345,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         itemsCount: items.length,
         cantidadRemitida,
         totalDespachado,
+        estadoRemision: remision.anulado ? 'anulada' : 'activa',
         totalRemision:
           Number(remision.totalRemision || 0) ||
           items.reduce((acc, item) => {
@@ -283,11 +356,81 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           }, 0),
       };
     });
-  }, [data]);
+  }, [tableData]);
 
   const orderedData = useMemo<PreparedRemisionRow[]>(() => {
     return [...preparedData].sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
   }, [preparedData]);
+
+  const applyDatePreset = (preset: string) => {
+    const today = getTodayLocalDate();
+    let desde = "";
+    let hasta = "";
+
+    if (preset === "hoy") {
+      desde = toLocalDateInputValue(today);
+      hasta = toLocalDateInputValue(today);
+    } else if (preset === "semana") {
+      const day = today.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const start = addDays(today, diffToMonday);
+      desde = toLocalDateInputValue(start);
+      hasta = toLocalDateInputValue(today);
+    } else if (preset === "mes_actual") {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      desde = toLocalDateInputValue(start);
+      hasta = toLocalDateInputValue(today);
+    } else if (preset === "mes_anterior") {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      desde = toLocalDateInputValue(start);
+      hasta = toLocalDateInputValue(end);
+    } else if (preset === "ultimos_30") {
+      desde = toLocalDateInputValue(addDays(today, -29));
+      hasta = toLocalDateInputValue(today);
+    }
+
+    setDatePreset(preset);
+    setFechaDesde(desde);
+    setFechaHasta(hasta);
+  };
+
+  const handleFechaDesdeChange = (value: string) => {
+    setDatePreset("personalizado");
+    setFechaDesde(value);
+  };
+
+  const handleFechaHastaChange = (value: string) => {
+    setDatePreset("personalizado");
+    setFechaHasta(value);
+  };
+
+  const clearDateFilter = () => {
+    setDatePreset("todos");
+    setFechaDesde("");
+    setFechaHasta("");
+  };
+
+
+  const filteredData = useMemo<PreparedRemisionRow[]>(() => {
+    return orderedData.filter((row) => {
+      if (estadoRemisionFilter === 'activas' && row.anulado) {
+        return false;
+      }
+      if (estadoRemisionFilter === 'anuladas' && !row.anulado) {
+        return false;
+      }
+      if (fechaDesde || fechaHasta) {
+        const remisionDate = parseLocalDateValue(row.fecha);
+        const desde = parseLocalDateValue(fechaDesde);
+        const hasta = parseLocalDateValue(fechaHasta);
+        if (!remisionDate) return false;
+        if (desde && remisionDate < desde) return false;
+        if (hasta && remisionDate > hasta) return false;
+      }
+      return true;
+    });
+  }, [orderedData, estadoRemisionFilter, fechaDesde, fechaHasta]);
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
@@ -297,6 +440,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
       { field: "clienteCedula", header: "Documento" },
       { field: "empresaCliente", header: "Empresa" },
       { field: "fechaFormateada", header: "Fecha", sortable: true },
+      { field: "estadoRemision", header: "Estado" },
       { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
       { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
       { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center" },
@@ -317,6 +461,44 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     []
   );
 
+  const handleDeleteRemision = useCallback(async (row: PreparedRemisionRow) => {
+    if (!row || row.anulado) return;
+
+    const confirmed = await swalQuestion(
+      "Anular remision",
+      `Se anulara la remision #${row.id}. Si esta remision completaba la entrega del pedido, la venta volvera a 'Listo Para Entrega'.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const req = await callApi(`remisiones/${row.id}/`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          detalleAnulacion: `Remision #${row.id} anulada desde el modulo de remisiones.`,
+        }),
+      });
+
+      if (!req.res.ok) {
+        throw new Error(req.data.detail || "No fue posible anular la remision.");
+      }
+
+      const updatedRemision = req.data?.remision;
+      setTableData((prev) =>
+        prev.map((item) =>
+          item.id === row.id ? { ...item, ...(updatedRemision || {}), anulado: true } : item
+        )
+      );
+
+      await swalconfirmation(`Remision #${row.id} anulada correctamente.`);
+    } catch (error) {
+      await swalErr(error instanceof Error ? error.message : "No fue posible anular la remision.");
+    }
+  }, []);
+
 
   const tableHeader = useMemo(
     () => ( 
@@ -325,7 +507,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         <div className="d-flex flex-column">
           {/* <span className="fw-semibold">Listado de remisiones</span> */}
           <span className="text-muted small">
-            Consulta r?pida por cliente, fecha o documento.
+            Consulta rapida por cliente, fecha, documento o estado de remision.
           </span>
         </div>
         <span className="p-input-icon-left remisiones-search">
@@ -377,12 +559,18 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             <div className="border rounded h-100 p-3 bg-light-subtle">
               <div className="text-muted small text-uppercase">Remision</div>
               <h4 className="mb-1">Detalle remision #{row.id}</h4>
-              <div className="text-muted small">
-                Venta #{row.venta} - {row.fechaFormateada}
+              <div className="text-muted small d-flex flex-wrap align-items-center gap-2">
+                <span>Venta #{row.venta} - {row.fechaFormateada}</span>
+                <Tag value={row.anulado ? 'Anulada' : 'Activa'} severity={row.anulado ? 'danger' : 'success'} rounded />
               </div>
               {row.observacion && (
                 <div className="text-muted small mt-2">
                   Observacion: {row.observacion}
+                </div>
+              )}
+              {row.anulado && (
+                <div className="text-danger small mt-2">
+                  Anulada el {formatDate(row.fechaAnulacion)}{row.detalleAnulacion ? ` - Motivo: ${row.detalleAnulacion}` : ''}
                 </div>
               )}
             </div>
@@ -423,6 +611,17 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                 <button type="button" className="btn btn-sm btn-primary remisiones-action-tooltip" data-pr-tooltip="Imprimir ticket" data-pr-position="top" onClick={() => handlePrintRemision(row)} disabled={printing}>
                   {printing ? "Imprimiendo..." : "Imprimir ticket"}
                 </button>
+                {!row.anulado && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger remisiones-action-tooltip"
+                    data-pr-tooltip="Anular remision"
+                    data-pr-position="top"
+                    onClick={() => handleDeleteRemision(row)}
+                  >
+                    Anular remision
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -509,16 +708,61 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="remisiones-module">
+      <Tooltip key={tooltipVersion} ref={tooltipRef} target=".remisiones-action-tooltip" showDelay={120} hideDelay={80} />
       <div className="ventas-toolbar mb-1 gap-3">
         <h1 className="ventas-page-title mb-0">Remisiones</h1>
         <span className="badge text-bg-primary px-3 py-2">
-          {preparedData.length} registro{preparedData.length === 1 ? "" : "s"}
+          {filteredData.length} registro{filteredData.length === 1 ? "" : "s"}
         </span>
+      </div>
+
+      <div className="ventas-card mb-3">
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <span className="small fw-semibold text-dark">Estado de remision</span>
+          <button type="button" className={`btn btn-sm ${estadoRemisionFilter === 'todas' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoRemisionFilter('todas')}>Todas</button>
+          <button type="button" className={`btn btn-sm ${estadoRemisionFilter === 'activas' ? 'btn-success' : 'btn-outline-success'}`} onClick={() => setEstadoRemisionFilter('activas')}>Activas</button>
+          <button type="button" className={`btn btn-sm ${estadoRemisionFilter === 'anuladas' ? 'btn-danger' : 'btn-outline-danger'}`} onClick={() => setEstadoRemisionFilter('anuladas')}>Anuladas</button>
+        </div>
+      </div>
+
+      <div className="ventas-card mb-3">
+        <div className="mb-3">
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <div className="small fw-semibold text-dark">Filtro por fecha de remision</div>
+            <button
+              type="button"
+              className="btn btn-link p-0 text-muted remisiones-action-tooltip"
+              data-pr-tooltip="Puedes usar periodos rapidos o definir un rango manual entre fechas."
+              data-pr-position="top"
+              aria-label="Ayuda sobre filtro por fecha de remision"
+            >
+              <i className="pi pi-question-circle" />
+            </button>
+            <div className="d-flex flex-wrap gap-2">
+              <button type="button" className={`btn ${datePreset === 'todos' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={clearDateFilter}>Todas las fechas</button>
+              <button type="button" className={`btn ${datePreset === 'hoy' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('hoy')}>Hoy</button>
+              <button type="button" className={`btn ${datePreset === 'semana' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('semana')}>Esta semana</button>
+              <button type="button" className={`btn ${datePreset === 'mes_actual' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('mes_actual')}>Este mes</button>
+              <button type="button" className={`btn ${datePreset === 'mes_anterior' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('mes_anterior')}>Mes anterior</button>
+              <button type="button" className={`btn ${datePreset === 'ultimos_30' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => applyDatePreset('ultimos_30')}>Ultimos 30 dias</button>
+            </div>
+          </div>
+        </div>
+        <div className="d-flex flex-wrap align-items-end gap-2">
+          <div>
+            <label className="form-label small mb-1">Desde</label>
+            <input type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
+          </div>
+          <div>
+            <label className="form-label small mb-1">Hasta</label>
+            <input type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
+          </div>
+        </div>
       </div>
 
       <div className="ventas-card">
         <DataTable
-          value={orderedData}
+          value={filteredData}
           header={tableHeader}
           paginator
           rows={10}
@@ -528,7 +772,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           showGridlines
           dataKey="id"
           expandedRows={expandedRows}
-          onRowToggle={(e) => setExpandedRows(e.data)}
+          onRowToggle={(e) => {
+            setExpandedRows(e.data);
+            refreshRemisionTooltips(true);
+          }}
           rowExpansionTemplate={rowExpansionTemplate}
           filters={filters}
           globalFilterFields={globalFilterFields}
@@ -621,6 +868,20 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     <span className="fw-semibold">{row.empresaCliente}</span>
                   )}
                   style={{ minWidth: "12rem" }}
+                />
+              );
+            }
+
+            if (field === "estadoRemision") {
+              return (
+                <Column
+                  key={field}
+                  field={field}
+                  header={column.header}
+                  body={(row: PreparedRemisionRow) => (
+                    <Tag value={row.anulado ? 'Anulada' : 'Activa'} severity={row.anulado ? 'danger' : 'success'} rounded className="remisiones-tag" />
+                  )}
+                  style={{ width: "8rem" }}
                 />
               );
             }

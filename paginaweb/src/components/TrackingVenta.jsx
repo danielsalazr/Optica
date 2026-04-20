@@ -8,12 +8,32 @@ const ESTADO_LABELS = {
   pending: "Pendiente",
 };
 
-const money = (value) =>
-  new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+const ESTADO_STYLES = {
+  creado: {
+    badgeClass: "tracking-status-creado",
+    surfaceClass: "tracking-surface-creado",
+  },
+  para_fabricacion: {
+    badgeClass: "tracking-status-para-fabricacion",
+    surfaceClass: "tracking-surface-para-fabricacion",
+  },
+  en_fabricacion: {
+    badgeClass: "tracking-status-en-fabricacion",
+    surfaceClass: "tracking-surface-en-fabricacion",
+  },
+  listo_entrega: {
+    badgeClass: "tracking-status-listo-entrega",
+    surfaceClass: "tracking-surface-listo-entrega",
+  },
+  entregado: {
+    badgeClass: "tracking-status-entregado",
+    surfaceClass: "tracking-surface-entregado",
+  },
+  default: {
+    badgeClass: "tracking-status-default",
+    surfaceClass: "tracking-surface-default",
+  },
+};
 
 const formatDate = (value) => {
   if (!value) return "Sin fecha";
@@ -30,6 +50,14 @@ function TrackingVenta() {
   const [result, setResult] = useState(null);
 
   const canSearch = useMemo(() => cedula.trim() && venta.trim(), [cedula, venta]);
+  const currentEstadoStyle = useMemo(
+    () => ESTADO_STYLES[result?.estado_pedido_slug] || ESTADO_STYLES.default,
+    [result]
+  );
+  const timelineItems = useMemo(
+    () => ([...(result?.timeline || [])]).reverse(),
+    [result]
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -56,32 +84,42 @@ function TrackingVenta() {
     }
   };
 
-  const marker = (item) => (
-    <span
-      className={`tracking-marker tracking-marker-${item.stage}`}
-      style={{ backgroundColor: item.color, borderColor: item.color }}
-    />
-  );
+  const getEstadoStyle = (slug) => ESTADO_STYLES[slug] || ESTADO_STYLES.default;
+
+  const marker = (item) => {
+    const estadoStyle = getEstadoStyle(item.slug);
+    return (
+      <span
+        className={`tracking-marker tracking-marker-${item.stage} ${estadoStyle.badgeClass}`}
+        style={{ backgroundColor: item.color, borderColor: item.color }}
+      />
+    );
+  };
 
   const opposite = (item) => (
     <div className="tracking-opposite">
-      <span className={`tracking-stage tracking-stage-${item.stage}`}>{ESTADO_LABELS[item.stage]}</span>
       <small>{formatDate(item.date)}</small>
     </div>
   );
 
-  const content = (item) => (
-    <div className={`tracking-card tracking-card-${item.stage}`}>
-      <div className="tracking-card-title">{item.label}</div>
-      <div className="tracking-card-copy">
-        {item.stage === "current"
-          ? "Este es el estado actual de tu pedido."
-          : item.stage === "completed"
-            ? "Esta etapa ya fue completada."
-            : "Esta etapa aun no se ha alcanzado."}
+  const content = (item) => {
+    const estadoStyle = getEstadoStyle(item.slug);
+    return (
+      <div className={`tracking-card tracking-card-${item.stage} ${estadoStyle.surfaceClass}`}>
+        <div className="tracking-card-head">
+          <div className="tracking-card-title">{item.label}</div>
+          <span className={`tracking-state-chip ${estadoStyle.badgeClass}`}>{ESTADO_LABELS[item.stage]}</span>
+        </div>
+        <div className="tracking-card-copy">
+          {item.stage === "current"
+            ? "Este es el estado actual de tu pedido."
+            : item.stage === "completed"
+              ? "Esta etapa ya fue completada."
+              : "Esta etapa aun no se ha alcanzado."}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <section className="tracking-page container-xl py-5">
@@ -133,36 +171,32 @@ function TrackingVenta() {
                 <h2>{result.cliente || "Cliente"}</h2>
                 <p>{result.empresa || "Sin empresa"}</p>
               </div>
-              <span className="tracking-current-badge" style={{ backgroundColor: result.timeline?.find((item) => item.stage === "current")?.color || "#6c757d" }}>
+              <span className={`tracking-current-badge ${currentEstadoStyle.badgeClass}`}>
                 {result.estado_pedido}
               </span>
             </div>
 
             <div className="tracking-summary-grid">
               <div>
-                <span>Total venta</span>
-                <strong>{money(result.precio)}</strong>
-              </div>
-              <div>
-                <span>Abonos</span>
-                <strong>{money(result.total_abonos)}</strong>
-              </div>
-              <div>
-                <span>Saldo</span>
-                <strong>{money(result.saldo)}</strong>
-              </div>
-              <div>
-                <span>Cuotas</span>
-                <strong>{result.cuotas || 0}</strong>
-              </div>
-              <div>
                 <span>Estado pago</span>
                 <strong>{result.estado_pago || "Sin dato"}</strong>
               </div>
-              <div>
-                <span>Fecha venta</span>
-                <strong>{formatDate(result.fecha)}</strong>
-              </div>
+            </div>
+
+            <div className="tracking-products-block">
+              <span className="tracking-products-title">Articulos de la venta</span>
+              {Array.isArray(result.articulos) && result.articulos.length > 0 ? (
+                <div className="tracking-products-list">
+                  {result.articulos.map((item) => (
+                    <div key={item.id || `${item.articulo_id}-${item.nombre}`} className="tracking-product-item">
+                      <span className="tracking-product-name">{item.nombre}</span>
+                      <span className="tracking-product-qty">Cantidad: {item.cantidad || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="tracking-note">No hay articulos asociados a esta venta.</div>
+              )}
             </div>
 
             {result.motivo_sin_anticipo ? (
@@ -174,7 +208,7 @@ function TrackingVenta() {
           <div className="tracking-timeline-card">
             <h3>Linea de tiempo del pedido</h3>
             <Timeline
-              value={result.timeline || []}
+              value={timelineItems}
               align="alternate"
               className="tracking-timeline"
               marker={marker}

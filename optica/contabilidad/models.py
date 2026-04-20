@@ -360,6 +360,10 @@ class Remision(models.Model):
     fecha = models.DateField(verbose_name="Fecha de remision", default=timezone.now)
     observacion = models.TextField(max_length=255, blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
+    anulado = models.BooleanField(default=False, verbose_name="Anulada")
+    detalleAnulacion = models.TextField(max_length=500, blank=True, null=True)
+    usuarioAnulacion = models.IntegerField(default=None, blank=True, null=True)
+    fechaAnulacion = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         managed = True

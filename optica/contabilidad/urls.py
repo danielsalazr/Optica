@@ -40,6 +40,9 @@ urlpatterns = [
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),
 
     path('remisiones/', views.RemisionView.as_view(), name="remisiones"),
+    path('remisiones/<int:remision_id>/', views.RemisionView.as_view(), name="remisiones-detail"),
+    path('remisiones/masivo/preview/', views.RemisionMasivaPreviewView.as_view(), name="remisiones-masivo-preview"),
+    path('remisiones/masivo/', views.RemisionMasivaView.as_view(), name="remisiones-masivo"),
     path('remisiones/venta/<int:venta_id>/', views.RemisionView.as_view(), name="remisiones-venta"),
     path('jornadas/', views.JornadaView.as_view(), name="jornadas"),
     path('jornadas/<int:jornada_id>/', views.JornadaDetailView.as_view(), name="jornadas-detail"),

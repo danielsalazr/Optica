@@ -258,6 +258,8 @@ def build_remision_text(data: dict, profile: PrinterProfile | None = None) -> st
     numero = data.get("numero", "SIN-NUMERO")
     fecha = data.get("fecha", "")
     cliente = data.get("cliente", "")
+    cliente_cedula = str(data.get("cliente_cedula", "")).strip()
+    detalle = str(data.get("detalle", "")).strip()
     items = data.get("items", [])
     abonos = data.get("abonos", [])
     valor_venta = data.get("valor_venta")
@@ -270,10 +272,18 @@ def build_remision_text(data: dict, profile: PrinterProfile | None = None) -> st
         f"Fecha documento: {fecha}",
         f"Fecha impresion: {_current_print_timestamp()}",
         f"Cliente: {cliente}",
+    ]
+    if cliente_cedula:
+        lines.append(f"Cedula: {cliente_cedula}")
+    if detalle:
+        lines.extend([
+            f"Detalle: {detalle}",
+        ])
+    lines.extend([
         "-" * receipt_width,
         _format_item_header(widths),
         "-" * receipt_width,
-    ]
+    ])
 
     if items:
         for item in items:
@@ -308,11 +318,9 @@ def build_remision_text(data: dict, profile: PrinterProfile | None = None) -> st
         lines.append("-" * receipt_width)
         lines.extend(abono_lines)
 
-    observaciones = str(data.get("observaciones", "")).strip()
     lines.extend(
         [
             "-" * receipt_width,
-            observaciones,
             "",
             "Recibe: ______________________________",
             "",

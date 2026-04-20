@@ -484,7 +484,8 @@ class RemisionItemSerializer(serializers.ModelSerializer):
             return totals.get(obj.item_venta_id, 0)
 
         return RemisionItem.objects.filter(
-            item_venta=obj.item_venta
+            item_venta=obj.item_venta,
+            remision__anulado=False,
         ).aggregate(total=Coalesce(Sum('cantidad'), 0))['total']
 
     def get_restante(self, obj):
@@ -544,6 +545,10 @@ class RemisionSerializer(serializers.ModelSerializer):
             'observacion',
             'items',
             'creado_en',
+            'anulado',
+            'detalleAnulacion',
+            'usuarioAnulacion',
+            'fechaAnulacion',
             'totalRemision',
             'abonos',
             'totalVenta',
@@ -557,7 +562,7 @@ class RemisionSerializer(serializers.ModelSerializer):
             'valorCuota',
             'cuotasPagadas',
         ]
-        read_only_fields = ('cliente_id', 'creado_en')
+        read_only_fields = ('cliente_id', 'creado_en', 'anulado', 'detalleAnulacion', 'usuarioAnulacion', 'fechaAnulacion')
 
     def get_cliente(self, obj):
         try:
@@ -725,7 +730,10 @@ class RemisionSerializer(serializers.ModelSerializer):
             item_venta = info['obj']
             cantidad_solicitada = info['cantidad']
 
-            remisionado = RemisionItem.objects.filter(item_venta=item_venta).aggregate(
+            remisionado = RemisionItem.objects.filter(
+                item_venta=item_venta,
+                remision__anulado=False,
+            ).aggregate(
                 total=Coalesce(Sum('cantidad'), 0)
             )['total']
             disponible = item_venta.cantidad - remisionado

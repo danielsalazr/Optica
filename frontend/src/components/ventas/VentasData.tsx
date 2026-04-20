@@ -175,6 +175,16 @@ const toDateTimeLocalValue = (value?: string | null) => {
   return localDate.toISOString().slice(0, 16);
 };
 
+const toDateInputValue = (value?: string | null) => {
+  const base = value ? new Date(value) : new Date();
+  if (Number.isNaN(base.getTime())) {
+    return '';
+  }
+  const offset = base.getTimezoneOffset();
+  const localDate = new Date(base.getTime() - offset * 60000);
+  return localDate.toISOString().slice(0, 10);
+};
+
 function VentasData(props) {
   let { header, data, generalData } = props;
   const [templateAbono, setTemplateAbono] = useState(0);
@@ -228,6 +238,14 @@ function VentasData(props) {
   const [bulkMotivoSinAnticipo, setBulkMotivoSinAnticipo] = useState('');
   const [bulkEstadoDestino, setBulkEstadoDestino] = useState('');
   const [bulkEstadoFecha, setBulkEstadoFecha] = useState('');
+  const [bulkRemisionModalOpen, setBulkRemisionModalOpen] = useState(false);
+  const [bulkRemisionLoading, setBulkRemisionLoading] = useState(false);
+  const [bulkRemisionFecha, setBulkRemisionFecha] = useState(() => toDateInputValue());
+  const [bulkRemisionObservacion, setBulkRemisionObservacion] = useState('');
+  const [bulkRemisionPreviewLoading, setBulkRemisionPreviewLoading] = useState(false);
+  const [bulkRemisionPreviewError, setBulkRemisionPreviewError] = useState<string | null>(null);
+  const [bulkRemisionPreview, setBulkRemisionPreview] = useState<any[]>([]);
+  const [bulkRemisionExpandedIds, setBulkRemisionExpandedIds] = useState<number[]>([]);
 
   const refreshVentasTooltips = (forceRemount = false) => {
     if (typeof window === 'undefined') return;
@@ -255,6 +273,10 @@ function VentasData(props) {
   useEffect(() => {
     refreshVentasTooltips(true);
   }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, globalFilter, datePreset, fechaDesde, fechaHasta, first, rows]);
+
+  useEffect(() => {
+    refreshVentasTooltips(true);
+  }, [expandedRows]);
 
   const toggleState = () => {
     setShow(!show);
@@ -589,6 +611,18 @@ function VentasData(props) {
     Boolean(bulkEstadoDestino) &&
     (bulkRowsRequiringMotivo.length === 0 || Boolean(bulkMotivoSinAnticipo.trim()));
 
+
+  const bulkRemisionComputedSummary = useMemo(() => {
+    const preview = Array.isArray(bulkRemisionPreview) ? bulkRemisionPreview : [];
+    return {
+      ventas_con_pendientes: preview.filter((item) => Number(item.total_unidades_incluir || 0) > 0).length,
+      ventas_sin_pendientes: preview.filter((item) => Number(item.total_unidades_incluir || 0) <= 0).length,
+      total_unidades_pendientes: preview.reduce((acc, item) => acc + Number(item.total_unidades_incluir || 0), 0),
+    };
+  }, [bulkRemisionPreview]);
+
+  const bulkRemisionCanConfirm = Boolean(selectedVentas.length) && Boolean(bulkRemisionFecha) && bulkRemisionComputedSummary.total_unidades_pendientes > 0;
+
   const handleOpenBulkModal = async () => {
     if (!selectedVentas.length) {
       await swalErr('Selecciona al menos una venta.');
@@ -607,6 +641,175 @@ function VentasData(props) {
     setBulkMotivoSinAnticipo('');
     setBulkEstadoFecha(toDateTimeLocalValue(selectedVentas[0]?.estadoPedidoFecha));
     setBulkModalOpen(true);
+  };
+
+  const handleOpenBulkRemisionModal = async () => {
+    if (!selectedVentas.length) {
+      await swalErr('Selecciona al menos una venta.');
+      return;
+    }
+    setBulkRemisionFecha(toDateInputValue());
+    setBulkRemisionObservacion('');
+    setBulkRemisionPreview([]);
+    setBulkRemisionExpandedIds([]);
+    setBulkRemisionPreviewError(null);
+    setBulkRemisionModalOpen(true);
+    await loadBulkRemisionPreview();
+  };
+
+  const loadBulkRemisionPreview = async () => {
+    setBulkRemisionPreviewLoading(true);
+    setBulkRemisionPreviewError(null);
+    try {
+      const req = await callApi('remisiones/masivo/preview/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          venta_ids: selectedVentas.map((row) => row.id),
+        }),
+      });
+
+      if (!req.res.ok) {
+        throw new Error(req.data.detail || 'No fue posible cargar la validacion de remision masiva.');
+      }
+
+      const resultados = Array.isArray(req.data.resultados)
+        ? req.data.resultados.map((preview) => ({
+            ...preview,
+            total_unidades_incluir: Array.isArray(preview.items)
+              ? preview.items.reduce((acc, item) => acc + Number(item.cantidad_incluir || 0), 0)
+              : 0,
+          }))
+        : [];
+      setBulkRemisionPreview(resultados);
+      setBulkRemisionExpandedIds(resultados.length > 0 ? [Number(resultados[0].venta_id)] : []);
+    } catch (error) {
+      console.error(error);
+      setBulkRemisionPreview([]);
+      setBulkRemisionExpandedIds([]);
+      setBulkRemisionPreviewError(error instanceof Error ? error.message : 'No fue posible cargar la validacion de remision masiva.');
+    } finally {
+      setBulkRemisionPreviewLoading(false);
+    }
+  };
+
+  const handleBulkRemisionCantidadChange = (ventaId: number, itemVentaId: number, value: string) => {
+    let cantidad = parseInt(value, 10);
+    if (Number.isNaN(cantidad) || cantidad < 0) {
+      cantidad = 0;
+    }
+
+    setBulkRemisionPreview((prev) =>
+      (prev || []).map((preview) => {
+        if (preview.venta_id !== ventaId) return preview;
+        const items = (preview.items || []).map((item) => {
+          if (item.item_venta_id !== itemVentaId) return item;
+          const maximo = Number(item.cantidad_pendiente || 0);
+          return {
+            ...item,
+            cantidad_incluir: Math.min(cantidad, maximo),
+          };
+        });
+        return {
+          ...preview,
+          items,
+          total_unidades_incluir: items.reduce((acc, item) => acc + Number(item.cantidad_incluir || 0), 0),
+        };
+      })
+    );
+  };
+
+  const toggleBulkRemisionExpanded = (ventaId: number) => {
+    setBulkRemisionExpandedIds((prev) =>
+      prev.includes(ventaId) ? prev.filter((id) => id !== ventaId) : [...prev, ventaId]
+    );
+  };
+
+  const expandAllBulkRemision = () => {
+    setBulkRemisionExpandedIds((bulkRemisionPreview || []).map((preview) => Number(preview.venta_id)));
+  };
+
+  const collapseAllBulkRemision = () => {
+    setBulkRemisionExpandedIds([]);
+  };
+
+  const handleBulkRemisionSubmit = async () => {
+    if (!bulkRemisionFecha) {
+      await swalErr('Debes indicar la fecha de remision.');
+      return;
+    }
+
+    setBulkRemisionLoading(true);
+    try {
+      const req = await callApi('remisiones/masivo/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fecha: bulkRemisionFecha,
+          observacion: bulkRemisionObservacion.trim() || null,
+          remisiones: (bulkRemisionPreview || []).map((preview) => ({
+            venta_id: preview.venta_id,
+            observacion: bulkRemisionObservacion.trim() || null,
+            items: (preview.items || [])
+              .filter((item) => Number(item.cantidad_incluir || 0) > 0)
+              .map((item) => ({
+                itemVenta: item.item_venta_id,
+                cantidad: Number(item.cantidad_incluir || 0),
+              })),
+          })),
+        }),
+      });
+
+      if (!req.res.ok) {
+        await swalErr(req.data.detail || 'No fue posible generar las remisiones masivas.');
+        return;
+      }
+
+      const procesadas = Number(req.data.procesadas || 0);
+      const omitidas = Array.isArray(req.data.omitidas) ? req.data.omitidas : [];
+      const errores = Array.isArray(req.data.errores) ? req.data.errores : [];
+      const detalles: string[] = [];
+
+      omitidas.forEach((item) => {
+        detalles.push(`Venta ${item.venta_id}: ${typeof item.detail === 'string' ? item.detail : 'Sin detalle.'}`);
+      });
+      errores.forEach((item) => {
+        const detail = typeof item.detail === 'string' ? item.detail : JSON.stringify(item.detail);
+        detalles.push(`Venta ${item.venta_id}: ${detail}`);
+      });
+
+      if (detalles.length > 0) {
+        await swalHtmlCreation(
+          'Resultado de remision masiva',
+          `Se generaron ${procesadas} remisiones.<br><br>${detalles.join('<br>')}`
+        );
+      } else {
+        await swalconfirmation(`Se generaron ${procesadas} remisiones correctamente.`);
+      }
+
+      selectedVentas.forEach((row) => {
+        if (row?.id) {
+          detailCache.current.delete(row.id);
+        }
+      });
+      setBulkRemisionModalOpen(false);
+      setSelectedVentas([]);
+      setBulkRemisionObservacion('');
+      setBulkRemisionFecha(toDateInputValue());
+      setBulkRemisionPreview([]);
+      setBulkRemisionExpandedIds([]);
+      setBulkRemisionPreviewError(null);
+        await handleFetchVentas(false);
+    } catch (error) {
+      console.error(error);
+      await swalErr('Ocurrio un error al generar las remisiones masivas.');
+    } finally {
+      setBulkRemisionLoading(false);
+    }
   };
 
   const handleBulkEstadoSubmit = async () => {
@@ -907,10 +1110,16 @@ function VentasData(props) {
 
   const onRowToggle = (e) => {
     setExpandedRows(e.data);
+    refreshVentasTooltips(true);
   };
 
   const onRowExpand = async (e) => {
     await ensureDetalle(e.data);
+    refreshVentasTooltips(true);
+  };
+
+  const onRowCollapse = () => {
+    refreshVentasTooltips(true);
   };
 
   const galleryItemTemplate = (item) => (
@@ -1503,6 +1712,191 @@ function VentasData(props) {
 
 
 
+      <Modal size="xl" show={bulkRemisionModalOpen} onHide={() => !bulkRemisionLoading && setBulkRemisionModalOpen(false)} centered>
+        <Modal.Header closeButton={!bulkRemisionLoading}>
+          <Modal.Title>Validacion de remision masiva</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {!selectedVentas.length ? (
+            <div className="alert alert-warning mb-0">No hay ventas seleccionadas.</div>
+          ) : (
+            <>
+              <div className="mb-3">
+                <div className="fw-semibold">Ventas seleccionadas: {selectedVentas.length}</div>
+                <div className="text-muted small mt-1">
+                  Ajusta la fecha, la observacion general y las cantidades por articulo antes de confirmar la remision masiva.
+                </div>
+              </div>
+
+              <div className="row g-3 mb-4">
+                <div className="col-md-4">
+                  <label className="form-label">Fecha de remision</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={bulkRemisionFecha}
+                    onChange={(event) => setBulkRemisionFecha(event.target.value)}
+                    disabled={bulkRemisionLoading}
+                  />
+                </div>
+                <div className="col-md-8">
+                  <label className="form-label">Observacion general</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={bulkRemisionObservacion}
+                    onChange={(event) => setBulkRemisionObservacion(event.target.value)}
+                    placeholder="Observacion opcional para todas las remisiones"
+                    disabled={bulkRemisionLoading}
+                  />
+                </div>
+              </div>
+
+              {bulkRemisionPreviewLoading && (
+                <div className="py-4 text-center">
+                  <Spinner animation="border" role="status" />
+                  <p className="text-muted mt-3 mb-0">Cargando unidades pendientes por remisionar...</p>
+                </div>
+              )}
+
+              {bulkRemisionPreviewError && !bulkRemisionPreviewLoading && (
+                <div className="alert alert-danger mb-3">{bulkRemisionPreviewError}</div>
+              )}
+
+              {!bulkRemisionPreviewLoading && !bulkRemisionPreviewError && bulkRemisionPreview.length > 0 && (
+                <>
+                  <div className="row g-3 mb-3">
+                    <div className="col-md-4">
+                      <div className="border rounded p-3 h-100 bg-light">
+                        <div className="small text-muted">Ventas con pendiente</div>
+                        <div className="fw-semibold fs-5">{bulkRemisionComputedSummary.ventas_con_pendientes}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="border rounded p-3 h-100 bg-light">
+                        <div className="small text-muted">Ventas sin pendiente</div>
+                        <div className="fw-semibold fs-5">{bulkRemisionComputedSummary.ventas_sin_pendientes}</div>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
+                      <div className="border rounded p-3 h-100 bg-light">
+                        <div className="small text-muted">Unidades a remisionar</div>
+                        <div className="fw-semibold fs-5">{bulkRemisionComputedSummary.total_unidades_pendientes}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div className="small text-muted">
+                      La informacion de cada pedido se concentra en su bloque desplegable.
+                    </div>
+                    <div className="d-flex flex-wrap gap-2">
+                      <button type="button" className="btn btn-outline-secondary btn-sm" onClick={expandAllBulkRemision} disabled={bulkRemisionLoading}>
+                        Expandir todo
+                      </button>
+                      <button type="button" className="btn btn-outline-secondary btn-sm" onClick={collapseAllBulkRemision} disabled={bulkRemisionLoading}>
+                        Colapsar todo
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="accordion" id="bulk-remision-preview-accordion">
+                  {bulkRemisionPreview.map((preview) => {
+                    const row = (selectedVentas ?? []).find((item) => item.id === preview.venta_id);
+                    const isExpanded = bulkRemisionExpandedIds.includes(Number(preview.venta_id));
+                    return (
+                      <div className="accordion-item" key={preview.venta_id}>
+                        <h2 className="accordion-header">
+                          <button
+                            className={`accordion-button ${isExpanded ? '' : 'collapsed'}`}
+                            type="button"
+                            onClick={() => toggleBulkRemisionExpanded(Number(preview.venta_id))}
+                            aria-expanded={isExpanded ? 'true' : 'false'}
+                          >
+                            <div className="d-flex flex-wrap align-items-center gap-3 w-100 pe-3">
+                              <span className="fw-semibold">Pedido #{preview.venta_id}</span>
+                              <span>{row?.cliente || 'Sin cliente'}</span>
+                              <span className={`badge ${preview.puede_remisionar ? 'bg-success' : 'bg-secondary'}`}>
+                                {preview.puede_remisionar ? 'Lista para remisionar' : 'Sin pendiente'}
+                              </span>
+                              <span className="text-muted small">Articulos: {preview.total_articulos_pendientes}</span>
+                              <span className="text-muted small">Unidades: {preview.total_unidades_incluir}</span>
+                            </div>
+                          </button>
+                        </h2>
+                        <div className={`accordion-collapse collapse ${isExpanded ? 'show' : ''}`}>
+                          <div className="accordion-body">
+                            <div className="d-flex flex-wrap gap-3 small text-muted mb-3">
+                              <span><strong>Empresa:</strong> {row?.empresaCliente || 'Sin empresa'}</span>
+                              <span><strong>Total:</strong> {moneyformat(Number(row?.precio || 0))}</span>
+                              <span><strong>Saldo:</strong> {moneyformat(Number(row?.saldo || 0))}</span>
+                              <span><strong>Estado:</strong> {row?.estadoPedidoNombre || 'Sin estado'}</span>
+                            </div>
+                            {preview.detail && (
+                              <div className="alert alert-warning py-2 mb-3">{preview.detail}</div>
+                            )}
+                            {preview.items?.length ? (
+                              <div className="table-responsive">
+                                <table className="table table-sm align-middle mb-0">
+                                  <thead>
+                                    <tr>
+                                      <th>Articulo</th>
+                                      <th className="text-center">Facturado</th>
+                                      <th className="text-center">Ya remisionado</th>
+                                      <th className="text-center">Pendiente</th>
+                                      <th className="text-center">A incluir</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {preview.items.map((item) => (
+                                      <tr key={item.item_venta_id}>
+                                        <td>{item.articulo}</td>
+                                        <td className="text-center">{item.cantidad_factura}</td>
+                                        <td className="text-center">{item.cantidad_remisionada}</td>
+                                        <td className="text-center text-danger fw-semibold">{item.cantidad_pendiente}</td>
+                                        <td className="text-center" style={{ maxWidth: 110 }}>
+                                          <input
+                                            type="number"
+                                            className="form-control form-control-sm text-center"
+                                            min={0}
+                                            max={item.cantidad_pendiente}
+                                            value={item.cantidad_incluir ?? 0}
+                                            onChange={(event) => handleBulkRemisionCantidadChange(preview.venta_id, item.item_venta_id, event.target.value)}
+                                            disabled={bulkRemisionLoading}
+                                          />
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div className="text-muted">Esta venta no tiene items pendientes por remisionar.</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={loadBulkRemisionPreview} disabled={bulkRemisionLoading || bulkRemisionPreviewLoading || !selectedVentas.length}>
+            {bulkRemisionPreviewLoading ? 'Validando...' : 'Actualizar validacion'}
+          </Button>
+          <Button variant="secondary" onClick={() => setBulkRemisionModalOpen(false)} disabled={bulkRemisionLoading}>
+            Cancelar
+          </Button>
+          <Button variant="success" onClick={handleBulkRemisionSubmit} disabled={!bulkRemisionCanConfirm || bulkRemisionLoading}>
+            {bulkRemisionLoading ? 'Remisionando...' : 'Confirmar remision masiva'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <div className="data-table-shell">
         <div className="mb-3">
           <div className="d-flex flex-wrap align-items-center gap-2">
@@ -1590,6 +1984,14 @@ function VentasData(props) {
             >
               Cambiar estado masivamente ({selectedVentas.length || 0})
             </button>
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              disabled={!selectedVentas.length}
+              onClick={handleOpenBulkRemisionModal}
+            >
+              Remisionar masivamente ({selectedVentas.length || 0})
+            </button>
             <span className="p-input-icon-left">
               <i className="pi pi-search" />
               <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
@@ -1620,6 +2022,7 @@ function VentasData(props) {
           expandedRows={expandedRows}
           onRowToggle={onRowToggle}
           onRowExpand={onRowExpand}
+          onRowCollapse={onRowCollapse}
           selection={selectedVentas}
           onSelectionChange={(e) => setSelectedVentas(e.value)}
           rowExpansionTemplate={rowExpansionTemplate}

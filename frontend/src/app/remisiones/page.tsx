@@ -3,7 +3,7 @@ import RemisionesDataClient from "@/components/remisiones/RemisionesDataClient";
 import { buildServerBackendUrl } from "@/utils/js/env";
 
 async function getRemisiones() {
-  const res = await fetch(buildServerBackendUrl("remisiones/"), {
+  const res = await fetch(buildServerBackendUrl("remisiones/?include_anuladas=1"), {
     cache: "no-store",
   });
 

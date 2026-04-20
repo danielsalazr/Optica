@@ -87,6 +87,7 @@ from .utils_estado_pedido import (
     mark_estado_pedido,
     maybe_mark_para_fabricacion,
     get_estado_pedido_by_slug,
+    sync_estado_entrega_por_remision,
 )
 
 console = Console()
@@ -195,6 +196,18 @@ class PublicVentaTrackingView(APIView):
                 'date': fecha_hito.isoformat() if fecha_hito else None,
             })
 
+        articulos = list(
+            ItemsVenta.objects.filter(venta_id=venta.id)
+            .select_related('articulo')
+            .values(
+                'id',
+                'cantidad',
+                'precio_articulo',
+                'articulo_id',
+                'articulo__nombre',
+            )
+        )
+
         return Response({
             'venta_id': venta.id,
             'cedula': str(venta.cliente_id),
@@ -210,6 +223,16 @@ class PublicVentaTrackingView(APIView):
             'estado_pedido_slug': estado_slug,
             'motivo_sin_anticipo': venta.motivo_sin_anticipo or '',
             'observacion': venta.observacion or '',
+            'articulos': [
+                {
+                    'id': item['id'],
+                    'articulo_id': item['articulo_id'],
+                    'nombre': item['articulo__nombre'] or f"Articulo #{item['articulo_id']}",
+                    'cantidad': item['cantidad'] or 0,
+                    'precio_unitario': item['precio_articulo'] or 0,
+                }
+                for item in articulos
+            ],
             'timeline': timeline,
         }, status=status.HTTP_200_OK)
     
@@ -1089,16 +1112,27 @@ class Venta(APIView):
         # abono = Abonos.objects.filter(factura=venta.factura).first()
         # saldo = Saldos.objects.get(factura=venta)
 
-        venta.estado_id = 4
-        venta.detalleAnulacion = request.data['detalleAnulacion']
-        venta.usuarioAnulacion = request.user.id
-        venta.anulado = 1
-        venta.save()
+        with transaction.atomic():
+            detalle_anulacion = request.data['detalleAnulacion']
+            remisiones_qs = Remision.objects.filter(venta=venta, anulado=False)
+            remisiones_anuladas = remisiones_qs.count()
+            remisiones_qs.update(
+                anulado=True,
+                detalleAnulacion=detalle_anulacion,
+                usuarioAnulacion=request.user.id,
+                fechaAnulacion=timezone.now(),
+            )
+
+            venta.estado_id = 4
+            venta.detalleAnulacion = detalle_anulacion
+            venta.usuarioAnulacion = request.user.id
+            venta.anulado = 1
+            venta.save()
         # abono.delete()
         # venta.delete()
         # saldo.delete()
 
-        return Response({'accion': 'ok'}, status=status.HTTP_200_OK)
+        return Response({'accion': 'ok', 'remisiones_anuladas': remisiones_anuladas}, status=status.HTTP_200_OK)
 
 
 
@@ -1852,21 +1886,73 @@ class RemisionView(APIView):
         if venta_id is not None:
             filtros['item_venta__venta_id'] = venta_id
 
+        filtros['remision__anulado'] = False
         remisiones_totales = RemisionItem.objects.filter(**filtros).values('item_venta_id').annotate(
             total=Coalesce(Sum('cantidad'), 0)
         )
 
         return {item['item_venta_id']: item['total'] for item in remisiones_totales}
 
+    def _build_pending_items_payload(self, venta):
+        totales_map = self._build_totals_map(venta.id)
+        items_payload = []
+        for item in ItemsVenta.objects.filter(venta=venta).select_related('articulo'):
+            remisionado = int(totales_map.get(item.id, 0) or 0)
+            disponible = int(item.cantidad or 0) - remisionado
+            if disponible > 0:
+                items_payload.append({
+                    'itemVenta': item.id,
+                    'cantidad': disponible,
+                })
+        return items_payload
+
+    def _build_preview_for_venta(self, venta):
+        totales_map = self._build_totals_map(venta.id)
+        items_preview = []
+        total_unidades_pendientes = 0
+
+        for item in ItemsVenta.objects.filter(venta=venta).select_related('articulo'):
+            cantidad_factura = int(item.cantidad or 0)
+            remisionado = int(totales_map.get(item.id, 0) or 0)
+            pendiente = max(cantidad_factura - remisionado, 0)
+            if pendiente > 0:
+                total_unidades_pendientes += pendiente
+                items_preview.append({
+                    'item_venta_id': item.id,
+                    'articulo_id': item.articulo_id,
+                    'articulo': item.articulo.nombre if item.articulo else f'Articulo #{item.articulo_id}',
+                    'cantidad_factura': cantidad_factura,
+                    'cantidad_remisionada': remisionado,
+                    'cantidad_pendiente': pendiente,
+                    'cantidad_incluir': pendiente,
+                })
+
+        return {
+            'venta_id': venta.id,
+            'cliente_id': venta.cliente_id,
+            'total_articulos_pendientes': len(items_preview),
+            'total_unidades_pendientes': total_unidades_pendientes,
+            'puede_remisionar': total_unidades_pendientes > 0,
+            'detail': None if total_unidades_pendientes > 0 else 'La venta no tiene cantidades pendientes por remisionar.',
+            'items': items_preview,
+        }
+
     def get(self, request, venta_id=None):
+        include_anuladas = str(request.GET.get('include_anuladas') or '').lower() in {'1', 'true', 'yes'}
         if venta_id is not None:
             remisiones_qs = Remision.objects.filter(
-                venta_id=venta_id
-            ).prefetch_related(
+                venta_id=venta_id,
+            )
+            if not include_anuladas:
+                remisiones_qs = remisiones_qs.filter(anulado=False)
+            remisiones_qs = remisiones_qs.prefetch_related(
                 'items__item_venta__articulo'
             ).order_by('fecha', 'id')
         else:
-            remisiones_qs = Remision.objects.all().prefetch_related(
+            remisiones_qs = Remision.objects.all()
+            if not include_anuladas:
+                remisiones_qs = remisiones_qs.filter(anulado=False)
+            remisiones_qs = remisiones_qs.prefetch_related(
                 'items__item_venta__articulo'
             ).order_by('fecha', 'id')
 
@@ -1885,7 +1971,7 @@ class RemisionView(APIView):
         if serializer.is_valid():
             remision = serializer.save()
             totales_map = self._build_totals_map(remision.venta_id)
-            mark_entregado_si_corresponde(remision.venta, usuario=request.user, origen='automatico')
+            sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
             remision_data = RemisionSerializer(
                 remision,
                 context={'remision_totals': totales_map}
@@ -1894,6 +1980,199 @@ class RemisionView(APIView):
             return Response(remision_data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, remision_id=None):
+        if remision_id is None:
+            return Response({'detail': 'Debe indicar la remision a anular.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        remision = get_object_or_404(
+            Remision.objects.select_related('venta').prefetch_related('items__item_venta__articulo'),
+            pk=remision_id,
+        )
+
+        if remision.anulado:
+            return Response({'detail': 'La remision ya fue anulada.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        detalle_anulacion = (request.data.get('detalleAnulacion') or request.data.get('detalle') or '').strip()
+        if not detalle_anulacion:
+            detalle_anulacion = 'Remision anulada manualmente.'
+
+        with transaction.atomic():
+            remision.anulado = True
+            remision.detalleAnulacion = detalle_anulacion
+            remision.usuarioAnulacion = getattr(request.user, 'id', None)
+            remision.fechaAnulacion = timezone.now()
+            remision.save(update_fields=['anulado', 'detalleAnulacion', 'usuarioAnulacion', 'fechaAnulacion'])
+
+            sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
+
+        remision.refresh_from_db()
+        totales_map = self._build_totals_map(remision.venta_id)
+        remision_data = RemisionSerializer(
+            remision,
+            context={'remision_totals': totales_map}
+        ).data
+
+        return Response(
+            {
+                'detail': 'Remision anulada correctamente.',
+                'remision': remision_data,
+                'venta_id': remision.venta_id,
+                'estado_pedido': remision.venta.estado_pedido.nombre if remision.venta.estado_pedido else None,
+                'estado_pedido_actualizado': remision.venta.estado_pedido_actualizado,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class RemisionMasivaPreviewView(RemisionView):
+    def post(self, request):
+        venta_ids = request.data.get('venta_ids') or []
+        if not isinstance(venta_ids, list) or not venta_ids:
+            return Response({'detail': 'Debe seleccionar al menos una venta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        venta_ids_normalizados = []
+        try:
+            for venta_id in venta_ids:
+                venta_ids_normalizados.append(int(venta_id))
+        except (TypeError, ValueError):
+            return Response({'detail': 'La lista de ventas contiene valores invalidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ventas_map = {
+            venta.id: venta
+            for venta in Ventas.objects.filter(id__in=venta_ids_normalizados)
+        }
+        if len(ventas_map) != len(set(venta_ids_normalizados)):
+            return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        resultados = [self._build_preview_for_venta(ventas_map[venta_id]) for venta_id in venta_ids_normalizados]
+        return Response(
+            {
+                'resultados': resultados,
+                'ventas_con_pendientes': sum(1 for item in resultados if item['puede_remisionar']),
+                'ventas_sin_pendientes': sum(1 for item in resultados if not item['puede_remisionar']),
+                'total_unidades_pendientes': sum(int(item['total_unidades_pendientes'] or 0) for item in resultados),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class RemisionMasivaView(RemisionView):
+    def post(self, request):
+        fecha = request.data.get('fecha')
+        observacion = (request.data.get('observacion') or '').strip()
+        remisiones = request.data.get('remisiones')
+
+        payloads = []
+        if isinstance(remisiones, list) and remisiones:
+            for remision in remisiones:
+                try:
+                    venta_id = int(remision.get('venta_id'))
+                except (TypeError, ValueError):
+                    return Response({'detail': 'Una o mas ventas de la remision masiva son invalidas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+                items_payload = []
+                for item in remision.get('items') or []:
+                    try:
+                        item_venta_id = int(item.get('itemVenta') or item.get('item_venta_id'))
+                        cantidad = int(item.get('cantidad'))
+                    except (TypeError, ValueError):
+                        continue
+                    if cantidad > 0:
+                        items_payload.append({
+                            'itemVenta': item_venta_id,
+                            'cantidad': cantidad,
+                        })
+
+                payloads.append({
+                    'venta_id': venta_id,
+                    'items': items_payload,
+                    'observacion': (remision.get('observacion') or observacion or None),
+                })
+        else:
+            venta_ids = request.data.get('venta_ids') or []
+            if not isinstance(venta_ids, list) or not venta_ids:
+                return Response({'detail': 'Debe seleccionar al menos una venta.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            venta_ids_normalizados = []
+            try:
+                for venta_id in venta_ids:
+                    venta_ids_normalizados.append(int(venta_id))
+            except (TypeError, ValueError):
+                return Response({'detail': 'La lista de ventas contiene valores invalidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            ventas_base = list(Ventas.objects.filter(id__in=venta_ids_normalizados).order_by('id'))
+            if len(ventas_base) != len(set(venta_ids_normalizados)):
+                return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            for venta in ventas_base:
+                payloads.append({
+                    'venta_id': venta.id,
+                    'items': self._build_pending_items_payload(venta),
+                    'observacion': observacion or None,
+                })
+
+        venta_ids_requeridos = [payload['venta_id'] for payload in payloads]
+        ventas_map = {venta.id: venta for venta in Ventas.objects.filter(id__in=venta_ids_requeridos)}
+        if len(ventas_map) != len(set(venta_ids_requeridos)):
+            return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        creadas = []
+        omitidas = []
+        errores = []
+
+        for payload_data in payloads:
+            venta = ventas_map[payload_data['venta_id']]
+            items_payload = payload_data['items']
+            if not items_payload:
+                omitidas.append({
+                    'venta_id': venta.id,
+                    'detail': 'La venta no tiene cantidades pendientes por remisionar o no se seleccionaron cantidades para incluir.',
+                })
+                continue
+
+            payload = {
+                'venta': venta.id,
+                'fecha': fecha,
+                'observacion': payload_data['observacion'],
+                'items': items_payload,
+            }
+
+            try:
+                with transaction.atomic():
+                    serializer = RemisionSerializer(data=payload)
+                    if not serializer.is_valid():
+                        errores.append({
+                            'venta_id': venta.id,
+                            'detail': serializer.errors,
+                        })
+                        continue
+
+                    remision = serializer.save()
+                    sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
+                    remision_data = RemisionSerializer(
+                        remision,
+                        context={'remision_totals': self._build_totals_map(remision.venta_id)}
+                    ).data
+                    creadas.append({
+                        'venta_id': venta.id,
+                        'remision': remision_data,
+                    })
+            except Exception as exc:
+                errores.append({
+                    'venta_id': venta.id,
+                    'detail': str(exc),
+                })
+
+        return Response(
+            {
+                'procesadas': len(creadas),
+                'omitidas': omitidas,
+                'errores': errores,
+                'resultados': creadas,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 class Pedidos(APIView):
     def get(self, request):

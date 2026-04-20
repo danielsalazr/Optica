@@ -203,6 +203,47 @@ Invoke-RestMethod `
   }'
 ```
 
+## Build automatizado
+
+Puedes generar el ejecutable y el instalador con un solo script:
+
+```powershell
+cd print_agent
+.\build-release.ps1 -InstallBuildDeps -WinSWPath "C:\ruta\a\WinSW-x64.exe"
+```
+
+El script hace esto:
+
+- limpia `build/`, `dist/` y el `.spec` previo
+- genera `dist\OpticaPrintAgent.exe` con PyInstaller
+- copia `WinSW-x64.exe` como `dist\OpticaPrintAgentService.exe`
+- copia `installer\OpticaPrintAgent.xml` como `dist\OpticaPrintAgentService.xml`
+- compila `installer\setup.iss` con Inno Setup
+
+Requisitos para usarlo:
+
+- Python disponible en PATH
+- PyInstaller instalado, o usar `-InstallBuildDeps`
+- Inno Setup 6 instalado
+- `WinSW-x64.exe` descargado
+
+Opciones utiles:
+
+```powershell
+# Solo generar ejecutables, sin instalador
+.\build-release.ps1 -SkipInstaller -WinSWPath "C:\ruta\a\WinSW-x64.exe"
+
+# Indicar ruta explicita de Inno Setup
+.\build-release.ps1 -WinSWPath "C:\ruta\a\WinSW-x64.exe" -InnoSetupExe "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+```
+
+Ubicaciones esperadas al finalizar:
+
+- ejecutable: `print_agent\dist\OpticaPrintAgent.exe`
+- wrapper de servicio: `print_agent\dist\OpticaPrintAgentService.exe`
+- xml del servicio: `print_agent\dist\OpticaPrintAgentService.xml`
+- instalador: `print_agent\installer\output\optica-print-agent-setup.exe`
+
 ## Estado actual
 
 Este MVP ya hace:

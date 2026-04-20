@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from typing import Optional, Sequence, Tuple
 
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -161,7 +161,13 @@ def mark_entregado_si_corresponde(venta, *, usuario=None, origen: str = 'automat
     pendientes = ItemsVenta.objects.filter(
         venta_id=venta.id
     ).annotate(
-        despachado=Coalesce(Sum("remisiones_items__cantidad"), 0)
+        despachado=Coalesce(
+            Sum(
+                "remisiones_items__cantidad",
+                filter=Q(remisiones_items__remision__anulado=False),
+            ),
+            0,
+        )
     ).filter(
         despachado__lt=F("cantidad")
     ).exists()
@@ -174,3 +180,42 @@ def mark_entregado_si_corresponde(venta, *, usuario=None, origen: str = 'automat
         return False
 
     return _save_estado(venta, "entregado", clear_detalle=True, usuario=usuario, origen=origen)
+
+
+def sync_estado_entrega_por_remision(venta, *, usuario=None, origen: str = 'automatico') -> bool:
+    pendientes = ItemsVenta.objects.filter(
+        venta_id=venta.id
+    ).annotate(
+        despachado=Coalesce(
+            Sum(
+                "remisiones_items__cantidad",
+                filter=Q(remisiones_items__remision__anulado=False),
+            ),
+            0,
+        )
+    ).filter(
+        despachado__lt=F("cantidad")
+    ).exists()
+
+    actual = identify_estado_pedido_slug(getattr(venta.estado_pedido, "nombre", None))
+
+    if pendientes:
+        if actual == "entregado":
+            return _save_estado(
+                venta,
+                "listo_entrega",
+                clear_detalle=True,
+                usuario=usuario,
+                origen=origen,
+            )
+        return False
+
+    if actual != "entregado":
+        return _save_estado(
+            venta,
+            "entregado",
+            clear_detalle=True,
+            usuario=usuario,
+            origen=origen,
+        )
+    return False

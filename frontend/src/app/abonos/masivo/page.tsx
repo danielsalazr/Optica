@@ -353,7 +353,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona una empresa.");
         return;
       }
-      endpoint = `abonos/masivo/preview/tipo=empresa&empresa_id=${empresaForm.empresaId}`;
+      endpoint = `abonos/masivo/preview/?tipo=empresa&empresa_id=${empresaForm.empresaId}`;
     } else if (modo === "jornada") {
       tipo = "jornada";
       montoRaw = jornadaForm.monto || 0;
@@ -361,7 +361,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona una jornada.");
         return;
       }
-      endpoint = `abonos/masivo/preview/tipo=jornada&jornada_id=${jornadaForm.jornadaId}`;
+      endpoint = `abonos/masivo/preview/?tipo=jornada&jornada_id=${jornadaForm.jornadaId}`;
     } else {
       tipo = "cliente";
       montoRaw = clienteForm.monto || 0;
@@ -369,7 +369,7 @@ function AbonosMasivosPage() {
         setPreviewError("Selecciona un cliente.");
         return;
       }
-      endpoint = `abonos/masivo/preview/tipo=cliente&cliente_id=${clienteForm.clienteId}`;
+      endpoint = `abonos/masivo/preview/?tipo=cliente&cliente_id=${clienteForm.clienteId}`;
     }
 
     const monto = Number(montoRaw || 0);
@@ -392,10 +392,10 @@ function AbonosMasivosPage() {
       }
 
       const selected = new Set(ventas.map((row) => row.id));
-      const { rows, summary } = applyValorCuotaToSelected(ventas, selected);
+      const { rows, summary } = distributeEqual(ventas, selected, monto);
       setPreviewRows(rows);
       setSelectedVentas(selected);
-      setPreviewMonto(summary.monto);
+      setPreviewMonto(monto);
       setPreviewSummary(summary);
     } catch (err: unknown) {
       setPreviewError(getErrorMessage(err, "Error al previsualizar."));
@@ -409,15 +409,16 @@ function AbonosMasivosPage() {
       const selected = new Set(previewRows.map((row) => row.id));
       setSelectedVentas(selected);
       const monto = Number(previewMonto || 0);
-      const { rows, summary } = applyValorCuotaToSelected(previewRows, selected);
+      const { rows, summary } = distributeEqual(previewRows, selected, monto);
       setPreviewRows(rows);
-      setPreviewMonto(summary.monto);
+      setPreviewMonto(monto);
       setPreviewSummary(summary);
     } else {
       setSelectedVentas(new Set());
-      const { rows, summary } = applyValorCuotaToSelected(previewRows, new Set());
+      const monto = Number(previewMonto || 0);
+      const { rows, summary } = distributeEqual(previewRows, new Set(), monto);
       setPreviewRows(rows);
-      setPreviewMonto(summary.monto);
+      setPreviewMonto(monto);
       setPreviewSummary(summary);
     }
   };
@@ -431,9 +432,9 @@ function AbonosMasivosPage() {
         next.add(ventaId);
       }
       const monto = Number(previewMonto || 0);
-      const { rows, summary } = applyValorCuotaToSelected(previewRows, next);
+      const { rows, summary } = distributeEqual(previewRows, next, monto);
       setPreviewRows(rows);
-      setPreviewMonto(summary.monto);
+      setPreviewMonto(monto);
       setPreviewSummary(summary);
       return next;
     });
@@ -916,7 +917,7 @@ function AbonosMasivosPage() {
                     onValueChange={(e) => {
                       const montoNum = Number(e.value || 0);
                       setPreviewMonto(montoNum);
-                      const { rows, summary } = applyMontoToSelected(
+                      const { rows, summary } = distributeEqual(
                         previewRows,
                         selectedVentas,
                         montoNum

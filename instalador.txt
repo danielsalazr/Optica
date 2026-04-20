@@ -89,7 +89,8 @@ copiar WinSW-x64.exe a print_agent\dist\
 verificar que installer\setup.iss apunte bien al ejecutable
 Después:
 
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" c:\Users\Administrador\Documents\desarrollos\optica\print_agent\installer\setup.iss
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "C:\Users\dsalazarm\Documents\desarrollos\optica\print_agent\installer\setup.iss"
+
 Recomendación
 Antes de compilar el instalador final, prueba primero:
 
