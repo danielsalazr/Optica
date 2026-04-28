@@ -41,6 +41,64 @@ type Empresa = {
   nombre: string;
 };
 
+type JornadaVentaItem = {
+  id: number;
+  articulo_id: number;
+  articulo: string;
+  cantidad: number;
+  precio_unitario: number;
+  descuento: number;
+  tipo_descuento: string | null;
+  total: number;
+};
+
+type JornadaVentaDetalle = {
+  id: number;
+  cliente_id: number | null;
+  cliente_nombre: string | null;
+  cliente_cedula: number | null;
+  cliente_telefono: string | null;
+  empresa_cliente: string | null;
+  fecha: string | null;
+  precio: number;
+  total_abono: number;
+  saldo: number;
+  estado_pago: string | null;
+  estado_pedido: string | null;
+  vendedor_nombre: string | null;
+  condicion_pago: string | null;
+  detalle: string | null;
+  observacion: string | null;
+  anulado: boolean;
+  articulos_count: number;
+  unidades_count: number;
+  articulos: JornadaVentaItem[];
+};
+
+type JornadaDetalle = {
+  id: number;
+  empresa: number;
+  empresa_nombre: string;
+  sucursal: string;
+  fecha: string;
+  fecha_inicio: string | null;
+  fecha_vencimiento: string | null;
+  condicion_pago: string | null;
+  cantidad_cuotas: number | null;
+  estado: JornadaEstado;
+  responsable: number | null;
+  responsable_nombre: string | null;
+  observaciones: string | null;
+  resumen: {
+    ventas_count: number;
+    total_vendido: number;
+    total_abonos: number;
+    total_saldos: number;
+    total_unidades: number;
+  };
+  ventas: JornadaVentaDetalle[];
+};
+
 type Props = {
   initialJornadas: Jornada[];
   empresas: Empresa[];
@@ -138,6 +196,9 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
   const [creando, setCreando] = useState(false);
   const [actualizando, setActualizando] = useState<number | null>(null);
   const [eliminando, setEliminando] = useState<number | null>(null);
+  const [expandedRows, setExpandedRows] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState<Record<number, boolean>>({});
+  const [jornadaDetails, setJornadaDetails] = useState<Record<number, JornadaDetalle>>({});
   const [formData, setFormData] = useState({
     empresa: "",
     sucursal: "",
@@ -234,7 +295,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   useEffect(() => {
     refreshTooltips(true);
-  }, [refreshTooltips, jornadasFiltradas, actualizando, eliminando]);
+  }, [refreshTooltips, jornadasFiltradas, actualizando, eliminando, expandedRows, detailLoading]);
 
   const upsertJornada = useCallback((registro: Jornada) => {
     setJornadas((prev) => sortJornadas([registro, ...prev.filter((item) => item.id !== registro.id)]));
@@ -242,7 +303,63 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const removeJornada = useCallback((jornadaId: number) => {
     setJornadas((prev) => prev.filter((item) => item.id !== jornadaId));
+    setJornadaDetails((prev) => {
+      const next = { ...prev };
+      delete next[jornadaId];
+      return next;
+    });
+    setDetailLoading((prev) => {
+      const next = { ...prev };
+      delete next[jornadaId];
+      return next;
+    });
+    setExpandedRows((prev: any) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      delete next[jornadaId];
+      return Object.keys(next).length ? next : null;
+    });
   }, []);
+
+  const formatCondicionPago = useCallback((value: string | null | undefined) => {
+    if (!value) return "-";
+    const normalized = String(value).replace(/_/g, " ").trim();
+    if (!normalized) return "-";
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }, []);
+
+  const formatCliente = useCallback((venta: JornadaVentaDetalle) => {
+    const parts = [venta.cliente_nombre, venta.cliente_cedula ? `CC ${venta.cliente_cedula}` : null].filter(Boolean);
+    return parts.length ? parts.join(" ? ") : venta.cliente_id ? `Cliente ${venta.cliente_id}` : "-";
+  }, []);
+
+  const formatDescuento = useCallback((item: JornadaVentaItem) => {
+    const descuento = Number(item.descuento || 0);
+    if (!descuento) return "-";
+    return item.tipo_descuento === "porcentaje" ? `${descuento} %` : `$ ${descuento.toLocaleString("es-CO")}`;
+  }, []);
+
+  const ensureJornadaDetail = useCallback(async (jornadaId: number) => {
+    if (jornadaDetails[jornadaId] || detailLoading[jornadaId]) {
+      return jornadaDetails[jornadaId] || null;
+    }
+
+    setDetailLoading((prev) => ({ ...prev, [jornadaId]: true }));
+    try {
+      const { res, data } = await callApi(`jornadas/${jornadaId}/`, { method: "GET" });
+      if (!res.ok || !data) {
+        throw new Error(data?.detail || "No fue posible cargar el detalle de la jornada.");
+      }
+      setJornadaDetails((prev) => ({ ...prev, [jornadaId]: data as JornadaDetalle }));
+      return data as JornadaDetalle;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "No fue posible cargar el detalle de la jornada.";
+      mostrarMensaje("error", detail);
+      return null;
+    } finally {
+      setDetailLoading((prev) => ({ ...prev, [jornadaId]: false }));
+    }
+  }, [detailLoading, jornadaDetails]);
 
   const handleFormChange =
     (campo: keyof typeof formData) =>
@@ -493,6 +610,107 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       severity={jornada.estado === "closed" ? "success" : jornada.estado === "in_progress" ? "info" : "secondary"}
     />
   );
+
+  const handleRowExpand = async (event: { data: Jornada }) => {
+    await ensureJornadaDetail(event.data.id);
+    refreshTooltips(true);
+  };
+
+  const renderJornadaDetalle = (jornada: Jornada) => {
+    const detalle = jornadaDetails[jornada.id];
+    const loading = detailLoading[jornada.id];
+
+    if (loading && !detalle) {
+      return <div className="jornadas-detail-loading">Cargando detalle de la jornada...</div>;
+    }
+
+    if (!detalle) {
+      return <div className="jornadas-detail-empty">No fue posible cargar el detalle de la jornada.</div>;
+    }
+
+    return (
+      <div className="jornadas-detail-wrap">
+        <div className="jornadas-detail-stats">
+          <div className="jornadas-detail-stat">
+            <span className="jornadas-detail-label">Ventas</span>
+            <strong>{detalle.resumen.ventas_count}</strong>
+          </div>
+          <div className="jornadas-detail-stat">
+            <span className="jornadas-detail-label">Unidades</span>
+            <strong>{detalle.resumen.total_unidades}</strong>
+          </div>
+          <div className="jornadas-detail-stat">
+            <span className="jornadas-detail-label">Vendido</span>
+            <strong>{formatCurrency(detalle.resumen.total_vendido)}</strong>
+          </div>
+          <div className="jornadas-detail-stat">
+            <span className="jornadas-detail-label">Abonos</span>
+            <strong>{formatCurrency(detalle.resumen.total_abonos)}</strong>
+          </div>
+          <div className="jornadas-detail-stat">
+            <span className="jornadas-detail-label">Saldo</span>
+            <strong>{formatCurrency(detalle.resumen.total_saldos)}</strong>
+          </div>
+        </div>
+
+        <div className="table-responsive jornadas-detail-table-wrap">
+          <table className="table table-sm align-middle mb-0 jornadas-detail-table">
+            <thead>
+              <tr>
+                <th>Venta</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Precio</th>
+                <th>Abonos</th>
+                <th>Saldo</th>
+                <th>Estado pago</th>
+                <th>Estado pedido</th>
+                <th>Vendedor</th>
+                <th>Articulos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detalle.ventas.length ? detalle.ventas.map((venta) => (
+                <tr key={venta.id}>
+                  <td>
+                    <div className="fw-semibold">#{venta.id}</div>
+                    <div className="small text-muted">{venta.empresa_cliente || "-"}</div>
+                  </td>
+                  <td>
+                    <div>{formatCliente(venta)}</div>
+                    <div className="small text-muted">{venta.cliente_telefono || "Sin telefono"}</div>
+                  </td>
+                  <td>{formatDate(venta.fecha)}</td>
+                  <td>{formatCurrency(venta.precio)}</td>
+                  <td>{formatCurrency(venta.total_abono)}</td>
+                  <td>{formatCurrency(venta.saldo)}</td>
+                  <td>{venta.estado_pago || "-"}</td>
+                  <td>{venta.estado_pedido || "-"}</td>
+                  <td>{venta.vendedor_nombre || "-"}</td>
+                  <td>
+                    <div className="jornadas-detail-items">
+                      {venta.articulos.length ? venta.articulos.map((item) => (
+                        <div key={item.id} className="jornadas-detail-item">
+                          <div className="fw-semibold">{item.articulo || `Articulo ${item.articulo_id}`}</div>
+                          <div className="small text-muted">
+                            Cant. {item.cantidad} ? Unit. {formatCurrency(item.precio_unitario)} ? Desc. {formatDescuento(item)} ? Total {formatCurrency(item.total)}
+                          </div>
+                        </div>
+                      )) : <span className="text-muted">Sin articulos</span>}
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={10} className="text-center text-muted py-3">No hay ventas asociadas a esta jornada.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   const renderAccionBody = (jornada: Jornada) => {
     const accion = ESTADO_ACCIONES[jornada.estado];
@@ -779,6 +997,11 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
           <DataTable
             value={jornadasFiltradas}
+            expandedRows={expandedRows}
+            onRowToggle={(event) => setExpandedRows(event.data)}
+            onRowExpand={handleRowExpand}
+            onRowCollapse={() => refreshTooltips(true)}
+            rowExpansionTemplate={renderJornadaDetalle}
             paginator
             rows={10}
             rowsPerPageOptions={[5, 10, 20, 50]}
@@ -791,6 +1014,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
             emptyMessage="No hay jornadas para los filtros seleccionados."
           >
+            <Column expander style={{ width: "3.5rem" }} />
             <Column field="empresa_nombre" header="Empresa" sortable style={{ minWidth: "22rem" }} body={renderEmpresaBody} />
             <Column field="fecha" header="Fecha" sortable body={(jornada: Jornada) => formatDate(jornada.fecha)} style={{ minWidth: "9rem" }} />
             <Column field="ventas_count" header="Ventas" sortable body={(jornada: Jornada) => <span className="fw-semibold">{Number(jornada.ventas_count || 0)}</span>} bodyClassName="text-center" style={{ width: "7rem" }} />

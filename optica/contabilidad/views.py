@@ -1429,6 +1429,116 @@ class JornadaView(APIView):
 
 
 class JornadaDetailView(APIView):
+    def get(self, request, jornada_id):
+        jornada = get_object_or_404(
+            Jornada.objects.select_related('empresa', 'responsable'),
+            pk=jornada_id,
+        )
+
+        ventas = list(
+            Ventas.objects.filter(jornada_id=jornada.id)
+            .select_related('estado', 'estado_pedido', 'vendedor')
+            .order_by('-id')
+        )
+        venta_ids = [venta.id for venta in ventas]
+        cliente_ids = [venta.cliente_id for venta in ventas if venta.cliente_id]
+
+        clientes_map = {
+            cliente.cedula: cliente
+            for cliente in Clientes.objects.filter(cedula__in=cliente_ids)
+        }
+        abonos_map = {
+            row['venta_id']: int(row['total'] or 0)
+            for row in Abonos.objects.filter(venta_id__in=venta_ids)
+            .values('venta_id')
+            .annotate(total=Coalesce(Sum('precio'), 0))
+        }
+
+        items_map = defaultdict(list)
+        unidades_por_venta = defaultdict(int)
+        total_unidades = 0
+
+        for item in ItemsVenta.objects.filter(venta_id__in=venta_ids).select_related('articulo').order_by('venta_id', 'id'):
+            cantidad = int(item.cantidad or 0)
+            item_payload = {
+                'id': item.id,
+                'articulo_id': item.articulo_id,
+                'articulo': item.articulo.nombre if item.articulo else '',
+                'cantidad': cantidad,
+                'precio_unitario': int(item.precio_articulo or 0),
+                'descuento': int(item.descuento or 0),
+                'tipo_descuento': item.tipo_descuento or 'precio',
+                'total': int(item.totalArticulo or 0),
+            }
+            items_map[item.venta_id].append(item_payload)
+            unidades_por_venta[item.venta_id] += cantidad
+            total_unidades += cantidad
+
+        ventas_payload = []
+        total_vendido = 0
+        total_abonos = 0
+        total_saldos = 0
+
+        for venta in ventas:
+            cliente = clientes_map.get(venta.cliente_id)
+            total_abono_db = int(abonos_map.get(venta.id, 0) or 0)
+            total_abono = max(total_abono_db, int(venta.totalAbono or 0))
+            precio = int(venta.precio or 0)
+            saldo = max(precio - total_abono, 0)
+            articulos = items_map.get(venta.id, [])
+
+            total_vendido += precio
+            total_abonos += total_abono
+            total_saldos += saldo
+
+            ventas_payload.append({
+                'id': venta.id,
+                'cliente_id': venta.cliente_id,
+                'cliente_nombre': getattr(cliente, 'nombre', None),
+                'cliente_cedula': getattr(cliente, 'cedula', None),
+                'cliente_telefono': getattr(cliente, 'celular', None),
+                'empresa_cliente': venta.empresaCliente,
+                'fecha': venta.fecha,
+                'precio': precio,
+                'total_abono': total_abono,
+                'saldo': saldo,
+                'estado_pago': venta.estado.nombre if venta.estado else None,
+                'estado_pedido': venta.estado_pedido.nombre if venta.estado_pedido else None,
+                'vendedor_nombre': venta.vendedor.nombre if venta.vendedor else None,
+                'condicion_pago': venta.condicion_pago,
+                'detalle': venta.detalle,
+                'observacion': venta.observacion,
+                'anulado': venta.anulado,
+                'articulos_count': len(articulos),
+                'unidades_count': unidades_por_venta.get(venta.id, 0),
+                'articulos': articulos,
+            })
+
+        payload = {
+            'id': jornada.id,
+            'empresa': jornada.empresa_id,
+            'empresa_nombre': jornada.empresa.nombre if jornada.empresa else None,
+            'sucursal': jornada.sucursal,
+            'fecha': jornada.fecha,
+            'fecha_inicio': jornada.fecha_inicio,
+            'fecha_vencimiento': jornada.fecha_vencimiento,
+            'condicion_pago': jornada.condicion_pago,
+            'cantidad_cuotas': jornada.cantidad_cuotas,
+            'estado': jornada.estado,
+            'responsable': jornada.responsable_id,
+            'responsable_nombre': jornada.responsable.get_full_name() if jornada.responsable and jornada.responsable.get_full_name() else (jornada.responsable.username if jornada.responsable else None),
+            'observaciones': jornada.observaciones,
+            'resumen': {
+                'ventas_count': len(ventas_payload),
+                'total_vendido': total_vendido,
+                'total_abonos': total_abonos,
+                'total_saldos': total_saldos,
+                'total_unidades': total_unidades,
+            },
+            'ventas': ventas_payload,
+        }
+        return Response(payload, status=status.HTTP_200_OK)
+
     def patch(self, request, jornada_id):
         jornada = get_object_or_404(Jornada, pk=jornada_id)
         if jornada.estado in ['in_progress', 'closed']:
