@@ -659,13 +659,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
               <tr>
                 <th>Venta</th>
                 <th>Cliente</th>
-                <th>Fecha</th>
-                <th>Precio</th>
-                <th>Abonos</th>
-                <th>Saldo</th>
-                <th>Estado pago</th>
-                <th>Estado pedido</th>
-                <th>Vendedor</th>
+                <th>Resumen</th>
+                <th>Estados</th>
                 <th>Articulos</th>
               </tr>
             </thead>
@@ -675,18 +670,23 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                   <td>
                     <div className="fw-semibold">#{venta.id}</div>
                     <div className="small text-muted">{venta.empresa_cliente || "-"}</div>
+                    <div className="small text-muted">{formatDate(venta.fecha)}</div>
                   </td>
                   <td>
                     <div>{formatCliente(venta)}</div>
                     <div className="small text-muted">{venta.cliente_telefono || "Sin telefono"}</div>
                   </td>
-                  <td>{formatDate(venta.fecha)}</td>
-                  <td>{formatCurrency(venta.precio)}</td>
-                  <td>{formatCurrency(venta.total_abono)}</td>
-                  <td>{formatCurrency(venta.saldo)}</td>
-                  <td>{venta.estado_pago || "-"}</td>
-                  <td>{venta.estado_pedido || "-"}</td>
-                  <td>{venta.vendedor_nombre || "-"}</td>
+                  <td>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Precio:</span> {formatCurrency(venta.precio)}</div>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Abonos:</span> {formatCurrency(venta.total_abono)}</div>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Saldo:</span> {formatCurrency(venta.saldo)}</div>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Vendedor:</span> {venta.vendedor_nombre || "-"}</div>
+                  </td>
+                  <td>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pago:</span> {venta.estado_pago || "-"}</div>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pedido:</span> {venta.estado_pedido || "-"}</div>
+                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Condicion:</span> {formatCondicionPago(venta.condicion_pago)}</div>
+                  </td>
                   <td>
                     <div className="jornadas-detail-items">
                       {venta.articulos.length ? venta.articulos.map((item) => (
@@ -702,7 +702,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={10} className="text-center text-muted py-3">No hay ventas asociadas a esta jornada.</td>
+                  <td colSpan={5} className="text-center text-muted py-3">No hay ventas asociadas a esta jornada.</td>
                 </tr>
               )}
             </tbody>

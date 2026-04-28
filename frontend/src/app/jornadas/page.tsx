@@ -1,17 +1,12 @@
 // @ts-nocheck
+export const dynamic = 'force-dynamic';
+
 import React from "react";
 import JornadasModule from "@/components/jornadas/JornadasModule";
 import { buildServerBackendUrl } from "@/utils/js/env";
 
-const API_BASE = `${buildServerBackendUrl("")}/`;
-
-const buildUrl = (path: string) => {
-  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  return `${API_BASE}${normalizedPath}`;
-};
-
 async function fetchJornadas() {
-  const response = await fetch(buildUrl("jornadas/"), {
+  const response = await fetch(buildServerBackendUrl("jornadas/"), {
     cache: "no-store",
   });
 
@@ -23,7 +18,7 @@ async function fetchJornadas() {
 }
 
 async function fetchEmpresas() {
-  const response = await fetch(buildUrl("usuarios/Empresas/"), {
+  const response = await fetch(buildServerBackendUrl("usuarios/Empresas/"), {
     cache: "no-store",
   });
 
@@ -36,10 +31,24 @@ async function fetchEmpresas() {
 }
 
 async function JornadasPage() {
-  const [jornadas, empresas] = await Promise.all([fetchJornadas(), fetchEmpresas()]);
+  let jornadas = [];
+  let empresas = [];
+  let fetchError: string | null = null;
+
+  try {
+    [jornadas, empresas] = await Promise.all([fetchJornadas(), fetchEmpresas()]);
+  } catch (error) {
+    fetchError = error instanceof Error ? error.message : "No fue posible cargar las jornadas desde el backend.";
+    console.error("Error cargando /jornadas:", error);
+  }
 
   return (
     <div className="container py-4">
+      {fetchError ? (
+        <div className="alert alert-danger" role="alert">
+          Error cargando jornadas: {fetchError}
+        </div>
+      ) : null}
       <JornadasModule initialJornadas={jornadas} empresas={empresas} />
     </div>
   );

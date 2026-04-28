@@ -909,8 +909,39 @@ body {
 }
 
 .jornadas-detail-table {
-  min-width: 1040px;
+  width: 100%;
+  table-layout: fixed;
   margin-bottom: 0;
+}
+
+.jornadas-detail-table thead th,
+.jornadas-detail-table tbody td {
+  word-break: break-word;
+}
+
+.jornadas-detail-table thead th:nth-child(1),
+.jornadas-detail-table tbody td:nth-child(1) {
+  width: 12%;
+}
+
+.jornadas-detail-table thead th:nth-child(2),
+.jornadas-detail-table tbody td:nth-child(2) {
+  width: 18%;
+}
+
+.jornadas-detail-table thead th:nth-child(3),
+.jornadas-detail-table tbody td:nth-child(3) {
+  width: 18%;
+}
+
+.jornadas-detail-table thead th:nth-child(4),
+.jornadas-detail-table tbody td:nth-child(4) {
+  width: 18%;
+}
+
+.jornadas-detail-table thead th:nth-child(5),
+.jornadas-detail-table tbody td:nth-child(5) {
+  width: 34%;
 }
 
 .jornadas-detail-table thead th {
@@ -937,6 +968,20 @@ body {
 .jornadas-detail-item:last-child {
   padding-bottom: 0;
   border-bottom: 0;
+}
+
+.jornadas-detail-meta {
+  line-height: 1.35;
+  font-size: 0.86rem;
+}
+
+.jornadas-detail-meta + .jornadas-detail-meta {
+  margin-top: 0.2rem;
+}
+
+.jornadas-detail-meta-label {
+  font-weight: 600;
+  color: #334155;
 }
 
 .jornadas-detail-loading,
