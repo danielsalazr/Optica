@@ -65,6 +65,8 @@ type ApplyPayload = {
   cliente_id?: string;
 };
 
+const BALANCE_EPSILON = 0.01;
+
 function AbonosMasivosPage() {
   const [modo, setModo] = useState(defaultMode);
   const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
@@ -74,20 +76,13 @@ function AbonosMasivosPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
-  const [selectedVentas, setSelectedVentas] = useState<Set<PreviewRow["id"]>>(new Set());
+  const [selectedVentas, setSelectedVentas] = useState<Set<string>>(new Set());
   const [previewMonto, setPreviewMonto] = useState<number | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyError, setApplyError] = useState("");
   const [applySuccess, setApplySuccess] = useState("");
-  const [previewSummary, setPreviewSummary] = useState({
-    monto: 0,
-    totalAsignado: 0,
-    restante: 0,
-    pendiente: 0,
-  });
-
   const [empresaForm, setEmpresaForm] = useState({
     empresaId: "",
     fecha: "",
@@ -152,7 +147,6 @@ function AbonosMasivosPage() {
     setPreviewRows([]);
     setSelectedVentas(new Set());
     setPreviewMonto(null);
-    setPreviewSummary({ monto: 0, totalAsignado: 0, restante: 0, pendiente: 0 });
     setPreviewError("");
     setApplyError("");
     setApplySuccess("");
@@ -175,34 +169,49 @@ function AbonosMasivosPage() {
     return Number(rawSaldo || 0);
   };
 
+  const roundMoney = (value: number): number => Math.round(Number(value || 0) * 100) / 100;
+  const ventaKey = (ventaId: PreviewRow["id"]): string => String(ventaId);
+  const isVentaSelected = (selectedSet: Set<string>, ventaId: PreviewRow["id"]): boolean =>
+    selectedSet.has(ventaKey(ventaId));
+
   const buildSummary = (
     rows: PreviewRow[],
-    selectedSet: Set<PreviewRow["id"]>,
+    selectedSet: Set<string>,
     montoTotal: number
   ) => {
-    const totalAsignado = rows.reduce((acc, row) => acc + (row.aplicar || 0), 0);
-    const restante = Math.max((montoTotal || 0) - totalAsignado, 0);
-    const pendiente = rows
-      .filter((row) => selectedSet.has(row.id))
-      .reduce((acc, row) => acc + (row.saldoFinal || 0), 0);
+    const selectedRows = rows.filter((row) => isVentaSelected(selectedSet, row.id));
+    const monto = roundMoney(montoTotal || 0);
+    const totalAsignado = roundMoney(selectedRows.reduce((acc, row) => acc + (row.aplicar || 0), 0));
+    const rawBalance = roundMoney(monto - totalAsignado);
+    const balance = Math.abs(rawBalance) < BALANCE_EPSILON ? 0 : rawBalance;
+    const restante = balance > 0 ? balance : 0;
+    const excedente = balance < 0 ? Math.abs(balance) : 0;
+    const pendiente = roundMoney(selectedRows.reduce((acc, row) => acc + (row.saldoFinal || 0), 0));
     return {
-      monto: montoTotal || 0,
+      monto,
       totalAsignado,
       restante,
+      excedente,
+      balance,
       pendiente,
     };
   };
 
+  const previewSummary = useMemo(
+    () => buildSummary(previewRows, selectedVentas, Number(previewMonto || 0)),
+    [previewRows, selectedVentas, previewMonto]
+  );
+
   const applyMontoToSelected = (
     rows: PreviewRow[],
-    selectedSet: Set<PreviewRow["id"]>,
+    selectedSet: Set<string>,
     montoTotal: number
   ) => {
     const selectedCount = selectedSet.size;
     const perVenta = selectedCount ? (montoTotal / selectedCount) : 0;
     const nextRows = rows.map((row) => {
       const saldo = normalizeSaldoInicial(row);
-      if (!selectedSet.has(row.id)) {
+      if (!isVentaSelected(selectedSet, row.id)) {
         return {
           ...row,
           saldoInicial: saldo,
@@ -226,11 +235,14 @@ function AbonosMasivosPage() {
 
   const applyValorCuotaToSelected = (
     rows: PreviewRow[],
-    selectedSet: Set<PreviewRow["id"]>
+    selectedSet: Set<string>,
+    montoTotal: number
   ) => {
+    let restante = Math.max(Number(montoTotal || 0), 0);
+
     const nextRows = rows.map((row) => {
       const saldo = normalizeSaldoInicial(row);
-      if (!selectedSet.has(row.id)) {
+      if (!isVentaSelected(selectedSet, row.id)) {
         return {
           ...row,
           saldoInicial: saldo,
@@ -241,7 +253,8 @@ function AbonosMasivosPage() {
       const cuotasRaw = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
       const cuotas = Number(cuotasRaw || 0);
       const valorCuota = cuotas > 0 ? (saldo / cuotas) : 0;
-      const aplicar = Math.min(Math.max(valorCuota, 0), saldo);
+      const aplicar = Math.min(Math.max(valorCuota, 0), saldo, restante);
+      restante = Math.max(restante - aplicar, 0);
       return {
         ...row,
         saldoInicial: saldo,
@@ -250,16 +263,15 @@ function AbonosMasivosPage() {
       };
     });
 
-    const totalAsignado = nextRows.reduce((acc, row) => acc + (row.aplicar || 0), 0);
     return {
       rows: nextRows,
-      summary: buildSummary(nextRows, selectedSet, totalAsignado),
+      summary: buildSummary(nextRows, selectedSet, montoTotal),
     };
   };
 
   const distributeEqual = (
     rows: PreviewRow[],
-    selectedSet: Set<PreviewRow["id"]>,
+    selectedSet: Set<string>,
     montoTotal: number
   ) => {
     const selectedCount = selectedSet.size;
@@ -277,11 +289,11 @@ function AbonosMasivosPage() {
     }
 
     let restante = montoTotal;
-    const selectedIds = rows.filter((row) => selectedSet.has(row.id)).map((row) => row.id);
+    const selectedIds = rows.filter((row) => isVentaSelected(selectedSet, row.id)).map((row) => ventaKey(row.id));
     const basePerVenta = montoTotal / selectedCount;
     const nextRows = rows.map((row) => {
       const saldo = normalizeSaldoInicial(row);
-      if (!selectedSet.has(row.id)) {
+      if (!isVentaSelected(selectedSet, row.id)) {
         return {
           ...row,
           saldoInicial: saldo,
@@ -303,15 +315,15 @@ function AbonosMasivosPage() {
 
     if (restante > 0 && selectedIds.length > 0) {
       let disponible = selectedIds.filter((id) => {
-        const row = nextRows.find((r) => r.id === id);
+        const row = nextRows.find((r) => ventaKey(r.id) === id);
         return row && row.saldoFinal > 0;
       });
 
       while (restante > 0 && disponible.length > 0) {
         const extra = restante / disponible.length;
-        let newDisponible: Array<PreviewRow["id"]> = [];
+        let newDisponible: string[] = [];
         disponible.forEach((id) => {
-          const idx = nextRows.findIndex((r) => r.id === id);
+          const idx = nextRows.findIndex((r) => ventaKey(r.id) === id);
           if (idx < 0) return;
           const row = nextRows[idx];
           const saldoLibre = row.saldoFinal;
@@ -340,7 +352,7 @@ function AbonosMasivosPage() {
     setApplyError("");
     setApplySuccess("");
     setPreviewRows([]);
-    setPreviewSummary({ monto: 0, totalAsignado: 0, restante: 0, pendiente: 0 });
+    setSelectedVentas(new Set());
 
     let tipo = "";
     let montoRaw = 0;
@@ -391,12 +403,11 @@ function AbonosMasivosPage() {
         return;
       }
 
-      const selected = new Set(ventas.map((row) => row.id));
-      const { rows, summary } = distributeEqual(ventas, selected, monto);
+      const selected = new Set(ventas.map((row) => ventaKey(row.id)));
+      const { rows } = distributeEqual(ventas, selected, monto);
       setPreviewRows(rows);
       setSelectedVentas(selected);
       setPreviewMonto(monto);
-      setPreviewSummary(summary);
     } catch (err: unknown) {
       setPreviewError(getErrorMessage(err, "Error al previsualizar."));
     } finally {
@@ -406,36 +417,34 @@ function AbonosMasivosPage() {
 
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
-      const selected = new Set(previewRows.map((row) => row.id));
+      const selected = new Set(previewRows.map((row) => ventaKey(row.id)));
       setSelectedVentas(selected);
       const monto = Number(previewMonto || 0);
-      const { rows, summary } = distributeEqual(previewRows, selected, monto);
+      const { rows } = distributeEqual(previewRows, selected, monto);
       setPreviewRows(rows);
       setPreviewMonto(monto);
-      setPreviewSummary(summary);
     } else {
       setSelectedVentas(new Set());
       const monto = Number(previewMonto || 0);
-      const { rows, summary } = distributeEqual(previewRows, new Set(), monto);
+      const { rows } = distributeEqual(previewRows, new Set(), monto);
       setPreviewRows(rows);
       setPreviewMonto(monto);
-      setPreviewSummary(summary);
     }
   };
 
   const toggleSelectRow = (ventaId: PreviewRow["id"]) => {
     setSelectedVentas((prev) => {
       const next = new Set(prev);
-      if (next.has(ventaId)) {
-        next.delete(ventaId);
+      const key = ventaKey(ventaId);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(ventaId);
+        next.add(key);
       }
       const monto = Number(previewMonto || 0);
-      const { rows, summary } = distributeEqual(previewRows, next, monto);
+      const { rows } = distributeEqual(previewRows, next, monto);
       setPreviewRows(rows);
       setPreviewMonto(monto);
-      setPreviewSummary(summary);
       return next;
     });
   };
@@ -449,6 +458,33 @@ function AbonosMasivosPage() {
       currency: "COP",
       maximumFractionDigits: 2,
     }).format(Number(value || 0));
+
+  const balanceStatus =
+    previewSummary.excedente > 0
+      ? {
+          label: "Te pasaste",
+          value: previewSummary.excedente,
+          className: "alert-danger text-danger",
+        }
+      : previewSummary.restante > 0
+        ? {
+            label: "Falta asignar",
+            value: previewSummary.restante,
+            className: "alert-success text-success",
+          }
+        : {
+            label: "Distribucion exacta",
+            value: 0,
+            className: "alert-info text-primary",
+          };
+
+  const overAssignedRows = useMemo(
+    () =>
+      previewRows
+        .filter((row) => isVentaSelected(selectedVentas, row.id))
+        .filter((row) => roundMoney(Number(row.aplicar || 0)) > roundMoney(normalizeSaldoInicial(row))),
+    [previewRows, selectedVentas]
+  );
 
   const getNumeroCuotas = (row: PreviewRow) => {
     const cuotas = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
@@ -501,8 +537,12 @@ function AbonosMasivosPage() {
       setApplyError("Selecciona al menos una venta.");
       return;
     }
-    if (previewSummary.restante !== 0) {
-      setApplyError("El monto a distribuir no está completamente asignado.");
+    if (overAssignedRows.length > 0) {
+      setApplyError("Hay abonos que superan el saldo actual de la venta.");
+      return;
+    }
+    if (previewSummary.restante !== 0 || previewSummary.excedente !== 0) {
+      setApplyError("El monto a distribuir no coincide con el total asignado.");
       return;
     }
 
@@ -527,7 +567,7 @@ function AbonosMasivosPage() {
             ? jornadaForm.fecha
             : clienteForm.fecha,
       items: previewRows
-        .filter((row) => selectedVentas.has(row.id))
+        .filter((row) => isVentaSelected(selectedVentas, row.id))
         .map((row) => ({
           venta_id: row.id,
           monto: row.aplicar,
@@ -917,13 +957,12 @@ function AbonosMasivosPage() {
                     onValueChange={(e) => {
                       const montoNum = Number(e.value || 0);
                       setPreviewMonto(montoNum);
-                      const { rows, summary } = distributeEqual(
+                      const { rows } = distributeEqual(
                         previewRows,
                         selectedVentas,
                         montoNum
                       );
                       setPreviewRows(rows);
-                      setPreviewSummary(summary);
                     }}
                   />
                 </div>
@@ -931,9 +970,10 @@ function AbonosMasivosPage() {
                   <div className="d-flex flex-wrap gap-3">
                     <div><strong>Seleccionadas:</strong> {selectedCount}</div>
                     <div><strong>Monto:</strong> {formatCurrency(previewSummary.monto)}</div>
-                    <div><strong>Asignado:</strong> {formatCurrency(previewSummary.totalAsignado)}</div>
-                    <div><strong>Restante:</strong> {formatCurrency(previewSummary.restante)}</div>
                     <div><strong>Pendiente:</strong> {formatCurrency(previewSummary.pendiente)}</div>
+                  </div>
+                  <div className={`alert ${balanceStatus.className} py-2 px-3 mt-2 mb-0 fw-semibold`}>
+                    {balanceStatus.label}: {formatCurrency(balanceStatus.value)}
                   </div>
                 </div>
               </div>
@@ -943,13 +983,12 @@ function AbonosMasivosPage() {
                   className="btn btn-outline-primary"
                   onClick={() => {
                     const montoNum = Number(previewMonto || 0);
-                    const { rows, summary } = distributeEqual(
+                    const { rows } = distributeEqual(
                       previewRows,
                       selectedVentas,
                       montoNum
                     );
                     setPreviewRows(rows);
-                    setPreviewSummary(summary);
                   }}
                   disabled={selectedVentas.size === 0}
                 >
@@ -959,13 +998,13 @@ function AbonosMasivosPage() {
                   type="button"
                   className="btn btn-outline-secondary ms-2"
                   onClick={() => {
-                    const { rows, summary } = applyValorCuotaToSelected(
+                    const montoNum = Number(previewMonto || 0);
+                    const { rows } = applyValorCuotaToSelected(
                       previewRows,
-                      selectedVentas
+                      selectedVentas,
+                      montoNum
                     );
                     setPreviewRows(rows);
-                    setPreviewMonto(summary.monto);
-                    setPreviewSummary(summary);
                   }}
                   disabled={selectedVentas.size === 0}
                 >
@@ -995,83 +1034,93 @@ function AbonosMasivosPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewRows.map((row) => (
-                      <tr key={row.id}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            checked={selectedVentas.has(row.id)}
-                            onChange={() => toggleSelectRow(row.id)}
-                          />
-                        </td>
-                        <td>{row.id}</td>
-                        <td>{clientesMap.get(row.cliente_id) || row.cliente_id}</td>
-                        <td className="text-center">
-                          {(() => {
-                            const cuotas = getCuotasVersus(row);
-                            if (!cuotas) return getNumeroCuotas(row);
-                            return `${formatCuotasMetric(cuotas.pagadas)} / ${formatCuotasMetric(Number((row.cuotas ?? row.numeroCuotas ?? row.compromisoPago) || 0))}`;
-                          })()}
-                        </td>
-                        <td className="text-center">
-                          {(() => {
-                            const cuotas = getCuotasVersus(row);
-                            if (!cuotas) return '-';
-                            return formatCuotasMetric(cuotas.pendientes);
-                          })()}
-                        </td>
-                        <td className="text-center">{formatCurrency(getValorCuota(row))}</td>
-                        <td>{formatCurrency(row.saldoInicial)}</td>
-                        <td>
-                          <InputNumber
-                            inputId={`aplicar-${row.id}`}
-                            className="w-100"
-                            min={0}
-                            mode="currency"
-                            currency="COP"
-                            locale="es-CO"
-                            disabled={!selectedVentas.has(row.id)}
-                            value={row.aplicar}
-                            onValueChange={(e) => {
-                              const value = Number(e.value || 0);
-                              const nextRows = previewRows.map((item) => {
-                                if (item.id !== row.id) return item;
-                                const saldoInicial = normalizeSaldoInicial(item);
-                                const aplicar = Math.min(Math.max(value, 0), saldoInicial);
-                                return {
-                                  ...item,
-                                  saldoInicial,
-                                  aplicar,
-                                  saldoFinal: saldoInicial - aplicar,
-                                };
-                              });
-                              const totalAsignado = nextRows.reduce(
-                                (acc, item) => acc + (item.aplicar || 0),
-                                0
-                              );
-                              const pendiente = nextRows
-                                .filter((item) => selectedVentas.has(item.id))
-                                .reduce((acc, item) => acc + (item.saldoFinal || 0), 0);
-                              setPreviewRows(nextRows);
-                              setPreviewSummary((prev) => ({
-                                ...prev,
-                                totalAsignado,
-                                restante: Math.max((Number(previewMonto || 0) - totalAsignado), 0),
-                                pendiente,
-                              }));
-                            }}
-                          />
-                        </td>
-                        <td>{formatCurrency(row.saldoFinal)}</td>
-                      </tr>
-                    ))}
+                    {previewRows.map((row) => {
+                      const selected = isVentaSelected(selectedVentas, row.id);
+                      const saldoActual = normalizeSaldoInicial(row);
+                      const aplicarActual = selected ? Number(row.aplicar || 0) : 0;
+                      const saldoRestante = saldoActual - aplicarActual;
+                      const exceedsSaldo = selected && roundMoney(aplicarActual) > roundMoney(saldoActual);
+
+                      return (
+                        <tr key={row.id} className={exceedsSaldo ? "table-danger" : ""}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              checked={selected}
+                              onChange={() => toggleSelectRow(row.id)}
+                            />
+                          </td>
+                          <td>{row.id}</td>
+                          <td>{clientesMap.get(row.cliente_id) || row.cliente_id}</td>
+                          <td className="text-center">
+                            {(() => {
+                              const cuotas = getCuotasVersus(row);
+                              if (!cuotas) return getNumeroCuotas(row);
+                              return `${formatCuotasMetric(cuotas.pagadas)} / ${formatCuotasMetric(Number((row.cuotas ?? row.numeroCuotas ?? row.compromisoPago) || 0))}`;
+                            })()}
+                          </td>
+                          <td className="text-center">
+                            {(() => {
+                              const cuotas = getCuotasVersus(row);
+                              if (!cuotas) return '-';
+                              return formatCuotasMetric(cuotas.pendientes);
+                            })()}
+                          </td>
+                          <td className="text-center">{formatCurrency(getValorCuota(row))}</td>
+                          <td>{formatCurrency(saldoActual)}</td>
+                          <td>
+                            <InputNumber
+                              inputId={`aplicar-${row.id}`}
+                              className="w-100"
+                              inputClassName={exceedsSaldo ? "is-invalid" : undefined}
+                              min={0}
+                              mode="currency"
+                              currency="COP"
+                              locale="es-CO"
+                              disabled={!selected}
+                              value={aplicarActual}
+                              onValueChange={(e) => {
+                                const value = Number(e.value || 0);
+                                const nextRows = previewRows.map((item) => {
+                                  if (item.id !== row.id) return item;
+                                  const saldoInicial = normalizeSaldoInicial(item);
+                                  const aplicar = Math.max(value, 0);
+                                  return {
+                                    ...item,
+                                    saldoInicial,
+                                    aplicar,
+                                    saldoFinal: saldoInicial - aplicar,
+                                  };
+                                });
+                                setPreviewRows(nextRows);
+                              }}
+                            />
+                            {exceedsSaldo ? (
+                              <div className="text-danger small mt-1">
+                                Supera el saldo actual por {formatCurrency(aplicarActual - saldoActual)}.
+                              </div>
+                            ) : null}
+                          </td>
+                          <td className={saldoRestante < 0 ? "text-danger fw-semibold" : ""}>
+                            {formatCurrency(saldoRestante)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-              {previewSummary.restante !== 0 ? (
-                <div className="alert alert-warning mt-3 mb-0">
-                  El monto a distribuir no está completamente asignado. Ajusta los valores o el monto total.
+              {overAssignedRows.length > 0 ? (
+                <div className="alert alert-danger mt-3 mb-0">
+                  Hay {overAssignedRows.length} venta{overAssignedRows.length === 1 ? "" : "s"} con abono superior al saldo actual. Ajusta el valor antes de aplicar.
+                </div>
+              ) : null}
+              {previewSummary.restante !== 0 || previewSummary.excedente !== 0 ? (
+                <div className={`alert mt-3 mb-0 ${previewSummary.excedente > 0 ? "alert-danger" : "alert-warning"}`}>
+                  {previewSummary.excedente > 0
+                    ? "El total asignado supera el monto a distribuir. Reduce uno o más abonos."
+                    : "El monto a distribuir no está completamente asignado. Ajusta los valores o el monto total."}
                 </div>
               ) : null}
             </div>
