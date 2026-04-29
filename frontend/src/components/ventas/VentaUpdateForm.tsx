@@ -62,11 +62,39 @@ function VentaUpdateForm(props) {
     const [clientes, setClientes] = useState(data.clientes);
     const [empresas, setEmpresas] = useState(data.empresas);
     const [vendedores, setVendedores] = useState(data.vendedores || []);
+    const [jornadas, setJornadas] = useState(data.jornadas || []);
+    const [empresaSeleccionada, setEmpresaSeleccionada] = useState(String(ventaData?.empresaId || ''));
 
     let selectizeInstance = null;
 
     const fechaHoy = new Date().toISOString().split('T')[0];
     console.log(fechaHoy)
+
+    const formatFecha = (fecha: string) => {
+        if (!fecha) return '';
+        const date = new Date(`${fecha}T00:00:00`);
+        if (Number.isNaN(date.getTime())) return fecha;
+        return new Intl.DateTimeFormat('es-CO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(date);
+    };
+
+    const estadoJornadaLabels: Record<string, string> = {
+        planned: 'Planificada',
+        in_progress: 'En progreso',
+        closed: 'Cerrada',
+    };
+
+    const jornadasFiltradas = useMemo(() => {
+        if (!empresaSeleccionada) {
+            return jornadas;
+        }
+        return (jornadas || []).filter(
+            (jornada) => String(jornada.empresa_id) === String(empresaSeleccionada)
+        );
+    }, [jornadas, empresaSeleccionada]);
 
       useEffect(()=>{
               //import( "bootstrap/dist/js/bootstrap.bundle.js");
@@ -113,6 +141,9 @@ function VentaUpdateForm(props) {
                 });
     
                 setEmpresa(selectizeInstance2);
+                selectizeInstance2[0].selectize.on('change', (value: string) => {
+                    setEmpresaSeleccionada(value || '');
+                });
             }
 
             if (vendedorRef.current) {
@@ -417,13 +448,36 @@ function VentaUpdateForm(props) {
                             <option key={vendedor.id} value={vendedor.id}>
                                 {vendedor.nombre}
                             </option>
-                        ))}
+                        ))}                    </select>
+                </div>
+
+                <div className="form-group col-sm-12 col-md-6 col-xl-3">
+                    <label htmlFor="jornada">Jornada</label>
+                    <select
+                        className="form-select"
+                        id="jornada"
+                        name="jornada"
+                        defaultValue={dataVenta.jornada_id ?? dataVenta.jornada ?? ''}
+                    >
+                        <option value="">Sin jornada</option>
+                        {jornadasFiltradas.map((jornada) => {
+                            const fechaReferencia = jornada.fecha_inicio || jornada.fecha;
+                            const fechaLegible = formatFecha(fechaReferencia) || fechaReferencia;
+                            const estadoLegible = estadoJornadaLabels[jornada.estado] || jornada.estado;
+                            return (
+                                <option key={jornada.id} value={jornada.id}>
+                                    {jornada.empresa__nombre}
+                                    {jornada.sucursal ? ` - ${jornada.sucursal}` : ''}
+                                    {` | ${fechaLegible} (${estadoLegible})`}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
                 
                 <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
                     <label htmlFor="password">Fecha de venta</label>
-                    <input type="date" className="form-control" id="fechaVenta" placeholder="Ingrese su contraseña" name="fecha" defaultValue={dataVenta.fecha} required />
+                    <input type="date" className="form-control" id="fechaVenta" placeholder="Ingrese su contrase??a" name="fecha" defaultValue={dataVenta.fecha} required />
                 </div>
                 
                 </div>

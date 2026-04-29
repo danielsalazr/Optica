@@ -34,6 +34,7 @@ urlpatterns = [
     
     path('abono/', views.Abono.as_view(), name="abono"),
     path('abono/<factura>', views.Abono.as_view(), name="abono"),
+    path('abonos/masivo/', views.AbonoMasivoList.as_view(), name="abonos-masivo-list"),
     path('abonos/masivo/preview/', views.AbonoMasivoPreview.as_view(), name="abonos-masivo-preview"),
     path('abonos/masivo/aplicar/', views.AbonoMasivoApply.as_view(), name="abonos-masivo-aplicar"),
     path('abonos/masivo/<int:abono_masivo_id>/', views.AbonoMasivoDetail.as_view(), name="abonos-masivo-detail"),

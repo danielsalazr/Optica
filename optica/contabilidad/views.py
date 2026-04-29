@@ -351,9 +351,10 @@ class VentasP(APIView):
         estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
         jornadas = Jornada.objects.select_related('empresa').filter(
             estado__in=['planned', 'in_progress']
-        ).order_by('-fecha', '-id').values(
+        ).order_by('-fecha_inicio', '-fecha', '-id').values(
             'id',
             'fecha',
+            'fecha_inicio',
             'estado',
             'empresa_id',
             'empresa__nombre',
@@ -834,6 +835,7 @@ class Venta(APIView):
                 T6.id as jornada_id,
                 T6.estado as jornada_estado,
                 T6.fecha as jornada_fecha,
+                T6.fecha_inicio as jornada_fecha_inicio,
                 T6.sucursal as jornada_sucursal,
                 T7.nombre as jornada_empresa,
                 
@@ -856,7 +858,7 @@ class Venta(APIView):
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         for item in results:
             jornada_empresa = item.get('jornada_empresa')
-            jornada_fecha = item.get('jornada_fecha')
+            jornada_fecha = item.get('jornada_fecha_inicio') or item.get('jornada_fecha')
             jornada_sucursal = item.get('jornada_sucursal')
             if jornada_empresa and jornada_fecha:
                 partes = [jornada_empresa]
@@ -1941,6 +1943,40 @@ class AbonoMasivoApply(APIView):
         return Response({'accion': 'ok', 'creados': creados}, status=status.HTTP_201_CREATED)
 
 
+class AbonoMasivoList(APIView):
+    def get(self, request):
+        abonos_masivos = (
+            AbonoMasivo.objects.select_related('empresa', 'jornada', 'cliente')
+            .annotate(
+                total=Coalesce(Sum('abonos__precio'), 0),
+                cantidad_abonos=Count('abonos', distinct=True),
+                cantidad_ventas=Count('abonos__venta', distinct=True),
+                fecha_abono=Max('abonos__fecha_abono'),
+            )
+            .order_by('-id')
+        )
+
+        return Response(
+            [
+                {
+                    'id': item.id,
+                    'tipo': item.tipo,
+                    'nombre_objetivo': item.nombre_objetivo,
+                    'empresa': getattr(item.empresa, 'nombre', None),
+                    'jornada': getattr(item.jornada, 'id', None),
+                    'cliente': getattr(item.cliente, 'nombre', None),
+                    'creado_en': item.creado_en,
+                    'fecha_abono': item.fecha_abono,
+                    'total': int(item.total or 0),
+                    'cantidad_abonos': int(item.cantidad_abonos or 0),
+                    'cantidad_ventas': int(item.cantidad_ventas or 0),
+                }
+                for item in abonos_masivos
+            ],
+            status=status.HTTP_200_OK,
+        )
+
+
 class AbonoMasivoDetail(APIView):
     def get(self, request, abono_masivo_id):
         abono_masivo = get_object_or_404(
@@ -1979,9 +2015,13 @@ class AbonoMasivoDetail(APIView):
                         ),
                         'precio': abono.precio,
                         'fecha': abono.fecha_abono,
-                'fecha_registro': abono.fecha,
+                        'fecha_registro': abono.fecha,
                         'descripcion': abono.descripcion,
                         'medioDePago': abono.medioDePago.nombre if abono.medioDePago else None,
+                        'venta_precio': int(abono.venta.precio or 0) if abono.venta else 0,
+                        'venta_total_abono': int(abono.venta.totalAbono or 0) if abono.venta else 0,
+                        'venta_saldo': max(int((abono.venta.precio or 0) - (abono.venta.totalAbono or 0)), 0) if abono.venta else 0,
+                        'estado_pago': abono.venta.estado.nombre if abono.venta and abono.venta.estado else None,
                     }
                     for abono in abonos
                 ],

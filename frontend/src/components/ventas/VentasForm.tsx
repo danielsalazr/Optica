@@ -58,7 +58,7 @@ function VentasForm({data}) {
       if (!fecha) {
         return '';
       }
-      const date = new Date(fecha);
+      const date = new Date(`${fecha}T00:00:00`);
       if (Number.isNaN(date.getTime())) {
         return fecha;
       }
@@ -312,12 +312,13 @@ function VentasForm({data}) {
                     <select className="form-select" id="jornada" name="jornada" defaultValue="">
                         <option value="">Sin jornada</option>
                         {jornadasFiltradas.map((jornada) => {
-                            const fechaLegible = formatFecha(jornada.fecha) || jornada.fecha;
-                            const estadoLegible = estadoJornadaLabels[jornada.estado] - jornada.estado;
+                            const fechaReferencia = jornada.fecha_inicio || jornada.fecha;
+                            const fechaLegible = formatFecha(fechaReferencia) || fechaReferencia;
+                            const estadoLegible = estadoJornadaLabels[jornada.estado] || jornada.estado;
                             return (
                                 <option key={jornada.id} value={jornada.id}>
                                     {jornada.empresa__nombre}
-                                    {jornada.sucursal ? ` ? ${jornada.sucursal}` : ""}
+                                    {jornada.sucursal ? ` - ${jornada.sucursal}` : ""}
                                     {` · ${fechaLegible} (${estadoLegible})`}
                                 </option>
                             );

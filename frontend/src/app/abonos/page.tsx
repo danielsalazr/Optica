@@ -31,6 +31,20 @@ type GeneralData = {
   [key: string]: unknown;
 };
 
+type AbonoMasivoSummary = {
+  id: number;
+  tipo: string;
+  nombre_objetivo: string | null;
+  empresa: string | null;
+  jornada: number | null;
+  cliente: string | null;
+  creado_en: string;
+  fecha_abono: string | null;
+  total: number;
+  cantidad_abonos: number;
+  cantidad_ventas: number;
+};
+
 
 function safeDateLabel(value: unknown) {
   if (!value) return "-";
@@ -63,13 +77,25 @@ async function getGeneralData() {
   return data;
 }
 
+async function getMassiveAbonos() {
+  const res = await fetch(buildServerBackendUrl("abonos/masivo/"), {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP error! Status: ${res.status}`);
+  }
+  const data: AbonoMasivoSummary[] = await res.json();
+  return data;
+}
+
 async function page() {
   let data: AbonoRow[] = [];
   let generalData: GeneralData = { mediosPago: [] };
+  let massiveData: AbonoMasivoSummary[] = [];
   let fetchError: string | null = null;
 
   try {
-    [data, generalData] = await Promise.all([getDataAbonos(), getGeneralData()]);
+    [data, generalData, massiveData] = await Promise.all([getDataAbonos(), getGeneralData(), getMassiveAbonos()]);
   } catch (error) {
     fetchError =
       error instanceof Error
@@ -96,7 +122,7 @@ async function page() {
           Error cargando abonos: {fetchError}
         </div>
       ) : null}
-      <AbonosData data={data} generalData={generalData} />
+      <AbonosData data={data} generalData={generalData} massiveData={massiveData} />
     </div>
   );
 }

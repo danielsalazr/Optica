@@ -608,6 +608,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     <Tag
       value={ESTADO_LABELS[jornada.estado]}
       severity={jornada.estado === "closed" ? "success" : jornada.estado === "in_progress" ? "info" : "secondary"}
+      className="jornadas-estado-tag"
     />
   );
 
@@ -630,6 +631,12 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
     return (
       <div className="jornadas-detail-wrap">
+        <div className="jornadas-detail-meta-top">
+          <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Responsable:</span> {detalle.responsable_nombre || "-"}</div>
+          <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Sucursal:</span> {detalle.sucursal || "Sin sucursal"}</div>
+          <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Fecha:</span> {formatDate(detalle.fecha)}</div>
+        </div>
+
         <div className="jornadas-detail-stats">
           <div className="jornadas-detail-stat">
             <span className="jornadas-detail-label">Ventas</span>
@@ -653,60 +660,57 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
           </div>
         </div>
 
-        <div className="table-responsive jornadas-detail-table-wrap">
-          <table className="table table-sm align-middle mb-0 jornadas-detail-table">
-            <thead>
-              <tr>
-                <th>Venta</th>
-                <th>Cliente</th>
-                <th>Resumen</th>
-                <th>Estados</th>
-                <th>Articulos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detalle.ventas.length ? detalle.ventas.map((venta) => (
-                <tr key={venta.id}>
-                  <td>
-                    <div className="fw-semibold">#{venta.id}</div>
-                    <div className="small text-muted">{venta.empresa_cliente || "-"}</div>
-                    <div className="small text-muted">{formatDate(venta.fecha)}</div>
-                  </td>
-                  <td>
-                    <div>{formatCliente(venta)}</div>
-                    <div className="small text-muted">{venta.cliente_telefono || "Sin telefono"}</div>
-                  </td>
-                  <td>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Precio:</span> {formatCurrency(venta.precio)}</div>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Abonos:</span> {formatCurrency(venta.total_abono)}</div>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Saldo:</span> {formatCurrency(venta.saldo)}</div>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Vendedor:</span> {venta.vendedor_nombre || "-"}</div>
-                  </td>
-                  <td>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pago:</span> {venta.estado_pago || "-"}</div>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pedido:</span> {venta.estado_pedido || "-"}</div>
-                    <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Condicion:</span> {formatCondicionPago(venta.condicion_pago)}</div>
-                  </td>
-                  <td>
-                    <div className="jornadas-detail-items">
-                      {venta.articulos.length ? venta.articulos.map((item) => (
-                        <div key={item.id} className="jornadas-detail-item">
-                          <div className="fw-semibold">{item.articulo || `Articulo ${item.articulo_id}`}</div>
-                          <div className="small text-muted">
-                            Cant. {item.cantidad} ? Unit. {formatCurrency(item.precio_unitario)} ? Desc. {formatDescuento(item)} ? Total {formatCurrency(item.total)}
-                          </div>
-                        </div>
-                      )) : <span className="text-muted">Sin articulos</span>}
+        <div className="jornadas-detail-sales">
+          {detalle.ventas.length ? detalle.ventas.map((venta) => (
+            <article key={venta.id} className="jornadas-sale-card">
+              <div className="jornadas-sale-card-header">
+                <div>
+                  <div className="jornadas-sale-card-title">Venta #{venta.id}</div>
+                  <div className="small text-muted">{venta.empresa_cliente || "-"}</div>
+                </div>
+                <div className="small text-muted">{formatDate(venta.fecha)}</div>
+              </div>
+
+              <div className="jornadas-sale-grid">
+                <div className="jornadas-sale-block">
+                  <div className="jornadas-detail-label">Cliente</div>
+                  <div>{formatCliente(venta)}</div>
+                  <div className="small text-muted">{venta.cliente_telefono || "Sin telefono"}</div>
+                </div>
+
+                <div className="jornadas-sale-block">
+                  <div className="jornadas-detail-label">Resumen</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Precio:</span> {formatCurrency(venta.precio)}</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Abonos:</span> {formatCurrency(venta.total_abono)}</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Saldo:</span> {formatCurrency(venta.saldo)}</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Vendedor:</span> {venta.vendedor_nombre || "-"}</div>
+                </div>
+
+                <div className="jornadas-sale-block">
+                  <div className="jornadas-detail-label">Estados</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pago:</span> {venta.estado_pago || "-"}</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Pedido:</span> {venta.estado_pedido || "-"}</div>
+                  <div className="jornadas-detail-meta"><span className="jornadas-detail-meta-label">Condicion:</span> {formatCondicionPago(venta.condicion_pago)}</div>
+                </div>
+              </div>
+
+              <div className="jornadas-sale-block jornadas-sale-items-block">
+                <div className="jornadas-detail-label">Articulos</div>
+                <div className="jornadas-detail-items">
+                  {venta.articulos.length ? venta.articulos.map((item) => (
+                    <div key={item.id} className="jornadas-detail-item">
+                      <div className="fw-semibold">{item.articulo || `Articulo ${item.articulo_id}`}</div>
+                      <div className="small text-muted">
+                        Cant. {item.cantidad} ? Unit. {formatCurrency(item.precio_unitario)} ? Desc. {formatDescuento(item)} ? Total {formatCurrency(item.total)}
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={5} className="text-center text-muted py-3">No hay ventas asociadas a esta jornada.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )) : <span className="text-muted">Sin articulos</span>}
+                </div>
+              </div>
+            </article>
+          )) : (
+            <div className="text-center text-muted py-3">No hay ventas asociadas a esta jornada.</div>
+          )}
         </div>
       </div>
     );
@@ -1020,9 +1024,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             <Column field="ventas_count" header="Ventas" sortable body={(jornada: Jornada) => <span className="fw-semibold">{Number(jornada.ventas_count || 0)}</span>} bodyClassName="text-center" style={{ width: "7rem" }} />
             <Column field="total_vendido" header="Total vendido" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_vendido)} bodyClassName="text-center" style={{ minWidth: "10rem" }} />
             <Column field="total_abonos" header="Abonos" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_abonos)} bodyClassName="text-center" style={{ minWidth: "10rem" }} />
-            <Column field="responsable_nombre" header="Responsable" sortable body={(jornada: Jornada) => jornada.responsable_nombre || "-"} style={{ minWidth: "12rem" }} />
-            <Column field="estado" header="Estado" sortable body={renderEstadoBody} style={{ minWidth: "10rem" }} />
-            <Column header="Accion" body={renderAccionBody} bodyClassName="text-end" style={{ minWidth: "11rem" }} />
+            <Column field="estado" header="Estado" sortable body={renderEstadoBody} style={{ width: "7.5rem" }} />
+            <Column header="Accion" body={renderAccionBody} bodyClassName="text-end" style={{ width: "8.5rem" }} />
           </DataTable>
         </div>
       </section>

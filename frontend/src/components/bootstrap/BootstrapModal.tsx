@@ -40,9 +40,13 @@ export default function BootstrapModal(props: BootstrapModalProps) {
   return (
     <Modal
       {...modalProps}
+      onHide={onHide}
       size="lg"
       aria-labelledby="contained-modal-title-vcenter"
       centered
+      className={`bootstrap-modal-on-top ${String(modalProps.className || "")}`.trim()}
+      dialogClassName={String(modalProps.dialogClassName || "")}
+      backdropClassName={`bootstrap-modal-backdrop-on-top ${String(modalProps.backdropClassName || "")}`.trim()}
     >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-vcenter">
