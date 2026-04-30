@@ -1077,6 +1077,8 @@ function AbonosMasivosPage() {
                             <InputNumber
                               inputId={`aplicar-${row.id}`}
                               className="abono-masivo-aplicar-input"
+                              style={{ width: "11rem" }}
+                              inputStyle={{ width: "11rem" }}
                               inputClassName={exceedsSaldo ? "is-invalid" : undefined}
                               min={0}
                               mode="currency"

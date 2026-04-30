@@ -414,7 +414,7 @@ body {
 }
 
 .remisiones-table .p-datatable-tbody {
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
 .remisiones-table .p-paginator {
@@ -780,7 +780,7 @@ body {
 
 .abonos-massive-sale-grid strong {
   display: block;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   color: #0f172a;
 }
 
@@ -1155,7 +1155,7 @@ body {
 
 .jornadas-panel table {
   width: 100%;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
 }
 
 .jornadas-panel table th,
@@ -1181,13 +1181,18 @@ body {
 
 
 .abono-masivo-aplicar-input {
-  width: 11rem;
-  max-width: 100%;
+  width: 11rem !important;
+  max-width: 11rem !important;
+  min-width: 11rem !important;
+  display: inline-flex !important;
   margin: 0 auto;
 }
 
 .abono-masivo-aplicar-input .p-inputtext {
+  width: 11rem !important;
+  max-width: 11rem !important;
+  min-width: 11rem !important;
   text-align: right;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.92rem;
+  padding: 0.3rem 0.45rem;
+  font-size: 0.84rem;
 }
