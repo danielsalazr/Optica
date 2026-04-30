@@ -169,6 +169,14 @@ function AbonosMasivosPage() {
     return Number(rawSaldo || 0);
   };
 
+  const getValorCuotaCalculado = (row: PreviewRow): number => {
+    const totalVenta = Number(row.precio || 0);
+    const cuotasRaw = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
+    const cuotas = Number(cuotasRaw || 0);
+    if (!cuotas || totalVenta <= 0) return 0;
+    return totalVenta / cuotas;
+  };
+
   const roundMoney = (value: number): number => Math.round(Number(value || 0) * 100) / 100;
   const ventaKey = (ventaId: PreviewRow["id"]): string => String(ventaId);
   const isVentaSelected = (selectedSet: Set<string>, ventaId: PreviewRow["id"]): boolean =>
@@ -250,9 +258,7 @@ function AbonosMasivosPage() {
           saldoFinal: saldo,
         };
       }
-      const cuotasRaw = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
-      const cuotas = Number(cuotasRaw || 0);
-      const valorCuota = cuotas > 0 ? (saldo / cuotas) : 0;
+      const valorCuota = getValorCuotaCalculado(row);
       const aplicar = Math.min(Math.max(valorCuota, 0), saldo, restante);
       restante = Math.max(restante - aplicar, 0);
       return {
@@ -492,11 +498,7 @@ function AbonosMasivosPage() {
   };
 
   const getValorCuota = (row: PreviewRow): number => {
-    const saldo = normalizeSaldoInicial(row);
-    const cuotasRaw = row.cuotas ?? row.numeroCuotas ?? row.compromisoPago;
-    const cuotas = Number(cuotasRaw || 0);
-    if (!cuotas) return 0;
-    return saldo / cuotas;
+    return getValorCuotaCalculado(row);
   };
 
 
@@ -1027,9 +1029,10 @@ function AbonosMasivosPage() {
                       <th>Cliente</th>
                       <th className="text-center">Cuotas pag./total</th>
                       <th className="text-center">Cuotas pendientes</th>
+                      <th className="text-center">Valor venta</th>
                       <th className="text-center">Valor cuota</th>
                       <th>Saldo actual</th>
-                      <th>Abono a aplicar</th>
+                      <th className="text-center">Abono a aplicar</th>
                       <th>Saldo restante</th>
                     </tr>
                   </thead>
@@ -1067,12 +1070,13 @@ function AbonosMasivosPage() {
                               return formatCuotasMetric(cuotas.pendientes);
                             })()}
                           </td>
+                          <td className="text-center">{formatCurrency(Number(row.precio || 0))}</td>
                           <td className="text-center">{formatCurrency(getValorCuota(row))}</td>
                           <td>{formatCurrency(saldoActual)}</td>
-                          <td>
+                          <td className="text-center">
                             <InputNumber
                               inputId={`aplicar-${row.id}`}
-                              className="w-100"
+                              className="abono-masivo-aplicar-input"
                               inputClassName={exceedsSaldo ? "is-invalid" : undefined}
                               min={0}
                               mode="currency"

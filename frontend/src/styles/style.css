@@ -1178,3 +1178,16 @@ body {
     width: min(100%, 980px);
   }
 }
+
+
+.abono-masivo-aplicar-input {
+  width: 11rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.abono-masivo-aplicar-input .p-inputtext {
+  text-align: right;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.92rem;
+}

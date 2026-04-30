@@ -330,7 +330,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const formatCliente = useCallback((venta: JornadaVentaDetalle) => {
     const parts = [venta.cliente_nombre, venta.cliente_cedula ? `CC ${venta.cliente_cedula}` : null].filter(Boolean);
-    return parts.length ? parts.join(" ? ") : venta.cliente_id ? `Cliente ${venta.cliente_id}` : "-";
+    return parts.length ? parts.join(" - ") : venta.cliente_id ? `Cliente ${venta.cliente_id}` : "-";
   }, []);
 
   const formatDescuento = useCallback((item: JornadaVentaItem) => {
@@ -701,7 +701,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                     <div key={item.id} className="jornadas-detail-item">
                       <div className="fw-semibold">{item.articulo || `Articulo ${item.articulo_id}`}</div>
                       <div className="small text-muted">
-                        Cant. {item.cantidad} ? Unit. {formatCurrency(item.precio_unitario)} ? Desc. {formatDescuento(item)} ? Total {formatCurrency(item.total)}
+                        Cant. {item.cantidad} | Unit. {formatCurrency(item.precio_unitario)} | Desc. {formatDescuento(item)} | Total {formatCurrency(item.total)}
                       </div>
                     </div>
                   )) : <span className="text-muted">Sin articulos</span>}
