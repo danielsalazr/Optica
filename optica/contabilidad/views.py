@@ -772,6 +772,15 @@ class Venta(APIView):
                     'jornada': venta_instance.jornada_id,
                     'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
                     'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
+                    'jornadaData': {
+                        'id': venta_instance.jornada_id,
+                        'estado': venta_instance.jornada.estado,
+                        'empresa_id': venta_instance.jornada.empresa_id,
+                        'empresa__nombre': venta_instance.jornada.empresa.nombre if venta_instance.jornada and venta_instance.jornada.empresa else '',
+                        'sucursal': venta_instance.jornada.sucursal if venta_instance.jornada else '',
+                        'fecha': venta_instance.jornada.fecha.isoformat() if venta_instance.jornada and venta_instance.jornada.fecha else None,
+                        'fecha_inicio': venta_instance.jornada.fecha_inicio.isoformat() if venta_instance.jornada and venta_instance.jornada.fecha_inicio else None,
+                    } if venta_instance.jornada else None,
                     'fotosVenta': [foto.foto.url for foto in venta_instance.fotosVenta.all()],
                     'historicoEstadoPedido': [
                         {
@@ -1543,12 +1552,48 @@ class JornadaDetailView(APIView):
 
     def patch(self, request, jornada_id):
         jornada = get_object_or_404(Jornada, pk=jornada_id)
-        if jornada.estado in ['in_progress', 'closed']:
+        payload_keys = {key for key in request.data.keys() if key != 'csrfmiddlewaretoken'}
+        requested_estado = request.data.get('estado')
+        is_estado_only_change = bool(requested_estado) and payload_keys.issubset({'estado'})
+
+        if is_estado_only_change:
+            allowed_transitions = {
+                'planned': {'in_progress'},
+                'in_progress': {'closed'},
+                'closed': {'in_progress'},
+            }
+            requested_estado = str(requested_estado)
+            current_estado = str(jornada.estado)
+
+            if requested_estado == current_estado:
+                return Response(JornadaSerializer(jornada).data, status=status.HTTP_200_OK)
+
+            if requested_estado not in allowed_transitions.get(current_estado, set()):
+                return Response(
+                    {'detail': 'No es posible cambiar la jornada a ese estado.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            jornada.estado = requested_estado
+            jornada.save(update_fields=['estado'])
+            return Response(JornadaSerializer(jornada).data, status=status.HTTP_200_OK)
+
+        if jornada.estado == 'closed':
             return Response(
-                {'detail': 'No es posible editar una jornada que ya fue iniciada.'},
+                {'detail': 'No es posible editar una jornada cerrada. Reabre la jornada para modificarla.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = JornadaSerializer(jornada, data=request.data, partial=True)
+
+        payload = request.data.copy()
+        if jornada.estado == 'in_progress':
+            if 'empresa' in payload and str(payload.get('empresa') or '') != str(jornada.empresa_id):
+                return Response(
+                    {'detail': 'No es posible cambiar la empresa de una jornada en progreso.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            payload.pop('empresa', None)
+
+        serializer = JornadaSerializer(jornada, data=payload, partial=True)
         if serializer.is_valid():
             try:
                 serializer.save()

@@ -118,7 +118,7 @@ const ESTADO_LABELS: Record<JornadaEstado, string> = {
 const ESTADO_ACCIONES: Record<JornadaEstado, { value: JornadaEstado; label: string } | null> = {
   planned: { value: "in_progress", label: "Iniciar jornada" },
   in_progress: { value: "closed", label: "Cerrar jornada" },
-  closed: null,
+  closed: { value: "in_progress", label: "Reabrir jornada" },
 };
 
 const currencyFormatter = new Intl.NumberFormat("es-CO", {
@@ -481,6 +481,13 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     });
   };
 
+  const currentEditingJornada = useMemo(
+    () => jornadas.find((item) => item.id === editingJornadaId) || null,
+    [jornadas, editingJornadaId]
+  );
+
+  const isEditingInProgress = currentEditingJornada?.estado === "in_progress";
+
   const handleCrearJornada = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!formData.empresa) {
@@ -602,7 +609,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     </div>
   );
 
-  const canManageJornada = (jornada: Jornada) => jornada.estado === "planned";
+  const canEditJornada = (jornada: Jornada) => jornada.estado !== "closed";
 
   const renderEstadoBody = (jornada: Jornada) => (
     <Tag
@@ -718,11 +725,14 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const renderAccionBody = (jornada: Jornada) => {
     const accion = ESTADO_ACCIONES[jornada.estado];
-    const canManage = canManageJornada(jornada);
+    const canEdit = canEditJornada(jornada);
+    const canDelete = jornada.estado === "planned";
     const bloqueado = actualizando === jornada.id || eliminando === jornada.id;
-    const bloqueadoEdicion = bloqueado || !canManage;
-    const manageTooltip = canManage ? "Editar jornada" : "No disponible: la jornada ya fue iniciada";
-    const deleteTooltip = canManage
+    const bloqueadoEdicion = bloqueado || !canEdit;
+    const manageTooltip = canEdit
+      ? (jornada.estado === "in_progress" ? "Editar jornada en progreso" : "Editar jornada")
+      : "No disponible: la jornada esta cerrada";
+    const deleteTooltip = canDelete
       ? (eliminando === jornada.id ? "Eliminando jornada" : "Eliminar jornada")
       : "No disponible: la jornada ya fue iniciada";
 
@@ -743,9 +753,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"><path d="M12 6V3m-6.364 4.636L3.514 6.514m14.95 1.122l2.122-2.122M6 12H3m18 0h-3m-9 6v3m11.314-5.314l-2.122 2.122M5.05 17.95l-2.122 2.122"/><circle cx="12" cy="12" r="3"/></g></svg>
             )}
           </button>
-        ) : (
-          <span className="text-muted small align-self-center">Jornada cerrada</span>
-        )}
+        ) : null}
 
         <button
           type="button"
@@ -753,7 +761,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
           data-pr-tooltip={manageTooltip}
           data-pr-position="top"
           disabled={bloqueadoEdicion}
-          onClick={() => canManage && hydrateForm(jornada)}
+          onClick={() => canEdit && hydrateForm(jornada)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
         </button>
@@ -791,7 +799,11 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       </BootstrapModal>
 
       <Dialog
-        header={editingJornadaId !== null ? "Editar jornada" : "Nueva jornada"}
+        header={
+          editingJornadaId !== null
+            ? (isEditingInProgress ? "Editar jornada en progreso" : "Editar jornada")
+            : "Nueva jornada"
+        }
         visible={createModalVisible}
         style={{ width: "min(860px, 94vw)" }}
         contentClassName="jornadas-create-dialog-content"
@@ -809,6 +821,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                 value={formData.empresa}
                 onChange={handleFormChange("empresa")}
                 required
+                disabled={Boolean(editingJornadaId) && isEditingInProgress}
               >
                 <option value="">Selecciona una empresa</option>
                 {empresasOrdenadas.map((empresa) => (
@@ -823,6 +836,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
                 onClick={() => setModalEmpresaShow(true)}
                 aria-label="Crear empresa"
                 title="Crear empresa"
+                disabled={Boolean(editingJornadaId) && isEditingInProgress}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width={24} height={24} viewBox="0 0 1024 1024"><path fill="currentColor" d="M839.7 734.7c0 33.3-17.9 41-17.9 41S519.7 949.8 499.2 960c-10.2 5.1-20.5 5.1-30.7 0c0 0-314.9-184.3-325.1-192c-5.1-5.1-10.2-12.8-12.8-20.5V368.6c0-17.9 20.5-28.2 20.5-28.2L466 158.6q19.2-7.65 38.4 0s279 161.3 309.8 179.2c17.9 7.7 28.2 25.6 25.6 46.1c-.1-5-.1 317.5-.1 350.8M714.2 371.2c-64-35.8-217.6-125.4-217.6-125.4c-7.7-5.1-20.5-5.1-30.7 0L217.6 389.1s-17.9 10.2-17.9 23v297c0 5.1 5.1 12.8 7.7 17.9c7.7 5.1 256 148.5 256 148.5c7.7 5.1 17.9 5.1 25.6 0c15.4-7.7 250.9-145.9 250.9-145.9s12.8-5.1 12.8-30.7v-74.2l-276.5 169v-64c0-17.9 7.7-30.7 20.5-46.1L745 535c5.1-7.7 10.2-20.5 10.2-30.7v-66.6l-279 169v-69.1c0-15.4 5.1-30.7 17.9-38.4zM919 135.7c0-5.1-5.1-7.7-7.7-7.7h-58.9V66.6c0-5.1-5.1-5.1-10.2-5.1l-30.7 5.1c-5.1 0-5.1 2.6-5.1 5.1V128h-56.3c-5.1 0-5.1 5.1-7.7 5.1v38.4h69.1v64c0 5.1 5.1 5.1 10.2 5.1l30.7-5.1c5.1 0 5.1-2.6 5.1-5.1v-56.3h64z"></path></svg>
               </button>
@@ -912,7 +926,11 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
               value={formData.observaciones}
               onChange={handleFormChange("observaciones")}
             />
-            <small className="text-muted">Se evita crear jornadas duplicadas para una misma empresa, sucursal y fecha.</small>
+            <small className="text-muted">
+              {Boolean(editingJornadaId) && isEditingInProgress
+                ? "En una jornada en progreso puedes editar los datos operativos, pero la empresa queda bloqueada."
+                : "Se evita crear jornadas duplicadas para una misma empresa, sucursal y fecha."}
+            </small>
           </div>
 
           <div className="col-12 d-flex justify-content-end gap-2 pt-1">

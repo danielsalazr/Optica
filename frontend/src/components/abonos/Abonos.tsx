@@ -132,8 +132,9 @@ function Abonos(props: AbonosProps) {
       return
     }
     const multiplicador = condicionPago === 'mensual' ? 30 : 15
-    const cuotas = Number(compromisoPago) || 0
-    const dias = cuotas * multiplicador
+    const cuotas = Math.max(Number(compromisoPago) || 0, 1)
+    const periodosRestantes = Math.max(cuotas - 1, 0)
+    const dias = periodosRestantes * multiplicador
     setFechaVencimientoDate(addDaysSkipping31(fechaInicioDate, dias))
   }, [fechaInicioDate, condicionPago, compromisoPago])
 

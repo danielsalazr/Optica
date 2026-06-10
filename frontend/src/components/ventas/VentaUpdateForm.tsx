@@ -87,14 +87,29 @@ function VentaUpdateForm(props) {
         closed: 'Cerrada',
     };
 
-    const jornadasFiltradas = useMemo(() => {
-        if (!empresaSeleccionada) {
-            return jornadas;
+    const jornadasDisponibles = useMemo(() => {
+        const baseJornadas = Array.isArray(jornadas) ? [...jornadas] : [];
+        const jornadaActual = dataVenta?.jornadaData;
+        if (
+            jornadaActual?.id &&
+            !baseJornadas.some((jornada) => String(jornada.id) === String(jornadaActual.id))
+        ) {
+            baseJornadas.unshift(jornadaActual);
         }
-        return (jornadas || []).filter(
-            (jornada) => String(jornada.empresa_id) === String(empresaSeleccionada)
+        return baseJornadas;
+    }, [jornadas, dataVenta?.jornadaData]);
+
+    const jornadasFiltradas = useMemo(() => {
+        const jornadaActualId = dataVenta?.jornada_id ?? dataVenta?.jornada ?? '';
+        if (!empresaSeleccionada) {
+            return jornadasDisponibles;
+        }
+        return (jornadasDisponibles || []).filter(
+            (jornada) =>
+                String(jornada.empresa_id) === String(empresaSeleccionada) ||
+                String(jornada.id) === String(jornadaActualId)
         );
-    }, [jornadas, empresaSeleccionada]);
+    }, [jornadasDisponibles, empresaSeleccionada, dataVenta?.jornada_id, dataVenta?.jornada]);
 
       useEffect(()=>{
               //import( "bootstrap/dist/js/bootstrap.bundle.js");
