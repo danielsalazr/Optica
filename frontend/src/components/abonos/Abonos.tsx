@@ -299,7 +299,7 @@ function Abonos(props: AbonosProps) {
       </div>
 
       <div className="table-responsive mt-4" style={{ overflowX: 'visible' }}>
-        <table className="table table-bordered">
+        <table className="table table-bordered sale-payments-table">
           <thead className="table-light">
             <tr>
               <th style={{ width: '2%' }}>#</th>
@@ -312,8 +312,8 @@ function Abonos(props: AbonosProps) {
           <tbody>
             {rows.map((row, index) => (
               <tr key={index}>
-                <td className="bg-secondary-subtle">{index + 1}</td>
-                <td style={{ width: '25%' }}>
+                <td data-label="Abono" className="bg-secondary-subtle">{index + 1}</td>
+                <td data-label="Medio de pago" style={{ width: '25%' }}>
                   <MedioPago
                     data={data}
                     name="metodoPago"
@@ -326,7 +326,7 @@ function Abonos(props: AbonosProps) {
                     }}
                   />
                 </td>
-                <td style={{ width: '18%' }}>
+                <td data-label="Fecha del abono" style={{ width: '18%' }}>
                   <input
                     type="date"
                     className="form-control"
@@ -336,7 +336,7 @@ function Abonos(props: AbonosProps) {
                     onChange={(e) => handleFechaAbonoChange(index, e.target.value)}
                   />
                 </td>
-                <td width={40}>
+                <td data-label="Descripcion" width={40}>
                   <input
                     className="form-control"
                     id={`descripcion-${index}`}
@@ -345,12 +345,13 @@ function Abonos(props: AbonosProps) {
                     defaultValue={row.descripcionAbono ? row.descripcionAbono : ''}
                   />
                 </td>
-                <td width={150}>
+                <td data-label="Valor" width={150}>
                   <input
                     type="text"
                     className="form-control border-0 precio"
                     id={`precio_articulo-${index}`}
                     name="precioAbono"
+                    inputMode="decimal"
                     step={1000}
                     placeholder="Precio"
                     value={row.precio}
@@ -386,7 +387,7 @@ function Abonos(props: AbonosProps) {
             <strong id="totalAbono">{fromNumberToMoney(abonoTotal)}</strong>
           </div>
           <div className="text-muted small">
-            Saldo: <strong>{fromNumberToMoney(saldo)}</strong>
+            Saldo: <strong data-sale-balance>{fromNumberToMoney(saldo)}</strong>
           </div>
           {esContado && (
             <div className="text-muted small">

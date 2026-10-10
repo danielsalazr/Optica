@@ -8,6 +8,8 @@ import ClientesForm from '../usuarios/ClientesForm';
 import { handleFormSubmit } from "@/utils/js/ventaFormSubmit.js"
 import "@/styles/style.css"
 import Abonos from '@/components/abonos/Abonos';
+import SaleMobileSummary from './SaleMobileSummary';
+import '@/styles/sale-form.css';
 
 import $ from 'jquery';
 
@@ -48,6 +50,8 @@ function VentasForm({data}) {
     const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
     const [ventaPreviewUrls, setVentaPreviewUrls] = useState<string[]>([]);
     const [formulaPreviewUrl, setFormulaPreviewUrl] = useState<string | null>(null);
+    const [notesExpanded, setNotesExpanded] = useState(false);
+    const [photosExpanded, setPhotosExpanded] = useState(false);
 
     let selectizeInstance = null;
 
@@ -254,7 +258,7 @@ function VentasForm({data}) {
                 {/* <AnularVentaForm /> */}
             </BootstrapModal> 
 
-        <form ref={formRef} className="container-md" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
+        <form ref={formRef} className="container-md sale-create-form" id="ventaForm" onSubmit={(e) => handleFormSubmitWrapper(e, formRef, usuario, empresa, telefonoRef)} encType="multipart/form-data">
                 
                 
 
@@ -281,7 +285,7 @@ function VentasForm({data}) {
                                 {element.cedula} - {element.nombre} - {element.telefono}</option> 
                             ))}
                         </select>
-                        <button className="btn btn-outline-dark position-relative" onClick={() => setModalShow(true)}> <UserRoundPlus  size={24} /> </button>
+                        <button type="button" aria-label="Crear cliente" title="Crear cliente" className="btn btn-outline-dark position-relative" onClick={() => setModalShow(true)}> <UserRoundPlus  size={24} /> </button>
                     </div>
                 </div>
 
@@ -300,7 +304,7 @@ function VentasForm({data}) {
                     {/* <input type="text" className="form-control" id="EmpresaCliente"  maxLength={17} name="EmpresaCliente" /> */}
                     
                     
-                        <button className="btn btn-outline-dark position-relative" onClick={() => setModalEmpresaShow(true)}>
+                        <button type="button" aria-label="Crear empresa" title="Crear empresa" className="btn btn-outline-dark position-relative" onClick={() => setModalEmpresaShow(true)}>
                         <svg xmlns="http://www.w3.org/2000/svg" width={28} height={28} viewBox="0 0 1024 1024"><path fill="currentColor" d="M839.7 734.7c0 33.3-17.9 41-17.9 41S519.7 949.8 499.2 960c-10.2 5.1-20.5 5.1-30.7 0c0 0-314.9-184.3-325.1-192c-5.1-5.1-10.2-12.8-12.8-20.5V368.6c0-17.9 20.5-28.2 20.5-28.2L466 158.6q19.2-7.65 38.4 0s279 161.3 309.8 179.2c17.9 7.7 28.2 25.6 25.6 46.1c-.1-5-.1 317.5-.1 350.8M714.2 371.2c-64-35.8-217.6-125.4-217.6-125.4c-7.7-5.1-20.5-5.1-30.7 0L217.6 389.1s-17.9 10.2-17.9 23v297c0 5.1 5.1 12.8 7.7 17.9c7.7 5.1 256 148.5 256 148.5c7.7 5.1 17.9 5.1 25.6 0c15.4-7.7 250.9-145.9 250.9-145.9s12.8-5.1 12.8-30.7v-74.2l-276.5 169v-64c0-17.9 7.7-30.7 20.5-46.1L745 535c5.1-7.7 10.2-20.5 10.2-30.7v-66.6l-279 169v-69.1c0-15.4 5.1-30.7 17.9-38.4zM919 135.7c0-5.1-5.1-7.7-7.7-7.7h-58.9V66.6c0-5.1-5.1-5.1-10.2-5.1l-30.7 5.1c-5.1 0-5.1 2.6-5.1 5.1V128h-56.3c-5.1 0-5.1 5.1-7.7 5.1v38.4h69.1v64c0 5.1 5.1 5.1 10.2 5.1l30.7-5.1c5.1 0 5.1-2.6 5.1-5.1v-56.3h64z"></path></svg>    
                         </button>
                     </div>
@@ -387,6 +391,11 @@ function VentasForm({data}) {
                 </div>
                 
                 </div>
+                <div className="sale-optional-section">
+                <button type="button" className="sale-section-toggle" aria-expanded={notesExpanded} aria-controls="sale-notes" onClick={() => setNotesExpanded(!notesExpanded)}>
+                  Detalle y observaciones <span aria-hidden="true">{notesExpanded ? '-' : '+'}</span>
+                </button>
+                <div id="sale-notes" className={`sale-section-content ${notesExpanded ? '' : 'sale-section-collapsed'}`}>
                 <div className="row"> 
                     <div className="form-group col-sm-12 col-md-12 col-xl-6 ">
                         <label htmlFor="detalleVenta">Detalle</label>
@@ -397,6 +406,13 @@ function VentasForm({data}) {
                     <textarea rows={3} cols={50} className="form-control" id="observacionVenta" name="observacion" placeholder="Observaciones" defaultValue={""} />
                 </div>
                 </div>
+                </div>
+                </div>
+                <div className="sale-optional-section">
+                <button type="button" className="sale-section-toggle" aria-expanded={photosExpanded} aria-controls="sale-photos" onClick={() => setPhotosExpanded(!photosExpanded)}>
+                  Fotos de venta y formula <span aria-hidden="true">{photosExpanded ? '-' : '+'}</span>
+                </button>
+                <div id="sale-photos" className={`sale-section-content ${photosExpanded ? '' : 'sale-section-collapsed'}`}>
                 <div className="row align-items-stretch g-3 mt-3 pt-2 border-top position-relative">
                   <div
                     className="d-none d-md-block position-absolute top-0 bottom-0"
@@ -459,6 +475,8 @@ function VentasForm({data}) {
                 />
               </div>
               </div>
+              </div>
+              </div>
                 
                 <hr className="my-3" />
                 <div className="row my-1">
@@ -467,9 +485,12 @@ function VentasForm({data}) {
                 <TablaArticulos articulos={data.articulos || []} clear={reiniciarModulos} changeClear={toggleReinicioModulos}/>
                 <Abonos data={data} clear={reiniciarModulos} changeClear={toggleReinicioModulos}/>
                 
+                    <div className="sale-submit-bar">
+                    <SaleMobileSummary formRef={formRef} />
                     <button type="submit" className="btn btn-primary col-12" id="submitVenta" >
                         Crear venta
                     </button>
+                    </div>
                 </div>
                 </div>
 

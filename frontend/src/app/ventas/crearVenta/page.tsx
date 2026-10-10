@@ -28,7 +28,7 @@ async function page() {
     }
 
   return (
-    <div className="d-flex w-100 flex-column vh-100 align-items-center mt-4">
+    <div className="sale-create-page d-flex w-100 flex-column vh-100 align-items-center mt-4">
       <div className="mx-auto">
                 <h3>Crear Venta</h3>
             </div>

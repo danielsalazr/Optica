@@ -248,7 +248,7 @@ function TablaArticulos(props: TablaArticulosProps) {
       <h2 className="mb-4">Articulos</h2>
       
         <div className="table-responsive" style={{overflowX: 'visible'}}>
-          <table className="table table-bordered">
+          <table className="table table-bordered sale-articles-table">
             <thead className="table-light">
               <tr>
                 <th>#</th>
@@ -264,8 +264,8 @@ function TablaArticulos(props: TablaArticulosProps) {
             <tbody>
             {rows.map((row, index) => (
               <tr key={`articulo-row-${index}`}>
-                <td className="bg-secondary-subtle">{index+1}</td>
-                <td className="" style={{width: '25%'}}>
+                <td data-label="Articulo" className="bg-secondary-subtle">{index+1}</td>
+                <td data-label="Producto" className="" style={{width: '25%'}}>
                   <select 
                     ref={(el) => {
                       selectRefs.current[index] = el;
@@ -289,14 +289,14 @@ function TablaArticulos(props: TablaArticulosProps) {
                     }
                   </select>
                 </td>
-                <td>
+                <td data-label="Imagen">
                   <img 
                   // id="imageArticulo" 
                   id={`imageArticulo-${index}`}
                   src={row.foto ? buildMediaUrl(`media/${row.foto}`) : null}
                   height={35} />
                 </td>
-                <td className="">
+                <td data-label="Cantidad" className="">
                   <input 
                     type="number" 
                     className="form-control border-0" 
@@ -311,19 +311,20 @@ function TablaArticulos(props: TablaArticulosProps) {
                     disabled={dataVenta ? false : true}
                   />
                 </td>
-                <td className="">
+                <td data-label="Precio unitario" className="">
                   <input 
                     type="text"
                     className="form-control border-0 precio"
                     // id="precio_articulo"
                     id={`precio_articulo-${index}`}
                     name="precio_articulo"
+                    inputMode="decimal"
                     step={1000}
                     placeholder="Precio"
                     defaultValue={row.precio} //"$ 0" 
                   />
                 </td>
-                <td className="">
+                <td data-label="Tipo de descuento" className="">
                   <select 
                     className="form-select border-0"
                     // id="tipoDescuentoArticulo"
@@ -336,17 +337,18 @@ function TablaArticulos(props: TablaArticulosProps) {
                     <option value="precio" >precio $</option>
                   </select>
                 </td>
-                <td className="">
+                <td data-label="Descuento" className="">
                   <input 
                     type="text" 
                     className="form-control border-0 numerico" 
                     id={`descuentoArticulo-${index}`} 
                     name="descuento" 
+                    inputMode="decimal"
                     placeholder="% Descuento" 
                     defaultValue={row.descuento ? row.descuento : 0}
                   />
                 </td>
-                <td className="">
+                <td data-label="Total" className="">
                   <input 
                     type="text" 
                     className="form-control" 
@@ -374,7 +376,7 @@ function TablaArticulos(props: TablaArticulosProps) {
             </tbody>
           </table>
         </div>
-        <div className="d-flex justify-content-between">
+        <div className="d-flex justify-content-between sale-lines-footer">
           <button type="button" className="btn btn-primary" onClick={addArticulo}>
             Agregar Fila
           </button>
