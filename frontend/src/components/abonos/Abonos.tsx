@@ -1,7 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react'
 import MedioPago from '@/components/MedioPago'
-import { executeUtils } from '@/utils/js/utils.js'
 import { fromMoneyToText, fromNumberToMoney } from '@/utils/js/utils.js'
 import { Calendar } from 'primereact/calendar'
 
@@ -50,9 +49,6 @@ function Abonos(props: AbonosProps) {
     fechaVencimientoInit,
   } = props
 
-  console.log(ventaData)
-  console.log(data)
-  console.log(totalAbonoLoad)
 
   const todayDate = new Date()
   const todayISO = todayDate.toISOString().split('T')[0]
@@ -175,7 +171,7 @@ function Abonos(props: AbonosProps) {
 
   const handlePrecioChange = (index: number, value: string | number) => {
     const newRows = [...rows]
-    newRows[index].precio = value || 0
+    newRows[index].precio = fromNumberToMoney(fromMoneyToText(String(value || 0)))
     newRows[index].total = newRows[index].precio
     setRows(newRows)
 
@@ -205,9 +201,6 @@ function Abonos(props: AbonosProps) {
     )
   }
 
-  const handleLoad = () => {
-    executeUtils()
-  }
 
   useEffect(() => {
     console.log(clear)
@@ -223,10 +216,10 @@ function Abonos(props: AbonosProps) {
     cuotasNumero > 0 ? Number((saldo / cuotasNumero).toFixed(2)) : 0
 
   return (
-    <div className="container mw-100 my-4" onLoad={handleLoad}>
+    <div className="container mw-100 my-4 sale-payments-section">
       <h2 className="mb-4">Abonos</h2>
 
-      <div className="row">
+      <div className="row sale-payment-terms">
         <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
           <label htmlFor="fecha_inicio">Fecha de inicio</label>
           <Calendar
@@ -241,7 +234,7 @@ function Abonos(props: AbonosProps) {
           <input type="hidden" name="fecha_inicio" value={toISODate(fechaInicioDate)} />
         </div>
 
-        <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+        <div className="form-group col-sm-12 col-md-6 col-xl-3 sale-installments-field">
           <label htmlFor="compromisoPago">Compromiso de pago (Cuotas)</label>
           <input
             type="number"
@@ -257,7 +250,7 @@ function Abonos(props: AbonosProps) {
           />
         </div>
 
-        <div className="form-group col-sm-12 col-md-6 col-xl-3 ">
+        <div className="form-group col-sm-12 col-md-6 col-xl-3 sale-payment-condition-field">
           <label htmlFor="condicion_pago">Condicion de pago</label>
           <select
             className="form-select"
@@ -377,7 +370,7 @@ function Abonos(props: AbonosProps) {
       </div>
       <div className="d-flex justify-content-between align-items-end flex-wrap gap-3">
         <button type="button" className="btn btn-primary" onClick={addMetodoPago}>
-          Agregar Fila
+          Agregar abono
         </button>
         <div className="text-end">
           <div style={{ fontSize: 24 }}>

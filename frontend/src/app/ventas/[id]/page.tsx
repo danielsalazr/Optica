@@ -22,7 +22,7 @@ async function getVenta(id: string) {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildServerBackendUrl("ventas/"), {
+  const res = await fetch(buildServerBackendUrl("ventas/?solo_catalogos=1"), {
     cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
   });
   if (!res.ok) {
@@ -36,14 +36,9 @@ async function getGeneralData() {
 async function page(props: VentaPageProps) {
 
   const { id } = await props.params
-  const data = await getVenta(id);
-
-  const generalData = await getGeneralData()
-  console.log(data)
+  const [data, generalData] = await Promise.all([getVenta(id), getGeneralData()]);
   return (
     <>
-      <h2 className='text-center'>Editar Venta</h2>
-
       <VentaUpdateForm data={generalData} ventaData={data} />
     </>
   )

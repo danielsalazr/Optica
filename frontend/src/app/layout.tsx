@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
+import 'intl-tel-input/build/css/intlTelInput.css';
 //import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./globals.css";
 import '@/styles/dropdown.css';
@@ -38,7 +39,6 @@ export default function RootLayout({
       <head>
 
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/css/intlTelInput.css"></link>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.bootstrap5.min.css" integrity="sha512-Ars0BmSwpsUJnWMw+KoUKGKunT7+T8NGK0ORRKj+HT8naZzLSIQoOSIIM3oyaJljgLxFi0xImI5oZkAWEFARSA==" crossOrigin="anonymous" referrerPolicy="no-referrer" ></link>
       </head>
@@ -48,18 +48,9 @@ export default function RootLayout({
           {children}
        
 
-        <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.2.1/build/js/intlTelInput.min.js" async></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossOrigin="anonymous" async></script>
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js" async></script>
         <script src="//cdn.jsdelivr.net/npm/sweetalert2@11" async></script>
-        <script
-          src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js"
-          integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ=="
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-
-        ></script>
 
         {/* <script src="http://localhost:8000/static/js/getCookie.js" async></script>
         <script src="http://localhost:8000/static/js/api.js" async></script> */}

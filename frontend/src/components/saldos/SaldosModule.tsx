@@ -3,6 +3,7 @@
 
 import React, { useMemo, useState } from "react";
 import { DataTable } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 
@@ -123,6 +124,7 @@ function SaldosModule({
   fetchError: string | null;
 }) {
   const [globalFilter, setGlobalFilter] = useState("");
+  const pagination = useTablePagination('saldos', 10, [10, 20, 50, 100]);
   const [conditionFilter, setConditionFilter] = useState<FilterKey>("todos");
 
   const filterDefinitions: FilterDefinition[] = [
@@ -273,7 +275,11 @@ function SaldosModule({
         <DataTable
           value={filteredRows}
           paginator
-          rows={10}
+          paginatorPosition="both"
+          first={pagination.first}
+          rows={pagination.rows}
+          onPage={pagination.onPage}
+          onValueChange={pagination.onValueChange}
           rowsPerPageOptions={[10, 20, 50, 100]}
           stripedRows
           showGridlines

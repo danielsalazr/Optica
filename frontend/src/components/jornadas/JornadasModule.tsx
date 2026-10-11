@@ -7,6 +7,7 @@ import { Calendar } from "primereact/calendar";
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
@@ -183,6 +184,7 @@ const sortJornadas = (records: Jornada[] = []) =>
   });
 
 const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }) => {
+  const pagination = useTablePagination('jornadas', 10, [5, 10, 20, 50]);
   const [jornadas, setJornadas] = useState<Jornada[]>(() => sortJornadas(initialJornadas));
   const [listaEmpresas, setListaEmpresas] = useState<Empresa[]>(() => empresas ?? []);
   const [modalEmpresaShow, setModalEmpresaShow] = useState(false);
@@ -1025,7 +1027,11 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             onRowCollapse={() => refreshTooltips(true)}
             rowExpansionTemplate={renderJornadaDetalle}
             paginator
-            rows={10}
+            paginatorPosition="both"
+            first={pagination.first}
+            rows={pagination.rows}
+            onPage={pagination.onPage}
+            onValueChange={pagination.onValueChange}
             rowsPerPageOptions={[5, 10, 20, 50]}
             stripedRows
             showGridlines

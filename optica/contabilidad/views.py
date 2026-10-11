@@ -292,57 +292,50 @@ class VentasP(APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
 
-        limit = 20
+        solo_catalogos = request.query_params.get('solo_catalogos') == '1'
         mediosPago = MediosDePago.objects.all().values()
-        ventas = Ventas.objects.filter().values().order_by('-id')[:limit]
 
 
-        query = f"""
-            SELECT 
-                T0.id as pedidoVenta, 
-                # CONCAT(T1.nombre, ' ', T1.apellido), 
-                T1.nombre, 
-                T0.precio as preciov, 
-                sum(T2.precio) as abono, 
-                T0.precio - sum(T2.precio) as saldo, 
-                T3.nombre, 
-                T0.cliente_id,
-                T0.empresaCliente
-            FROM contabilidad_ventas T0
-            left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
-            left join contabilidad_abonos T2 on T0.id = T2.venta_id
-            inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-            group by 
-                #T0.cliente_id,
-                T0.id
-            order by T0.id desc;
-        """
-        with connection.cursor() as cursor:
-            cursor.execute(query)
-            ventas = cursor.fetchall()
-            console.log(ventas)
-
-        maxFactura = (Ventas.objects.aggregate(Max('id'))['id__max']) +1 if (Ventas.objects.aggregate(Max('id'))['id__max']) != None else 1
-        console.log(maxFactura)
-
-            
-            
 
         listVentas = []
+        if not solo_catalogos:
+            query = f"""
+                SELECT
+                    T0.id as pedidoVenta,
+                    # CONCAT(T1.nombre, ' ', T1.apellido),
+                    T1.nombre,
+                    T0.precio as preciov,
+                    sum(T2.precio) as abono,
+                    T0.precio - sum(T2.precio) as saldo,
+                    T3.nombre,
+                    T0.cliente_id,
+                    T0.empresaCliente
+                FROM contabilidad_ventas T0
+                left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
+                left join contabilidad_abonos T2 on T0.id = T2.venta_id
+                inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
+                group by
+                    #T0.cliente_id,
+                    T0.id
+                order by T0.id desc;
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                ventas = cursor.fetchall()
+            listVentas = []
+            for i, venta in enumerate(ventas):
+                listVentas.append({
+                    'numero': i+1,
+                    'id': venta[0],
+                    'nombre': venta[1],
+                    'precio': venta[2],
+                    'abono': venta[3],
+                    'saldo': venta[4],
+                    'estado': venta[5],
+                    'empresaCliente': venta[7],
+                })
 
-        for i, venta in enumerate(ventas):
-            listVentas.append({
-                'numero': i+1,
-                'id': venta[0],
-                'nombre': venta[1],
-                'precio': venta[2],
-                'abono': venta[3],
-                'saldo': venta[4],
-                'estado': venta[5],
-                'empresaCliente': venta[7],
-            })
-
-        console.log(listVentas)
+        maxFactura = (Ventas.objects.aggregate(Max('id'))['id__max'] or 0) + 1
 
         clientes = Clientes.objects.all().values()
         articulos = Articulos.objects.all().values()
@@ -374,7 +367,7 @@ class VentasP(APIView):
             'jornadas': list(jornadas),
         }
 
-        console.log(context)
+
 
         return Response(context, status=status.HTTP_200_OK)
         
@@ -880,8 +873,6 @@ class Venta(APIView):
             else:
                 item['jornada_label'] = ''
         
-        console.log(ventas)
-    
         return Response(results, status=status.HTTP_200_OK)
         
 

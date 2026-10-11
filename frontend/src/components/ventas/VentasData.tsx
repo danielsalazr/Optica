@@ -5,12 +5,17 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { swalErr, swalHtmlCreation, swalconfirmation, swalInput, swalQuestion } from '@/utils/js/sweetAlertFunctions';
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic';
 
-import SideAction from '../bootstrap/SideAction';
-import AbonosForm from '../abonos/AbonosForm';
-import AbonosList from '../abonos/AbonosList';
-import AnularVentaForm from './AnularVentaForm';
-import RemisionesPanel from '@/components/remisiones/RemisionesPanel';
+function SecondaryLoading() {
+  return <p className="py-3 text-center text-muted" role="status">Cargando...</p>;
+}
+
+const SideAction = dynamic(() => import('../bootstrap/SideAction'));
+const AbonosForm = dynamic(() => import('../abonos/AbonosForm'), { loading: SecondaryLoading });
+const AbonosList = dynamic(() => import('../abonos/AbonosList'), { loading: SecondaryLoading });
+const AnularVentaForm = dynamic(() => import('./AnularVentaForm'), { loading: SecondaryLoading });
+const RemisionesPanel = dynamic(() => import('@/components/remisiones/RemisionesPanel'), { loading: SecondaryLoading });
 
 import BootstrapModal from '../bootstrap/BootstrapModal';
 import Button from 'react-bootstrap/Button';
@@ -23,8 +28,9 @@ import { buildBackendUrl, buildMediaUrl } from '@/utils/js/env';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
-import { Tooltip } from 'primereact/tooltip';
-import { Galleria } from 'primereact/galleria';
+import { useTablePagination } from '@/hooks/useTablePagination';
+import VentasTooltip from './VentasTooltip';
+const Galleria = dynamic(() => import('primereact/galleria').then(module => module.Galleria), { loading: SecondaryLoading });
 import '@/styles/style.css';
 
 
@@ -224,9 +230,7 @@ function VentasData(props) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const tooltipRef = useRef<any>(null);
-  const [tooltipVersion, setTooltipVersion] = useState(0);
-  const [first, setFirst] = useState(0);
-  const [rows, setRows] = useState(10);
+  const { first, rows, setFirst, onPage: handleTablePage } = useTablePagination('ventas', 10, [5, 10, 20, 50]);
   const [selectedVentas, setSelectedVentas] = useState([]);
   const [estadoModalOpen, setEstadoModalOpen] = useState(false);
   const [estadoModalRow, setEstadoModalRow] = useState(null);
@@ -248,23 +252,7 @@ function VentasData(props) {
   const [bulkRemisionExpandedIds, setBulkRemisionExpandedIds] = useState<number[]>([]);
 
   const refreshVentasTooltips = (forceRemount = false) => {
-    if (typeof window === 'undefined') return;
-    window.setTimeout(() => {
-      if (tooltipRef.current?.unloadTargetEvents) {
-        tooltipRef.current.unloadTargetEvents();
-      }
-      if (forceRemount) {
-        setTooltipVersion((value) => value + 1);
-      }
-      window.setTimeout(() => {
-        if (tooltipRef.current?.loadTargetEvents) {
-          tooltipRef.current.loadTargetEvents();
-        }
-        if (tooltipRef.current?.updateTargetEvents) {
-          tooltipRef.current.updateTargetEvents();
-        }
-      }, 0);
-    }, 0);
+    tooltipRef.current?.refresh(forceRemount);
   };
 
   const handleClose = () => setShow(false);
@@ -1072,7 +1060,7 @@ function VentasData(props) {
           data-pr-position="top"
           onClick={() => handleAction("editar", row)}
         >
-          <Link href={`ventas/${row.id}`}>
+          <Link href={`/ventas/${row.id}`} prefetch={false}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
           </Link>
         </button>
@@ -1373,7 +1361,7 @@ function VentasData(props) {
   };
   return (
     <>
-      <Tooltip key={tooltipVersion} ref={tooltipRef} target=".ventas-action-tooltip" showDelay={120} hideDelay={80} />
+      <VentasTooltip ref={tooltipRef} />
       <BootstrapModal
         show={modalAnularShow}
         onHide={() => setModalAnularShow(false)}
@@ -1389,12 +1377,12 @@ function VentasData(props) {
         {/* <AnularVentaForm /> */}
       </BootstrapModal>
 
-      <SideAction key="1" placement="end" name="end" title="Abonar" togglestate={toggleState} show={show} data={clientData} >
+      {show && <SideAction key="1" placement="end" name="end" title="Abonar" togglestate={toggleState} show={show} data={clientData} >
         {/* {templateAbono === 2 && <AbonosList data={clientData} generalData={generalData}/>}
             {templateAbono === 1 && <AbonosForm data={clientData} generalData={generalData} fun={handleFetchVentas}/>} */}
 
-        {componentesPorEstado[templateAbono]}
-      </SideAction>
+        {show && componentesPorEstado[templateAbono]}
+      </SideAction>}
       <Modal
         size="xl"
         show={remisionModalOpen}
@@ -1897,8 +1885,14 @@ function VentasData(props) {
         </Modal.Footer>
       </Modal>
 
-      <div className="data-table-shell">
-        <div className="mb-3">
+      <div className="data-table-shell ventas-workspace">
+        <div className="ventas-table-primary-action">
+          <Link href="/ventas/crearVenta" className="btn btn-primary rounded-pill">
+            <i className="pi pi-plus me-2" aria-hidden="true" />
+            Crear venta
+          </Link>
+        </div>
+        <div className="ventas-filter-group">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por estado de pago</div>
             <button
@@ -1920,7 +1914,7 @@ function VentasData(props) {
             </div>
           </div>
         </div>
-        <div className="mb-3">
+        <div className="ventas-filter-group">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por estado del pedido</div>
             <button
@@ -1942,7 +1936,7 @@ function VentasData(props) {
             </div>
           </div>
         </div>
-        <div className="mb-3">
+        <div className="ventas-filter-group">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por fecha de venta</div>
             <button
@@ -1964,8 +1958,8 @@ function VentasData(props) {
             </div>
           </div>
         </div>
-        <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
-          <div className="d-flex flex-wrap align-items-end gap-2">
+        <div className="ventas-controls">
+          <div className="ventas-date-range">
             <div>
               <label className="form-label small mb-1">Desde</label>
               <input type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
@@ -1975,7 +1969,7 @@ function VentasData(props) {
               <input type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
             </div>
           </div>
-          <div className="d-flex flex-wrap align-items-center gap-3">
+          <div className="ventas-bulk-controls">
             <button
               type="button"
               className="btn btn-outline-primary"
@@ -1992,9 +1986,9 @@ function VentasData(props) {
             >
               Remisionar masivamente ({selectedVentas.length || 0})
             </button>
-            <span className="p-input-icon-left">
+            <span className="p-input-icon-left ventas-search">
               <i className="pi pi-search" />
-              <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." />
+              <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." aria-label="Buscar ventas por cliente, cedula u otros datos" />
             </span>
           </div>
         </div>
@@ -2002,12 +1996,12 @@ function VentasData(props) {
         <DataTable
           value={filteredData}
           paginator
+          paginatorPosition="both"
           first={first}
           rows={rows}
           rowsPerPageOptions={[5, 10, 20, 50]}
           onPage={(event) => {
-            setFirst(event.first);
-            setRows(event.rows);
+            handleTablePage(event);
             refreshVentasTooltips(true);
           }}
           sortField="id"
@@ -2032,9 +2026,13 @@ function VentasData(props) {
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
           <Column expander style={{ width: '3rem' }} />
-          <Column field="id" header="Pedido" sortable style={{ width: '7rem' }} />
-          <Column field="cedula" header="Cedula" sortable />
-          <Column field="cliente" header="Cliente" sortable />
+          <Column field="id" header="Pedido" sortable style={{ width: '5rem' }} />
+          <Column field="cliente" header="Cliente / cedula" sortable body={(row) => (
+            <div className="ventas-client-cell">
+              <span>{row.cliente || 'Sin cliente'}</span>
+              <small className="text-muted">{row.cedula || 'Sin documento'}</small>
+            </div>
+          )} />
           <Column field="empresaCliente" header="Empresa" sortable />
           <Column field="precio" header="Precio" sortable />
           <Column field="totalAbono" header="Total abono" sortable />

@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { callApi } from "@/utils/js/api";
 import { DataTable, DataTableExpandedRows, DataTableFilterMeta } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { FilterMatchMode } from "primereact/api";
@@ -80,6 +81,7 @@ const RemisionesPanel: React.FC<Props> = ({
   onCreated,
 }) => {
   const [localItems, setLocalItems] = useState<VentaItem[]>(items || []);
+  const pagination = useTablePagination('remisiones-venta', 5, [5, 10, 20]);
   const [localRemisiones, setLocalRemisiones] = useState<Remision[]>(remisiones || []);
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [fecha, setFecha] = useState<string>(() => new Date().toISOString().split("T")[0]);
@@ -496,7 +498,11 @@ const RemisionesPanel: React.FC<Props> = ({
             globalFilterFields={["id", "venta", "observacion", "articulosResumen", "fechaLegible", "creadoLegible"]}
             filters={filters}
             paginator
-            rows={5}
+            paginatorPosition="both"
+            first={pagination.first}
+            rows={pagination.rows}
+            onPage={pagination.onPage}
+            onValueChange={pagination.onValueChange}
             rowsPerPageOptions={[5, 10, 20]}
             stripedRows
             showGridlines

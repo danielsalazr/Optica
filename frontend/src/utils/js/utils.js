@@ -267,7 +267,11 @@ export function almacenarInputs() {
         }
     });
 
-    localStorage.setItem('inputs', JSON.stringify(valores)); // Guarda los valores en localStorage
+    try {
+        localStorage.setItem('inputs', JSON.stringify(valores));
+    } catch {
+        // Remembering inputs is optional and must not interrupt a saved sale.
+    }
     console.log('Valores almacenados:', valores);
 }
 
@@ -304,7 +308,12 @@ export function fechaFormat(data) {
 
 // Carga los valores desde localStorage y los asigna a los inputs
 export function cargarInputs() {
-    const valores = JSON.parse(localStorage.getItem('inputs')) || {}; // Obtén los valores del localStorage
+    let valores;
+    try {
+        valores = JSON.parse(localStorage.getItem('inputs')) || {};
+    } catch {
+        return;
+    }
     console.log('Cargando valores:', valores);
 
     Object.keys(valores).forEach(id => {
@@ -312,6 +321,8 @@ export function cargarInputs() {
         console.log(valores[id])
 
         const input = document.getElementById(id);
+        if (input?.closest('.sale-edit-form')) return;
+        if (input?.closest('.sale-create-form') && ['EmpresaCliente', 'jornada', 'recordar-contexto'].includes(id)) return;
         console.log(input)
         if (input) {
             try{
@@ -607,13 +618,22 @@ function almacenarInputs() {
         }
     });
 
-    localStorage.setItem('inputs', JSON.stringify(valores)); // Guarda los valores en localStorage
+    try {
+        localStorage.setItem('inputs', JSON.stringify(valores));
+    } catch {
+        // Remembering inputs is optional and must not interrupt a saved sale.
+    }
     console.log('Valores almacenados:', valores);
 }
 
 // Carga los valores desde localStorage y los asigna a los inputs
 function cargarInputs() {
-    const valores = JSON.parse(localStorage.getItem('inputs')) || {}; // Obtén los valores del localStorage
+    let valores;
+    try {
+        valores = JSON.parse(localStorage.getItem('inputs')) || {};
+    } catch {
+        return;
+    }
     console.log('Cargando valores:', valores);
 
     Object.keys(valores).forEach(id => {
@@ -621,6 +641,8 @@ function cargarInputs() {
         console.log(valores[id])
 
         const input = document.getElementById(id);
+        if (input?.closest('.sale-edit-form')) return;
+        if (input?.closest('.sale-create-form') && ['EmpresaCliente', 'jornada', 'recordar-contexto'].includes(id)) return;
         console.log(input)
         if (input) {
             try{

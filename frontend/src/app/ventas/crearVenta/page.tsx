@@ -7,7 +7,7 @@ import { buildServerBackendUrl } from '@/utils/js/env';
 import '@/styles/selectwithImage.css';
 
 async function getData() {
-    const res = await fetch(buildServerBackendUrl("ventas/"), {
+    const res = await fetch(buildServerBackendUrl("ventas/?solo_catalogos=1"), {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {
@@ -19,28 +19,17 @@ async function getData() {
 
 async function page() {
 
-    let data = { pedido: 0, clientes: [], empresas: [], vendedores: [], jornadas: [], articulos: [], mediosPago: [] };
+    let data = { pedido: 0, clientes: [], empresas: [], vendedores: [], jornadas: [], articulos: [], mediosPago: [], contextOptionsLoaded: false };
 
     try {
-      data = await getData();
+      data = { ...await getData(), contextOptionsLoaded: true };
     } catch (error) {
       console.error('Error cargando /ventas/crearVenta:', error);
     }
 
   return (
     <div className="sale-create-page d-flex w-100 flex-column vh-100 align-items-center mt-4">
-      <div className="mx-auto">
-                <h3>Crear Venta</h3>
-            </div>
             < VentasForm data={data} />
-            <hr className="my-3" />
-            
-            
-            <div className="mx-auto">
-                <h3>Pedidos recientes</h3>
-            </div>
-            <div className="table-responsive container-md">
-            </div>
     </div>
   )
 }

@@ -2,12 +2,12 @@
 ﻿export const dynamic = 'force-dynamic';
 
 import React from 'react'
-import Link from "next/link";
 
 import VentasData from '@/components/ventas/VentasData';
 import { buildServerBackendUrl } from '@/utils/js/env';
 
 import '@/styles/selectwithImage.css';
+import '@/styles/ventas-workspace.css';
 import "intl-tel-input/build/css/intlTelInput.css";
 
 type VentaRow = {
@@ -42,7 +42,7 @@ async function getDataVentas() {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildServerBackendUrl("ventas/"), {
+  const res = await fetch(buildServerBackendUrl("ventas/?solo_catalogos=1"), {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -83,17 +83,7 @@ async function page() {
   });
 
   return (
-    <div className="page-shell">
-      <div className="ventas-toolbar">
-        <Link href="/" className="floating-back-button">
-          <i className="fa-solid fa-arrow-left" />
-        </Link>
-        <h1 className="ventas-page-title mb-0">Ventas</h1>
-        <Link href="/ventas/crearVenta" className="btn btn-primary fw-semibold px-4 py-2 rounded-pill">
-          Crear venta
-        </Link>
-      </div>
-
+    <div className="page-shell ventas-page">
       <div className="ventas-card">
         <VentasData data={formattedTable} generalData={generalData} />
       </div>

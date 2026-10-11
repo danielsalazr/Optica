@@ -29,6 +29,7 @@ function EmpresaForm(props) {
         
         await swalconfirmation("Se creo la empresa correctamente.")
         const nuevaEmpresa = {
+          id: req.data.id,
           nombre: formRef.current.querySelector('#nombre').value,
           nit: formRef.current.querySelector('#nit').value,
           email: formRef.current.querySelector('#email').value,

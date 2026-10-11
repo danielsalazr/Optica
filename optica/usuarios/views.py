@@ -62,7 +62,7 @@ class Empresas(APIView):
         if serializer.is_valid():
             
             serializer.save()
-            return Response({'Venta creada': 'ok'}, status=status.HTTP_201_CREATED)
+            return Response({'Venta creada': 'ok', 'id': serializer.instance.pk}, status=status.HTTP_201_CREATED)
         
         console.log(serializer.errors)
 

@@ -5,6 +5,7 @@ import '@/styles/selectwithImage.css';
 
 import React, { useEffect, useMemo, useState } from "react";
 import { DataTable, DataTableFilterMeta } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { Tooltip } from "primereact/tooltip";
@@ -162,6 +163,8 @@ function parseCurrencyValue(value: string | number | undefined) {
 }
 
 function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData = [] }: AbonosDataProps) {
+  const pagination = useTablePagination('abonos', 10, [5, 10, 20, 50, 100]);
+  const massivePagination = useTablePagination('abonos-masivos', 10, [5, 10, 20, 50]);
   const toastRef = React.useRef<Toast | null>(null);
   const [filters, setFilters] = useState<DataTableFilterMeta>({
     global: { value: "", matchMode: FilterMatchMode.CONTAINS },
@@ -907,7 +910,11 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 value={preparedData}
                 header={tableHeader}
                 paginator
-                rows={10}
+                paginatorPosition="both"
+                first={pagination.first}
+                rows={pagination.rows}
+                onPage={pagination.onPage}
+                onValueChange={pagination.onValueChange}
                 rowsPerPageOptions={[5, 10, 20, 50, 100]}
                 stripedRows
                 showGridlines
@@ -1032,7 +1039,11 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 value={filteredMassiveData}
                 header={tableHeader}
                 paginator
-                rows={10}
+                paginatorPosition="both"
+                first={massivePagination.first}
+                rows={massivePagination.rows}
+                onPage={massivePagination.onPage}
+                onValueChange={massivePagination.onValueChange}
                 rowsPerPageOptions={[5, 10, 20, 50]}
                 stripedRows
                 showGridlines

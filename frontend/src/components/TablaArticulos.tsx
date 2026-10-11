@@ -206,7 +206,6 @@ function TablaArticulos(props: TablaArticulosProps) {
 
       const loadUtils = async () => {
         await import("selectize");
-        await import("@/utils/js/selectizeElements.js");
         executeUtils();
         if (isMounted) {
           setSelectizeLoaded(true);
@@ -378,7 +377,7 @@ function TablaArticulos(props: TablaArticulosProps) {
         </div>
         <div className="d-flex justify-content-between sale-lines-footer">
           <button type="button" className="btn btn-primary" onClick={addArticulo}>
-            Agregar Fila
+            Agregar articulos
           </button>
           {/* <button type="submit" className="btn btn-success">Enviar</button> */}
           <div 

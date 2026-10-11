@@ -28,7 +28,6 @@ type MedioPagoProps = {
 function MedioPago(props: MedioPagoProps) {
 
     const { data, name, className, labelInput, required, setData } = props;
-    console.log(setData)
     const containerRef = useRef<HTMLDivElement | null>(null);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
     const hiddenInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,14 +46,10 @@ function MedioPago(props: MedioPagoProps) {
             }
     );
 
-    const toggleDropdown = () => {
-        if (dropdownRef.current) {
-            dropdownRef.current.classList.toggle('show');
-        }
-    };
+    const [open, setOpen] = useState(false);
+    const toggleDropdown = () => setOpen(previous => !previous);
 
     const selectOption = (element: MedioPagoOption) => {
-        console.log(element)
         setSelectedOption({
             value: element.id,
             text: element.nombre,
@@ -71,18 +66,14 @@ function MedioPago(props: MedioPagoProps) {
         // console.log(hiddenInputRef.current.value)
         // console.log(hiddenInputRef.current)
 
-        if (dropdownRef.current) {
-            dropdownRef.current?.classList.remove('show');
-        }
-
-        console.log(hiddenInputRef.current)
+        setOpen(false);
     };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node | null;
             if (containerRef.current && target && !containerRef.current.contains(target)) {
-                dropdownRef.current?.classList.remove('show');
+                setOpen(false);
             }
         };
 
@@ -98,8 +89,8 @@ function MedioPago(props: MedioPagoProps) {
                     <img src={selectedOption.imgSrc} alt="Selected" />
                     <span>{selectedOption.text}</span>
                 </div>
-                <div ref={dropdownRef} className="dropdownSelector form-select">
-                    {((data?.mediosPago ?? []) as MedioPagoOption[]).map((element) => (
+                <div ref={dropdownRef} className={`dropdownSelector form-select ${open ? 'show' : ''}`}>
+                    {open && ((data?.mediosPago ?? []) as MedioPagoOption[]).map((element) => (
                         <div
                             key={element.id}
                             className="optionPayment"

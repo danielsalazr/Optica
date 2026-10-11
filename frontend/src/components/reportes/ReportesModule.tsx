@@ -3,6 +3,7 @@
 
 import React, { useMemo, useState } from "react";
 import { DataTable } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 
@@ -81,6 +82,7 @@ function ReportesModule({
   fetchError: string | null;
 }) {
   const [activeReport, setActiveReport] = useState<ReportKey>("movimientos_ingresos");
+  const pagination = useTablePagination('reportes', 10, [10, 20, 50, 100]);
   const [filters, setFilters] = useState<Record<ReportKey, string>>({
     movimientos_ingresos: "",
     informe_ventas: "",
@@ -238,7 +240,11 @@ function ReportesModule({
         <DataTable
           value={filteredRows}
           paginator
-          rows={10}
+          paginatorPosition="both"
+          first={pagination.first}
+          rows={pagination.rows}
+          onPage={pagination.onPage}
+          onValueChange={pagination.onValueChange}
           rowsPerPageOptions={[10, 20, 50, 100]}
           stripedRows
           showGridlines

@@ -3,6 +3,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { DataTable, DataTableFilterMeta } from "primereact/datatable";
+import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
 import { Tag } from "primereact/tag";
@@ -157,6 +158,7 @@ const addDays = (date: Date, days: number) => {
 };
 
 const RemisionesData: React.FC<Props> = ({ data }) => {
+  const pagination = useTablePagination('remisiones', 10, [5, 10, 20, 50, 100]);
   const [tableData, setTableData] = useState<RemisionRow[]>(data ?? []);
   const [activeRemision, setActiveRemision] = useState<PreparedRemisionRow | null>(null);
   const [expandedRows, setExpandedRows] = useState(null);
@@ -765,7 +767,14 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           value={filteredData}
           header={tableHeader}
           paginator
-          rows={10}
+          paginatorPosition="both"
+          first={pagination.first}
+          rows={pagination.rows}
+          onPage={(event) => {
+            pagination.onPage(event);
+            refreshRemisionTooltips(true);
+          }}
+          onValueChange={pagination.onValueChange}
           rowsPerPageOptions={[5, 10, 20, 50, 100]}
           stripedRows
           // rowHover
