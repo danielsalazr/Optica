@@ -1,0 +1,97 @@
+.abonos-page .abonos-module { width: 100%; min-width: 0; }
+.abonos-page .abonos-summary,
+.abonos-detail-dialog .abonos-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .55rem; margin-bottom: .75rem; }
+.abonos-page .abonos-summary-card,
+.abonos-detail-dialog .abonos-summary-card { min-width: 0; padding: .65rem .8rem; border-radius: 12px; box-shadow: none; overflow-wrap: anywhere; }
+.abonos-page .abonos-summary-card .label { font-size: .67rem; letter-spacing: .035em; margin-bottom: .15rem; }
+.abonos-page .abonos-summary-card .value { font-size: .95rem; }
+.abonos-page .abonos-view-toggle { gap: .4rem; margin-bottom: .65rem !important; }
+.abonos-page .abonos-view-toggle .btn { border-radius: 999px; padding: .45rem .95rem; font-size: .85rem; }
+.abonos-page .abonos-view-toggle .btn[aria-pressed="true"] { background: #2563eb; border-color: #2563eb; color: #fff; }
+.abonos-page .abonos-view-toggle .btn[aria-pressed="false"] { background: #fff; border-color: #bfdbfe; color: #1d4ed8; }
+.abonos-page .abonos-view-toggle .btn[aria-pressed="false"]:hover { background: #eff6ff; }
+.abonos-page .abonos-payment-badges { gap: .4rem; margin-bottom: .65rem; }
+.abonos-page .abonos-method-summary > summary { display: none; }
+.abonos-page .abonos-payment-badge { padding: .3rem .55rem; gap: .3rem; box-shadow: none; }
+.abonos-page .abonos-payment-badge .method { font-size: .7rem; letter-spacing: 0; }
+.abonos-page .abonos-payment-badge .amount { padding: .15rem .35rem; font-size: .75rem; }
+.abonos-page .ventas-card { min-width: 0; overflow: hidden; }
+.abonos-page .abonos-header { padding: .4rem .6rem; border-bottom: 1px solid #e6edf5; }
+.abonos-page .abonos-header .p-paginator { padding: .2rem 0; justify-content: flex-start; flex: 1; border: 0; gap: .1rem; }
+.abonos-page .p-paginator .p-paginator-current { font-size: .75rem; margin: 0; padding: 0 .4rem; }
+.abonos-page .abonos-search { flex: 0 1 17rem; }
+.abonos-page .abonos-search .p-inputtext { width: 100%; font-size: .85rem; padding-top: .55rem; padding-bottom: .55rem; }
+.abonos-page .abonos-table .p-datatable-table { min-width: 0; width: 100%; table-layout: fixed; }
+.abonos-page .abonos-table .p-datatable-thead > tr > th { font-size: .75rem; padding: .55rem .4rem; white-space: normal; }
+.abonos-page .abonos-table .p-datatable-tbody > tr > td { padding: .45rem .4rem; font-size: .8rem; overflow-wrap: anywhere; white-space: normal; }
+.abonos-page .abonos-table .abonos-date-cell { white-space: normal; }
+.abonos-page .abonos-table .p-tag { font-size: .65rem; padding: .25rem .45rem; }
+.abonos-page .abonos-table .btn { border-radius: 50%; }
+.abonos-page .abonos-row-action.p-button { width: 2rem; height: 2rem; padding: 0; flex-shrink: 0; border-radius: 50%; }
+.abonos-page .abonos-row-action .p-button-icon { font-size: .85rem; }
+.abonos-page .abonos-massive-filters { gap: .5rem; margin-bottom: .65rem !important; }
+.abonos-page .abonos-massive-filters .form-label { font-size: .75rem; margin-bottom: .2rem; }
+.abonos-detail-note { grid-column: 1 / -1; white-space: pre-wrap; overflow-wrap: anywhere; }
+.abonos-mobile-list { display: grid; gap: .65rem; padding: .65rem; }
+.abonos-mobile-card { min-width: 0; padding: .85rem; border: 1px solid #dfe7ef; border-radius: 14px; background: linear-gradient(135deg, #fff, #f7fafc); overflow-wrap: anywhere; }
+.abonos-mobile-card header { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.abonos-record-id { font-size: .75rem; font-weight: 700; color: #526477; }
+.abonos-mobile-amount { font-size: 1rem; color: #166534; text-align: right; }
+.abonos-mobile-card h2 { font-size: .95rem; margin: .55rem 0 .15rem; font-weight: 700; }
+.abonos-mobile-meta { color: #64748b; font-size: .75rem; margin: 0 0 .6rem; }
+.abonos-mobile-facts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .35rem; font-size: .8rem; }
+.abonos-mobile-card footer { display: flex; justify-content: space-between; align-items: center; gap: .4rem; margin-top: .65rem; }
+.abonos-mobile-origin { border: 0; border-radius: 10px; background: #eff6ff; color: #1d4ed8; padding: .4rem .5rem; font-size: .75rem; }
+button.abonos-mobile-origin { min-height: 44px; }
+.abonos-mobile-actions { display: flex; gap: .4rem; }
+.abonos-mobile-actions .btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; }
+.abonos-mobile-expand { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: .4rem; min-height: 44px; padding: .5rem .6rem; margin-top: .65rem; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #1d4ed8; font-size: .8rem; }
+.abonos-mobile-card details { border-top: 1px solid #e2e8f0; margin-top: .65rem; }
+.abonos-mobile-card summary { min-height: 44px; padding: .65rem 0; font-size: .8rem; color: #475569; cursor: pointer; }
+.abonos-mobile-card dl { display: grid; grid-template-columns: 1fr 1.2fr; gap: .4rem .65rem; font-size: .8rem; margin: .5rem 0; }
+.abonos-mobile-card dt { color: #64748b; font-weight: 500; }
+.abonos-mobile-card dd { margin: 0; white-space: pre-wrap; }
+.abonos-empty { padding: 1.5rem .75rem; text-align: center; color: #64748b; }
+@media (min-width: 768px) and (max-width: 1100px) {
+  .abonos-page .abonos-individual-table th:nth-child(1),
+  .abonos-page .abonos-individual-table th:nth-child(2) { width: 6% !important; }
+  .abonos-page .abonos-individual-table th:nth-child(3) { width: 22% !important; }
+  .abonos-page .abonos-individual-table th:nth-child(4),
+  .abonos-page .abonos-individual-table th:nth-child(6) { width: 14% !important; }
+  .abonos-page .abonos-individual-table th:nth-child(5) { width: 10% !important; }
+  .abonos-page .abonos-individual-table th:nth-child(7) { width: 15% !important; }
+  .abonos-page .abonos-individual-table th:nth-child(8) { width: 13% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(1) { width: 5% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(2) { width: 7% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(3) { width: 10% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(4) { width: 31% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(5) { width: 13% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(6),
+  .abonos-page .abonos-massive-table th:nth-child(7) { width: 8% !important; }
+  .abonos-page .abonos-massive-table th:nth-child(8) { width: 18% !important; }
+}
+@media (max-width: 767.98px) {
+  .abonos-page { padding: 0 .6rem 2rem; margin-top: .75rem; }
+  .abonos-page .abonos-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .abonos-page .abonos-summary-card .value { font-size: .85rem; }
+  .abonos-page .abonos-view-toggle { flex-wrap: nowrap; }
+  .abonos-page .abonos-view-toggle .btn { flex: 1; min-height: 44px; padding: .4rem .3rem; font-size: .8rem; }
+  .abonos-page .abonos-method-summary { margin-bottom: .5rem; }
+  .abonos-page .abonos-method-summary > summary { display: list-item; color: #526477; font-size: .8rem; min-height: 44px; padding: .65rem .3rem; cursor: pointer; }
+  .abonos-page .abonos-header { flex-direction: column; gap: .3rem !important; }
+  .abonos-page .abonos-header .abonos-search { order: -1; width: 100%; flex: auto; }
+  .abonos-page .abonos-header .p-paginator { width: 100%; }
+  .abonos-page .p-paginator { padding: .4rem .15rem; gap: 0; }
+  .abonos-page .p-paginator .p-paginator-element { min-width: 2.2rem; height: 44px; margin: 0; }
+  .abonos-page .p-paginator .p-dropdown { margin: 0 .2rem 0 0; height: 44px; }
+  .abonos-page .p-paginator .p-paginator-current { width: 100%; height: auto; margin-top: .2rem; }
+  .abonos-page .abonos-massive-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .abonos-page .abonos-massive-filters .p-inputtext { min-width: 0; width: 100%; font-size: .8rem; padding: .6rem .4rem; }
+  .abonos-page .abonos-massive-filters .p-datepicker-trigger { width: 2.2rem; flex-shrink: 0; }
+  .abonos-page .abonos-massive-filters .btn { width: 100%; min-height: 44px; font-size: .8rem; }
+  .abonos-page .abonos-massive-sale-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .abonos-page .abonos-massive-sale-card { padding: .65rem; overflow-wrap: anywhere; }
+  .abonos-page .abonos-massive-sale-header { flex-wrap: wrap; }
+  .abonos-detail-dialog .abonos-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .abonos-detail-dialog .abonos-mobile-list { padding: 0; }
+}

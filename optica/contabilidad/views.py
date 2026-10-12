@@ -21,7 +21,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import IntegerField
+from rest_framework.fields import IntegerField, CharField
 
 # from .serializers import InventorySerializer
 
@@ -1123,13 +1123,15 @@ class Venta(InventoryAtomicMixin, APIView):
     def delete(self, request):
         console.log(request.data)
         # console.log(id)
-        id = request.data['id']
-        venta = Ventas.objects.select_for_update().get(id=id)
+        id = IntegerField(min_value=1).run_validation(request.data.get('id'))
+        venta = get_object_or_404(Ventas.objects.select_for_update(), pk=id)
+        if venta.anulado:
+            raise ValidationError({'venta': 'La venta ya se encuentra anulada.'})
+        detalle_anulacion = CharField(max_length=500, allow_blank=False).run_validation(request.data.get('detalleAnulacion'))
         # abono = Abonos.objects.filter(factura=venta.factura).first()
         # saldo = Saldos.objects.get(factura=venta)
 
         with transaction.atomic():
-            detalle_anulacion = request.data['detalleAnulacion']
             remisiones_qs = Remision.objects.filter(venta=venta, anulado=False)
             remisiones_anuladas = remisiones_qs.count()
             remisiones_qs.update(
@@ -2133,7 +2135,7 @@ class RemisionMasivaPreviewView(RemisionView):
 class RemisionMasivaView(RemisionView):
     def post(self, request):
         fecha = request.data.get('fecha')
-        observacion = (request.data.get('observacion') or '').strip()
+        observacion = CharField(allow_blank=True, allow_null=True).run_validation(request.data.get('observacion', '')) or ''
         remisiones = request.data.get('remisiones')
 
         if remisiones is not None and (not isinstance(remisiones, list) or not remisiones):

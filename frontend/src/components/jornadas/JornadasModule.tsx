@@ -3,7 +3,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { callApi } from "@/utils/js/api";
-import { paymentDueDate } from '@/utils/balances';
+import { paymentDueDate, MAX_INSTALLMENTS } from '@/utils/balances';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Calendar } from "primereact/calendar";
 import { Dialog } from "primereact/dialog";
@@ -883,6 +883,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
               id="cantidad_cuotas"
               className="form-control"
               min={1}
+              max={MAX_INSTALLMENTS}
               value={formData.cantidad_cuotas}
               onChange={handleFormChange("cantidad_cuotas")}
             />

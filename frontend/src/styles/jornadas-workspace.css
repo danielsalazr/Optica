@@ -1,0 +1,333 @@
+.page-shell.jornadas-page {
+  width: 100%;
+  margin-top: 1rem;
+  padding-inline: clamp(0.65rem, 2vw, 1.5rem);
+}
+
+.jornadas-page .jornadas-module {
+  gap: 0.75rem;
+}
+
+.jornadas-page .jornadas-stats {
+  gap: 0.65rem;
+}
+
+.jornadas-page .jornadas-stats .ventas-card {
+  padding: 0.65rem 0.85rem;
+  box-shadow: none;
+}
+
+.jornadas-page .jornadas-stats .display-6 {
+  font-size: clamp(1.05rem, 1.5vw, 1.5rem);
+  overflow-wrap: anywhere;
+}
+
+.jornadas-page .jornadas-panel {
+  padding: 0.85rem;
+}
+
+.jornadas-filter-toolbar,
+.jornadas-pagination-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.jornadas-filter-toolbar .jornadas-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.jornadas-filter-toolbar .p-button {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.jornadas-pagination-toolbar .p-paginator {
+  border: 0;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+}
+
+.jornadas-pagination-toolbar .p-paginator-element {
+  min-width: 2rem;
+  height: 2.5rem;
+}
+
+.jornadas-pagination-toolbar .jornadas-busqueda {
+  width: 18rem;
+  max-width: 100%;
+}
+
+.jornadas-pagination-toolbar input {
+  font-size: 0.85rem;
+}
+
+.jornadas-page .jornadas-table th {
+  font-size: 0.75rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.jornadas-page .jornadas-table td {
+  padding: 0.4rem 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.jornadas-page .jornadas-table .btn-action {
+  padding-inline: 0.45rem;
+}
+
+.jornadas-mobile-list {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .page-shell.jornadas-page {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jornadas-filter-toolbar .jornadas-create-button {
+    position: fixed;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    right: calc(1rem + env(safe-area-inset-right, 0px));
+    z-index: 1000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+  }
+
+  .jornadas-create-button .p-button-label {
+    display: none;
+  }
+
+  .jornadas-create-button .p-button-icon {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .jornadas-page .jornadas-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jornadas-page .jornadas-stats .small {
+    font-size: 0.7rem;
+  }
+
+  .jornadas-page .jornadas-panel {
+    padding: 0.65rem;
+  }
+
+  .jornadas-filter-toolbar .p-button {
+    margin-left: auto;
+    min-height: 44px;
+  }
+
+  .jornadas-pagination-toolbar .jornadas-busqueda {
+    order: -1;
+    width: 100%;
+  }
+
+  .jornadas-pagination-toolbar input {
+    font-size: 16px;
+  }
+
+  .jornadas-pagination-toolbar > .p-paginator {
+    width: 100%;
+  }
+
+  .jornadas-page .jornadas-table {
+    display: none;
+  }
+
+  .jornadas-mobile-list {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .jornada-mobile-card {
+    min-width: 0;
+    padding: 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: #fff;
+    overflow-wrap: anywhere;
+  }
+
+  .jornada-mobile-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .jornada-mobile-heading > div:first-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .jornada-mobile-id {
+    font-size: 0.7rem;
+    color: #64748b;
+  }
+
+  .jornada-mobile-heading h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0.2rem 0;
+  }
+
+  .jornada-mobile-heading p {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+  }
+
+  .jornada-mobile-heading .p-tag {
+    flex-shrink: 0;
+    max-width: 6.5rem;
+    white-space: normal;
+  }
+
+  .jornada-mobile-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0.85rem 0;
+  }
+
+  .jornada-mobile-summary dt {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  .jornada-mobile-summary dd {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.15rem 0 0;
+  }
+
+  .jornada-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .jornada-mobile-detail-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    border: 0;
+    border-radius: 0.5rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+
+  .jornada-mobile-card .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .jornada-mobile-detail {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+  }
+
+  .jornada-mobile-notes p {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    white-space: pre-wrap;
+  }
+
+  .jornadas-mobile-list .jornadas-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .jornadas-mobile-list .jornadas-detail-stat {
+    padding: 0.5rem;
+    min-width: 0;
+  }
+
+  .jornadas-mobile-list .jornadas-sale-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jornadas-mobile-list .jornadas-sale-card-header {
+    flex-wrap: wrap;
+  }
+
+  .jornadas-filtros {
+    width: 100%;
+  }
+
+  .jornadas-filtros > button {
+    flex: 1 1 calc(50% - 0.4rem);
+    min-height: 44px;
+  }
+
+  .jornadas-panel .p-paginator {
+    gap: 0.15rem;
+    font-size: 0.75rem;
+  }
+
+  .jornadas-panel .p-paginator .p-paginator-element {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+  }
+
+  .jornadas-panel .p-paginator .p-paginator-pages {
+    display: none;
+  }
+
+  .jornadas-panel .p-paginator-current {
+    flex-basis: 100%;
+    text-align: center;
+    margin: 0;
+  }
+
+  .jornadas-editor-dialog {
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .jornadas-editor-dialog .p-dialog-header,
+  .jornadas-editor-dialog .p-dialog-content {
+    padding: 0.85rem;
+  }
+
+  .jornadas-editor-dialog .form-control,
+  .jornadas-editor-dialog .form-select,
+  .jornadas-editor-dialog .p-inputtext {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .jornadas-editor-dialog .jornadas-modal-button {
+    flex: 1;
+    min-height: 44px;
+    padding-inline: 0.5rem;
+  }
+}

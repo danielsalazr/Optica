@@ -345,6 +345,78 @@ class DeepFinancialRegressionTests(TestCase):
         self.assertFalse(model_admin.has_change_permission(request))
         self.assertFalse(model_admin.has_delete_permission(request))
 
+    def test_existing_client_lookup_uses_document_number(self):
+        response = self.client.get('/usuarios/infoCliente/100')
+        self.assertEqual(response.status_code,200,response.data)
+        self.assertEqual(response.data[0]['cedula'],100)
+        self.assertEqual(self.client.get('/usuarios/infoCliente/999999').status_code,404)
+
+    def test_sale_cancellation_validates_identifier_and_reason(self):
+        for payload in ({}, {'id':-1}, {'id':[]}, {'id':1},
+                        {'id':1,'detalleAnulacion':['Prueba']}, {'id':1,'detalleAnulacion':'   '}):
+            self.assertEqual(self.client.delete('/venta/',payload,format='json').status_code,400)
+        response = self.client.delete('/venta/',{'id':999999,'detalleAnulacion':'Prueba'},format='json')
+        self.assertEqual(response.status_code,404)
+        self.assertFalse(Ventas.objects.get(pk=1).anulado)
+
+    def test_mass_remission_invalid_observation_returns_400(self):
+        for value in (['Prueba'], {'texto':'Prueba'}):
+            response = self.client.post('/remisiones/masivo/',{'venta_ids':[1],
+                'fecha':'2026-04-06','observacion':value},format='json')
+            self.assertEqual(response.status_code,400,response.data)
+        self.assertFalse(RemisionItem.objects.exists())
+
+    def test_sale_and_jornada_reject_excessive_installments(self):
+        for count in (361,2147483647):
+            payload = self.sale_payload(3)
+            payload['cuotas'] = count
+            self.assertEqual(self.client.post('/venta/',payload,format='multipart').status_code,400)
+            response = self.client.post('/jornadas/',{'empresa':self.empresa.pk,
+                'fecha':'2026-04-06','cantidad_cuotas':count},format='json')
+            self.assertEqual(response.status_code,400,response.data)
+
+@skipUnless(connection.vendor == 'mysql', 'Requires the actual legacy MySQL column')
+class LegacyCancellationMigrationTests(TransactionTestCase):
+    def test_null_flags_are_classified_and_column_rejects_future_nulls(self):
+        from importlib import import_module
+        from django.apps import apps
+        from django.db import IntegrityError
+        from django.db.migrations.state import ProjectState
+        fixtures.BalanceIntegrityTests.setUpTestData.__func__(type(self))
+        field = Ventas._meta.get_field('anulado')
+        nullable = field.clone()
+        nullable.set_attributes_from_name(field.name)
+        nullable.model = Ventas
+        nullable.null = True
+        with connection.schema_editor() as editor:
+            editor.alter_field(Ventas,field,nullable)
+        migration = import_module('contabilidad.migrations.0040_normalizar_anulado_ventas')
+        try:
+            Ventas.objects.filter(pk=1).update(anulado=None,detalleAnulacion='   ')
+            Ventas.objects.filter(pk=2).update(anulado=None,estado_id=4)
+            Ventas.objects.create(pk=3,cliente_id=100,precio=100000,estado_id=1,
+                                 anulado=None,detalleAnulacion='Anulada previamente')
+            Ventas.objects.create(pk=4,cliente_id=100,precio=100000,estado_id=1,
+                                 anulado=None,usuarioAnulacion=self.admin.pk)
+            with connection.schema_editor() as editor:
+                migration.Migration('0040_normalizar_anulado_ventas', 'contabilidad').apply(
+                    ProjectState.from_apps(apps), editor
+                )
+            self.assertEqual(list(Ventas.objects.order_by('pk').values_list('anulado',flat=True)),[False,True,True,True])
+            from contabilidad.saldos import cartera_rows
+            self.assertEqual([row['venta_id'] for row in cartera_rows()],[1])
+            client = APIClient()
+            client.force_authenticate(self.admin)
+            preview = client.get('/abonos/masivo/preview/?tipo=cliente&cliente_id=100')
+            self.assertEqual([row['id'] for row in preview.data],[1])
+            with self.assertRaises(IntegrityError):
+                with transaction.atomic():
+                    Ventas.objects.filter(pk=1).update(anulado=None)
+        finally:
+            Ventas.objects.filter(anulado__isnull=True).update(anulado=False)
+            with connection.schema_editor() as editor:
+                editor.alter_field(Ventas,nullable,field)
+
 @skipUnlessDBFeature('has_select_for_update')
 class FinancialTransactionRegressionTests(TransactionTestCase):
     def setUp(self):

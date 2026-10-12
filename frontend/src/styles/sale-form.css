@@ -1,0 +1,394 @@
+.sale-mobile-summary {
+  display: none;
+}
+
+.sale-create-form :is(.sale-optional-section, .sale-section-content) {
+  display: contents;
+}
+
+.sale-section-toggle {
+  display: none;
+}
+
+.sale-context-retention {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 44px;
+  margin-top: .25rem;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+.sale-create-form .sale-context-retention input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-height: 1rem;
+  flex-shrink: 0;
+}
+
+.sale-photo-camera {
+  display: none;
+}
+
+.sale-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: .75rem;
+}
+
+.sale-photo-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  min-width: 0;
+}
+
+.sale-photo-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+}
+
+.sale-photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(180, 35, 24, .5);
+  border-radius: 50%;
+  background: transparent;
+  color: #b42318;
+  cursor: pointer;
+}
+
+.sale-photo-remove svg {
+  filter: drop-shadow(0 0 2px #fff);
+}
+
+.sale-photo-remove:hover {
+  border-color: #b42318;
+}
+
+.sale-photo-remove:focus-visible {
+  outline: 2px solid #164b78;
+  outline-offset: 2px;
+}
+
+/* The field container already provides separation; do not stack both margins. */
+.sale-create-form .sale-basics-grid .input-group {
+  margin-bottom: .25rem !important;
+}
+
+/* Keep desktop tables; phones and tablets use the compact card layout. */
+@media (max-width: 991.98px) {
+  .sale-photo-camera {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  html:has(.sale-create-page),
+  body:has(.sale-create-page) {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sale-create-page {
+    height: auto !important;
+  }
+
+  .sale-create-page .remision-section .table-modern.table-responsive {
+    overflow-x: auto;
+  }
+
+  .sale-create-form {
+    padding-bottom: 1rem;
+    min-width: 0;
+  }
+
+  .sale-create-form .container {
+    padding-inline: 0;
+  }
+
+  .sale-create-form .form-group {
+    min-width: 0;
+    margin-bottom: .5rem;
+  }
+
+  .sale-create-form h2 {
+    font-size: 1.3rem;
+    margin-bottom: .625rem !important;
+  }
+
+  .sale-create-form .sale-optional-section {
+    display: block;
+    border: 1px solid #d7dee5;
+    border-radius: .5rem;
+    margin-block: .5rem;
+    padding: .25rem .75rem;
+  }
+
+  .sale-create-form .sale-section-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-height: 44px;
+    padding: .25rem 0;
+    background: transparent;
+    border: 0;
+    color: #164b78;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .sale-create-form .sale-section-content {
+    display: block;
+    padding-top: .5rem;
+  }
+
+  .sale-create-form .sale-section-collapsed {
+    display: none;
+  }
+
+  .sale-create-form :is(.sale-basics-grid, .sale-payment-terms) {
+    --bs-gutter-x: .75rem;
+    --bs-gutter-y: .375rem;
+  }
+
+  .sale-create-form .sale-payments-section {
+    margin-block: 1rem !important;
+  }
+
+  .sale-create-form .sale-payments-section .table-responsive {
+    margin-top: .75rem !important;
+  }
+
+  .sale-create-form td .form-group {
+    margin-bottom: 0;
+  }
+
+  .sale-create-form :is(input:not([type="hidden"]), select, textarea, .selectize-input) {
+    font-size: 16px;
+    min-height: 44px;
+    max-width: 100%;
+  }
+
+  .sale-create-form .btn {
+    min-height: 44px;
+  }
+
+  .sale-create-form .input-group > .selectize-control {
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+  }
+
+  .sale-create-form :is(.selectize-input .item, .selectize-dropdown .option, .selectedPayment span) {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .sale-create-form .p-calendar {
+    width: 100%;
+  }
+
+  .sale-create-form .p-calendar input.p-inputtext {
+    height: 44px !important;
+  }
+
+  .sale-create-form .selectedPayment {
+    min-height: 44px;
+  }
+
+  .sale-create-form .sale-lines-footer {
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: center;
+  }
+
+  .sale-create-form .sale-lines-footer > div {
+    font-size: 1.125rem !important;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) {
+    display: block;
+    width: 100%;
+    border: 0;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) tbody {
+    display: block;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem .625rem;
+    padding: .75rem;
+    margin-bottom: .75rem;
+    border: 1px solid #d7dee5;
+    border-radius: .75rem;
+    background: #fff;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) td {
+    display: block;
+    width: auto !important;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) :is(.form-control, .form-select) {
+    border: 1px solid #ced4da !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sale-create-form td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #4a5968;
+    margin-bottom: .3rem;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    padding: .25rem .5rem;
+    border-radius: .35rem;
+    align-self: center;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(2),
+  .sale-create-form .sale-payments-table td:nth-child(2),
+  .sale-create-form .sale-payments-table td:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(3) img {
+    max-width: 100%;
+    height: 44px;
+    object-fit: contain;
+  }
+
+  .sale-create-form :is(.sale-articles-table, .sale-payments-table) td:last-child {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right !important;
+    align-self: center;
+  }
+
+  .sale-create-form td:last-child .btn {
+    padding: .5rem !important;
+  }
+
+  /* Six tracks allow a compact header and equal-width pairs of input fields. */
+  .sale-create-form .sale-articles-table tr {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .sale-create-form .sale-articles-table td:first-child {
+    grid-column: 1 / 4;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(3) {
+    grid-column: 4 / 5;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(3)::before {
+    display: none;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(3) img {
+    display: block;
+    width: 100%;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(3) img:not([src]),
+  .sale-create-form .sale-articles-table td:nth-child(3) img[src=""] {
+    visibility: hidden;
+  }
+
+  .sale-create-form .sale-articles-table td:last-child {
+    grid-column: 5 / 7;
+  }
+
+  .sale-create-form .sale-articles-table :is(td:nth-child(4), td:nth-child(6)) {
+    grid-column: 1 / 4;
+  }
+
+  .sale-create-form .sale-articles-table :is(td:nth-child(5), td:nth-child(7)) {
+    grid-column: 4 / 7;
+  }
+
+  .sale-create-form .sale-articles-table td:nth-child(8) {
+    grid-column: 1 / -1;
+  }
+
+  .sale-create-form .sale-payments-table td:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .sale-create-form .sale-payments-table td:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .sale-create-form img.img-thumbnail {
+    max-width: 100% !important;
+  }
+
+  .sale-create-form .sale-submit-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: #fff;
+    border-top: 1px solid #d7dee5;
+    padding: .75rem 0 max(.75rem, env(safe-area-inset-bottom));
+  }
+
+  .sale-mobile-summary {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    margin-bottom: .5rem;
+    font-size: .875rem;
+  }
+
+  .sale-mobile-summary strong {
+    display: block;
+    color: #164b78;
+  }
+}
+
+/* Pair short fields only when dates and select arrows have sufficient room. */
+@media (min-width: 400px) and (max-width: 991.98px) {
+  .sale-create-form :is(.sale-seller-field, .sale-date-field,
+    .sale-installments-field, .sale-payment-condition-field) {
+    width: 50%;
+  }
+}

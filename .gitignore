@@ -420,8 +420,16 @@ optica/usuarios/migrations/*
 optica/contabilidad/migrations/*
 !optica/contabilidad/migrations/0035_abonomasivo_idempotencia.py
 !optica/contabilidad/migrations/0036_bodegas.py
+!optica/contabilidad/migrations/0037_ventas_empresa.py
+!optica/contabilidad/migrations/0038_remision_item_importes_originales.py
+!optica/contabilidad/migrations/0039_normalizar_estados_pedido.py
+!optica/contabilidad/migrations/0040_normalizar_anulado_ventas.py
 !optica/usuarios/migrations/0005_inventario_permisos.py
 !optica/usuarios/migrations/0006_alter_perfilacceso_options.py
 !optica/usuarios/migrations/0007_inventario_eliminar_items.py
 !optica/inventario/migrations/
 !optica/inventario/migrations/**
+
+# Frontend source modules are not Python build artifacts.
+!frontend/src/lib/
+!frontend/src/lib/**

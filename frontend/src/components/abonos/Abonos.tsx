@@ -6,7 +6,7 @@ import { Calendar } from 'primereact/calendar'
 
 import Button from 'react-bootstrap/Button'
 import { useAuth } from '@/components/auth/AuthProvider';
-import { parseCalendarDate, localISODate, paymentDueDate } from '@/utils/balances';
+import { parseCalendarDate, localISODate, paymentDueDate, MAX_INSTALLMENTS } from '@/utils/balances';
 
 type MedioPagoRow = {
   id?: number | string;
@@ -224,6 +224,7 @@ function Abonos(props: AbonosProps) {
             placeholder="Cuotas"
             name="compromisoPago"
             min={1}
+            max={MAX_INSTALLMENTS}
             value={compromisoPago}
             onChange={(e) => changePaymentTerms({ installments: Number(e.target.value) })}
             required

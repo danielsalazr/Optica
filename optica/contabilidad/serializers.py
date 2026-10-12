@@ -42,7 +42,7 @@ console = Console()
 
 
 class JornadaSerializer(serializers.ModelSerializer):
-    cantidad_cuotas = serializers.IntegerField(min_value=1, required=False, allow_null=True)
+    cantidad_cuotas = serializers.IntegerField(min_value=1, max_value=360, required=False, allow_null=True)
     empresa_nombre = serializers.CharField(source='empresa.nombre', read_only=True)
     responsable_nombre = serializers.SerializerMethodField(read_only=True)
     ventas_count = serializers.IntegerField(read_only=True)
@@ -87,7 +87,7 @@ class JornadaSerializer(serializers.ModelSerializer):
 
 
 class VentaSerializer(serializers.ModelSerializer):
-    cuotas = serializers.IntegerField(min_value=1, max_value=2147483647, required=False)
+    cuotas = serializers.IntegerField(min_value=1, max_value=360, required=False)
     # empresaCliente = serializers.CharField(source='empresaCliente.nombre', read_only=True)
     # empresaCliente = serializers.CharField(source='empresaCliente.nombre', )
     # empresa_id = serializers.PrimaryKeyRelatedField(

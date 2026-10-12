@@ -1,0 +1,310 @@
+.page-shell.remisiones-page {
+  width: 100%;
+  margin-top: 1rem;
+  padding-inline: clamp(0.65rem, 2vw, 1.5rem);
+}
+
+.remisiones-module .remisiones-workspace {
+  padding: 0.85rem;
+}
+
+.remisiones-workspace-toolbar,
+.remisiones-workspace-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remisiones-workspace-toolbar {
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.remisiones-workspace-search input {
+  width: 16rem;
+  max-width: 100%;
+  font-size: 0.9rem;
+}
+
+.remisiones-filter-group {
+  padding-block: 0.45rem;
+  border-top: 1px solid #eef1f5;
+}
+
+.remisiones-filter-group .btn:not(.btn-link) {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.remisiones-date-filter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.remisiones-date-presets {
+  flex: 1;
+  min-width: 0;
+}
+
+.remisiones-date-filter .remisiones-date-range {
+  flex-shrink: 0;
+}
+
+.remisiones-pagination-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.remisiones-pagination-toolbar .p-paginator {
+  padding: 0.3rem 0;
+  border: 0;
+  font-size: 0.8rem;
+}
+
+.remisiones-pagination-toolbar .p-paginator .p-paginator-element {
+  min-width: 2rem;
+  height: 2.5rem;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .remisiones-date-filter {
+    flex-wrap: wrap;
+  }
+
+  .remisiones-date-filter .remisiones-date-range {
+    margin-left: auto;
+  }
+}
+
+.remisiones-date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.remisiones-date-range input {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.remisiones-date-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.remisiones-date-field label {
+  flex-shrink: 0;
+}
+
+.remisiones-date-field input {
+  width: 9rem;
+  min-width: 0;
+}
+
+.remisiones-results {
+  margin-top: 0.5rem;
+  min-width: 0;
+}
+
+.remisiones-workspace .remisiones-table .p-datatable-wrapper {
+  overflow-x: auto;
+}
+
+.remisiones-workspace .remisiones-table .p-datatable-thead > tr > th {
+  padding: 0.45rem 0.6rem;
+  letter-spacing: 0.02em;
+}
+
+.remisiones-workspace .remisiones-table .p-datatable-tbody > tr > td {
+  padding: 0.35rem 0.6rem;
+}
+
+.remisiones-mobile-card {
+  margin-block: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid #dce4ee;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #fff, #f8fafc);
+  overflow-wrap: anywhere;
+}
+
+.remisiones-mobile-card-heading,
+.remisiones-mobile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.remisiones-mobile-card h2 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0.7rem 0 0.15rem;
+}
+
+.remisiones-mobile-secondary {
+  color: #64748b;
+  font-size: 0.8rem;
+  margin-bottom: 0.65rem;
+}
+
+.remisiones-mobile-amounts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-block: 0.7rem;
+  padding-block: 0.6rem;
+  border-block: 1px solid #e5eaf1;
+}
+
+.remisiones-mobile-amounts span,
+.remisiones-mobile-amounts strong {
+  display: block;
+}
+
+.remisiones-mobile-amounts span {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.remisiones-mobile-amounts strong {
+  font-size: 0.95rem;
+}
+
+.remisiones-mobile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.remisiones-mobile-actions .btn {
+  flex: 1;
+}
+
+.remisiones-mobile-card .btn {
+  min-height: 44px;
+  font-size: 0.8rem;
+}
+
+.remisiones-mobile-detail {
+  border-top: 1px solid #dce4ee;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  min-width: 0;
+}
+
+.remisiones-mobile-detail > .ventas-card {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.remisiones-mobile-detail .p-3 {
+  padding: 0.65rem !important;
+}
+
+.remisiones-mobile-item {
+  padding: 0.65rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e5eaf1;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.remisiones-mobile-item dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+
+.remisiones-mobile-item dt {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.remisiones-mobile-item dd {
+  margin: 0;
+}
+
+.remisiones-mobile-list .p-paginator {
+  padding: 0.5rem 0;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+}
+
+.remisiones-mobile-list .p-paginator .p-paginator-element {
+  min-width: 2rem;
+  height: 2.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .remisiones-module:not(.mobile-filters-open) #remisiones-filters,
+  .remisiones-results > .remisiones-table {
+    display: none;
+  }
+
+  .remisiones-module .remisiones-workspace {
+    padding: 0.65rem;
+  }
+
+  .remisiones-workspace-search {
+    flex-wrap: nowrap;
+    width: 100%;
+    order: -1;
+  }
+
+  .remisiones-pagination-toolbar > .p-paginator {
+    width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .remisiones-date-filter {
+    display: block;
+  }
+
+  .remisiones-workspace-search input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    font-size: 16px;
+  }
+
+  .remisiones-workspace-search .btn {
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+
+  .remisiones-filter-group .btn:not(.btn-link) {
+    min-height: 40px;
+  }
+
+  .remisiones-date-range {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0.5rem;
+  }
+
+  .remisiones-date-range input {
+    min-width: 0;
+    width: 100%;
+    flex: 1;
+  }
+
+  .remisiones-date-field label {
+    width: 3rem;
+  }
+}

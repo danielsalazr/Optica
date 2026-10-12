@@ -1,0 +1,70 @@
+.saldos-page { min-width: 0; }
+.saldos-page.page-shell { max-width: none; padding-top: .75rem; }
+.saldos-toolbar { margin-bottom: .6rem; gap: .5rem; }
+.saldos-toolbar .ventas-page-title { font-size: 1.25rem; }
+.saldos-toolbar .p-button { padding: .4rem .65rem; }
+.saldos-page .ventas-card { padding: .85rem; }
+.saldos-page .abonos-summary { margin-bottom: .65rem; }
+.saldos-page .abonos-payment-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .65rem; }
+.saldos-page .abonos-payment-badge { padding: .4rem .65rem; display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.saldos-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.3fr) auto; align-items: end; gap: .6rem; }
+.saldos-controls label { min-width: 0; font-size: .75rem; font-weight: 600; }
+.saldos-controls select, .saldos-controls input { width: 100%; min-width: 0; font-size: .8rem; padding: .45rem .6rem; }
+.saldos-controls .abonos-search { display: block; width: 100%; position: relative; }
+.saldos-controls .abonos-search i { position: absolute; top: 50%; left: .6rem; transform: translateY(-50%); }
+.saldos-controls .abonos-search input { padding-left: 1.9rem; }
+.saldos-filter-status { display: flex; align-items: center; gap: .2rem; font-size: .75rem; color: #64748b; margin-top: .2rem; }
+.saldos-filter-status .p-button { width: 1.8rem; height: 1.8rem; padding: .25rem; }
+.saldos-cell-secondary { display: block; font-size: .7rem; color: #64748b; margin-top: .1rem; }
+.saldos-page .abonos-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.saldos-page .abonos-summary-card { min-width: 0; padding: .7rem; }
+.saldos-page .abonos-summary-card .value { font-size: 1.15rem; overflow-wrap: anywhere; }
+.saldos-page .abonos-summary-card .label { font-size: .7rem; }
+.saldos-page .abonos-table .p-datatable-table { min-width: 0; width: 100%; table-layout: fixed; }
+.saldos-page .abonos-table .p-datatable-wrapper { overflow-x: auto; border-radius: 12px; }
+.saldos-page .abonos-table th, .saldos-page .abonos-table td { white-space: normal; overflow-wrap: anywhere; padding: .5rem .3rem; font-size: .75rem; }
+.saldos-page .p-paginator .p-link { min-width: 2rem; height: 2rem; }
+.saldos-page .p-paginator .p-dropdown { height: 2rem; align-items: center; }
+.saldos-page .p-paginator .p-dropdown-label { padding: .3rem .5rem; line-height: 1.2; font-size: .8rem; }
+.saldos-page .abonos-table .p-paginator .p-dropdown { height: 2rem; }
+.saldos-page .abonos-table .p-paginator .p-dropdown .p-dropdown-label { line-height: 1.2; }
+.saldos-filters { display: flex; gap: .7rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.saldos-filters label { flex: 1; min-width: 160px; font-size: .8rem; font-weight: 600; }
+.saldos-detail { background: #f8fafc; padding: .8rem; border-radius: 10px; overflow-wrap: anywhere; }
+.saldos-detail-dates { display: flex; gap: .6rem 1rem; flex-wrap: wrap; font-size: .78rem; margin-bottom: .65rem; }
+.saldos-detail-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: .65rem; }
+.saldos-detail-columns section { min-width: 0; }
+.saldos-detail h3 { font-size: .85rem; font-weight: 700; }
+.saldos-detail p { font-size: .78rem; white-space: pre-wrap; border-bottom: 1px solid #e2e8f0; padding-bottom: .4rem; }
+.saldos-sale-link { font-size: .8rem; }
+.saldos-mobile { display: none; }
+@media (max-width: 767px) {
+  .saldos-page.page-shell { padding: .6rem; }
+  .saldos-toolbar { align-items: center; }
+  .saldos-toolbar .ventas-page-title { font-size: 1.05rem; }
+  .saldos-toolbar .p-button-label { display: none; }
+  .saldos-page .ventas-card { padding: .6rem; }
+  .saldos-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .45rem; }
+  .saldos-controls .saldos-search-control { grid-column: 1; }
+  .saldos-controls > .p-button { justify-self: end; }
+  .saldos-page .abonos-payment-badges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .saldos-page .abonos-payment-badge { justify-content: space-between; }
+  .saldos-page .p-paginator { padding: .35rem 0; gap: 0; font-size: .7rem; }
+  .saldos-page .p-paginator .p-dropdown { height: 2rem; }
+  .saldos-page .p-paginator .p-dropdown-label { padding: .35rem; font-size: .75rem; }
+  .saldos-desktop { display: none; }
+  .saldos-mobile { display: block; }
+  .saldos-page .abonos-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
+  .saldos-page .abonos-summary-card .value { font-size: .95rem; }
+  .saldos-page .abonos-header > div, .saldos-page .abonos-search, .saldos-page .abonos-search input { width: 100%; min-width: 0; }
+  .saldos-page .abonos-payment-badges { gap: .4rem; }
+  .saldos-page .abonos-payment-badge { flex: 1; padding: .4rem; min-width: 0; font-size: .75rem; }
+  .saldos-page .abonos-payment-badge .method { font-size: .68rem; }
+  .saldos-mobile-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: .65rem; margin-bottom: .5rem; }
+  .saldos-mobile-card small { display: block; color: #64748b; overflow-wrap: anywhere; }
+  .saldos-mobile-heading { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .4rem; font-size: .85rem; }
+  .saldos-mobile-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; margin: .65rem 0; }
+  .saldos-mobile-values span { min-width: 0; color: #64748b; font-size: .7rem; }
+  .saldos-mobile-values strong { display: block; font-size: .8rem; color: #1e293b; overflow-wrap: anywhere; }
+  .saldos-detail-columns { grid-template-columns: minmax(0, 1fr); }
+}

@@ -26,7 +26,7 @@ console = Console()
 
 @api_view(['GET'])
 def infoCliente(request, cedula = 0):
-    info = Clientes.objects.filter(id=cedula).values()
+    info = Clientes.objects.filter(cedula=cedula).values()
 
     console.log(info)
 
@@ -34,7 +34,7 @@ def infoCliente(request, cedula = 0):
         return Response(info, status=status.HTTP_200_OK)
         # return JsonResponse(info, status=200)
 
-    return Response({'response': 'Not found'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'response': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class Empresas(APIView):

@@ -1,0 +1,46 @@
+.shell {
+  width: min(100% - 2rem, 1320px);
+  margin: 1.5rem auto;
+  padding: 1.25rem;
+  border: 1px solid #dce3ea;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+  color: #164b78;
+  font-weight: 600;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.placeholder {
+  height: 3rem;
+  border-radius: .375rem;
+  background: linear-gradient(90deg, #edf1f5, #f8fafc, #edf1f5);
+}
+
+.table .placeholder {
+  height: 2.25rem;
+  margin-bottom: .5rem;
+}
+
+@media (max-width: 767px) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status i {
+    animation: none;
+  }
+}
