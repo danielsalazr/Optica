@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 
 import environ
 import os
@@ -53,10 +55,34 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'contabilidad.apps.ContabilidadConfig',
+    'inventario.apps.InventarioConfig',
     'usuarios.apps.UsuariosConfig',
     'django.contrib.humanize',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'usuarios.authentication.SessionJWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': ['usuarios.permissions.ApplicationPermission'],
+    'DEFAULT_THROTTLE_RATES': {'login': '10/min'},
+}
+
+JWT_SIGNING_KEY = env.str('JWT_SIGNING_KEY') if PRODUCCION else env.str('JWT_SIGNING_KEY', default=SECRET_KEY)
+if PRODUCCION and len(JWT_SIGNING_KEY) < 32:
+    raise ImproperlyConfigured('JWT_SIGNING_KEY debe ser un secreto aleatorio de al menos 32 caracteres.')
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
+    # Stable refresh tokens avoid races between parallel SSR requests.
+    'ROTATE_REFRESH_TOKENS': False,
+    'SIGNING_KEY': JWT_SIGNING_KEY,
+    'CHECK_REVOKE_TOKEN': True,
+}
 
 JAZZMIN_SETTINGS = {
     'site_title': 'Bienestar Optica',

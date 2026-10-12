@@ -3,10 +3,13 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { callApi } from "@/utils/js/api";
+import { paymentDueDate } from '@/utils/balances';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { Calendar } from "primereact/calendar";
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
 import { DataTable } from "primereact/datatable";
+import { Paginator } from 'primereact/paginator';
 import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
@@ -15,6 +18,7 @@ import { Tooltip } from "primereact/tooltip";
 import BootstrapModal from "@/components/bootstrap/BootstrapModal";
 import EmpresaForm from "@/components/usuarios/EmpresaForm";
 import "@/styles/style.css";
+import "@/styles/jornadas-workspace.css";
 
 type JornadaEstado = "planned" | "in_progress" | "closed";
 
@@ -184,6 +188,7 @@ const sortJornadas = (records: Jornada[] = []) =>
   });
 
 const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }) => {
+  const { can } = useAuth();
   const pagination = useTablePagination('jornadas', 10, [5, 10, 20, 50]);
   const [jornadas, setJornadas] = useState<Jornada[]>(() => sortJornadas(initialJornadas));
   const [listaEmpresas, setListaEmpresas] = useState<Empresa[]>(() => empresas ?? []);
@@ -411,47 +416,9 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  const addDaysSkipping31 = (startDate: Date | string, days: number) => {
-    if (!startDate || !days || days <= 0) return startDate;
-    const fecha = startDate instanceof Date ? new Date(startDate.getTime()) : parseLocalDate(startDate);
-    if (!fecha || Number.isNaN(fecha.getTime())) return startDate;
-
-    let count = 0;
-    while (count < days) {
-      fecha.setDate(fecha.getDate() + 1);
-      if (fecha.getDate() !== 31) {
-        count += 1;
-      }
-    }
-    return fecha;
-  };
-
-  const addMonthlyPeriods = (startDate: Date | string, periods: number) => {
-    if (!startDate || periods <= 0) return startDate;
-    const base = startDate instanceof Date ? new Date(startDate.getTime()) : parseLocalDate(startDate);
-    if (!base || Number.isNaN(base.getTime())) return startDate;
-
-    const originalDay = Math.min(base.getDate(), 30);
-    const result = new Date(base.getTime());
-
-    for (let index = 0; index < periods; index += 1) {
-      const nextMonth = result.getMonth() + 1;
-      const nextYear = result.getFullYear() + Math.floor(nextMonth / 12);
-      const normalizedMonth = nextMonth % 12;
-      const daysInTargetMonth = new Date(nextYear, normalizedMonth + 1, 0).getDate();
-      const targetDay = Math.min(originalDay, daysInTargetMonth, 30);
-      result.setFullYear(nextYear, normalizedMonth, targetDay);
-    }
-
-    return result;
-  };
-
   useEffect(() => {
     const cuotas = Math.max(Number(formData.cantidad_cuotas) || 0, 1);
-    const periodosRestantes = Math.max(cuotas - 1, 0);
-    const nuevaFecha = formData.condicion_pago === "mensual"
-      ? addMonthlyPeriods(formData.fecha_inicio, periodosRestantes)
-      : addDaysSkipping31(formData.fecha_inicio, periodosRestantes * 15);
+    const nuevaFecha = paymentDueDate(parseLocalDate(formData.fecha_inicio), formData.condicion_pago, cuotas);
 
     setFormData((prev) => ({
       ...prev,
@@ -626,6 +593,17 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
     refreshTooltips(true);
   };
 
+  const toggleMobileDetail = (jornada: Jornada) => {
+    const opening = !expandedRows?.[jornada.id];
+    setExpandedRows((previous: Record<number, boolean> | null) => {
+      const next = { ...previous };
+      if (opening) next[jornada.id] = true;
+      else delete next[jornada.id];
+      return next;
+    });
+    if (opening) void handleRowExpand({ data: jornada });
+  };
+
   const renderJornadaDetalle = (jornada: Jornada) => {
     const detalle = jornadaDetails[jornada.id];
     const loading = detailLoading[jornada.id];
@@ -727,8 +705,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
 
   const renderAccionBody = (jornada: Jornada) => {
     const accion = ESTADO_ACCIONES[jornada.estado];
-    const canEdit = canEditJornada(jornada);
-    const canDelete = jornada.estado === "planned";
+    const canEdit = can('change_jornadas') && canEditJornada(jornada);
+    const canDelete = can('delete_jornadas') && jornada.estado === "planned";
     const bloqueado = actualizando === jornada.id || eliminando === jornada.id;
     const bloqueadoEdicion = bloqueado || !canEdit;
     const manageTooltip = canEdit
@@ -746,7 +724,8 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             className="btn-action btn btn-sm btn-outline-secondary jornadas-action-tooltip"
             data-pr-tooltip={actualizando === jornada.id ? "Actualizando estado" : accion.label}
             data-pr-position="top"
-            disabled={bloqueado}
+            aria-label={accion.label}
+            disabled={bloqueado || !can('change_jornadas')}
             onClick={() => handleActualizarEstado(jornada, accion.value)}
           >
             {actualizando === jornada.id ? (
@@ -761,6 +740,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
           type="button"
           className="btn-action btn btn-sm btn-primary jornadas-action-tooltip"
           data-pr-tooltip={manageTooltip}
+          aria-label="Editar jornada"
           data-pr-position="top"
           disabled={bloqueadoEdicion}
           onClick={() => canEdit && hydrateForm(jornada)}
@@ -772,9 +752,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
           type="button"
           className="btn-action btn btn-sm btn-danger jornadas-action-tooltip"
           data-pr-tooltip={deleteTooltip}
+          aria-label="Eliminar jornada"
           data-pr-position="top"
-          disabled={bloqueadoEdicion}
-          onClick={() => canManage && handleEliminarJornada(jornada)}
+          disabled={bloqueado || !canDelete}
+          onClick={() => canDelete && handleEliminarJornada(jornada)}
         >
           {eliminando === jornada.id ? (
             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -808,6 +789,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         }
         visible={createModalVisible}
         style={{ width: "min(860px, 94vw)" }}
+        className="jornadas-editor-dialog"
         contentClassName="jornadas-create-dialog-content"
         modal
         draggable={false}
@@ -943,21 +925,7 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
       </Dialog>
 
       <section className="jornadas-module">
-        <div className="ventas-toolbar mb-4 jornadas-toolbar-top">
-          <div>
-            <h1 className="ventas-page-title mb-1">Jornadas comerciales</h1>
-            <p className="text-muted mb-0">
-              Crea y monitorea las jornadas de venta por empresa y sucursal para validar los pedidos generados.
-            </p>
-          </div>
-          <div className="d-flex align-items-center gap-2 flex-wrap">
-            <span className="badge text-bg-primary px-3 py-2">
-              {resumen.total} registro{resumen.total === 1 ? "" : "s"}
-            </span>
-          </div>
-        </div>
-
-        <div className="jornadas-stats mb-4">
+        <div className="jornadas-stats">
           <div className="ventas-card">
             <div className="text-muted small text-uppercase">Ventas en jornadas</div>
             <div className="display-6 fw-semibold">{resumen.ventas}</div>
@@ -977,36 +945,40 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
         </div>
 
         <div className="ventas-card jornadas-panel jornadas-panel-full">
-          <div className="jornadas-panel-actions mb-3">
+          <div className="jornadas-filter-toolbar">
+            <div className="jornadas-filtros">
+              {filtros.map((filtro) => (
+                <button key={filtro.value} type="button"
+                  className={`btn btn-sm ${filtroEstado === filtro.value ? "btn-primary" : "btn-outline-primary"}`}
+                  onClick={() => { setFiltroEstado(filtro.value); pagination.setFirst(0); }}>
+                  {filtro.label}<span className="badge text-bg-light ms-2">{filtro.count}</span>
+                </button>
+              ))}
+            </div>
             <Button
               label="Nueva jornada"
+              aria-label="Nueva jornada"
+              title="Nueva jornada"
+              disabled={!can('add_jornadas')}
               icon="pi pi-plus"
               onClick={() => { resetForm(); setCreateModalVisible(true); }}
               className="jornadas-create-button p-button-rounded"
             />
           </div>
 
-          <div className="d-flex flex-wrap gap-2 align-items-center mb-3 justify-content-between">
-            <div className="flex-grow-1 jornadas-filtros">
-              {filtros.map((filtro) => (
-                <button
-                  key={filtro.value}
-                  type="button"
-                  className={`btn btn-sm ${filtroEstado === filtro.value ? "btn-primary" : "btn-outline-primary"}`}
-                  onClick={() => setFiltroEstado(filtro.value)}
-                >
-                  {filtro.label}
-                  <span className="badge text-bg-light ms-2">{filtro.count}</span>
-                </button>
-              ))}
-            </div>
+          <div className="jornadas-pagination-toolbar">
+            <Paginator first={pagination.first} rows={pagination.rows} totalRecords={jornadasFiltradas.length}
+              rowsPerPageOptions={[5, 10, 20, 50]} onPageChange={event => { pagination.onPage(event); refreshTooltips(true); }}
+              template="RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+              currentPageReportTemplate="{first} a {last} de {totalRecords}" />
             <div className="jornadas-busqueda">
               <span className="p-input-icon-left w-100">
                 <i className="pi pi-search" />
                 <InputText
                   value={busqueda}
-                  onChange={(event) => setBusqueda(event.target.value)}
+                  onChange={(event) => { setBusqueda(event.target.value); pagination.setFirst(0); }}
                   placeholder="Buscar empresa, responsable o nota"
+                  aria-label="Buscar jornadas"
                   className="w-100"
                 />
               </span>
@@ -1019,6 +991,54 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             </div>
           )}
 
+          <div className="jornadas-mobile-list" aria-label="Jornadas">
+            {jornadasFiltradas.slice(pagination.first, pagination.first + pagination.rows).map((jornada) => (
+              <article key={jornada.id} className="jornada-mobile-card">
+                <header className="jornada-mobile-heading">
+                  <div>
+                    <span className="jornada-mobile-id">Jornada #{jornada.id}</span>
+                    <h2>{jornada.empresa_nombre}</h2>
+                    <p>{jornada.sucursal || "Sin sucursal"}</p>
+                  </div>
+                  {renderEstadoBody(jornada)}
+                </header>
+                <dl className="jornada-mobile-summary">
+                  <div><dt>Inicio</dt><dd>{formatDate(jornada.fecha_inicio)}</dd></div>
+                  <div><dt>Vencimiento</dt><dd>{formatDate(jornada.fecha_vencimiento)}</dd></div>
+                  <div><dt>Ventas</dt><dd>{Number(jornada.ventas_count || 0)}</dd></div>
+                  <div><dt>Condicion de pago</dt><dd>{formatCondicionPago(jornada.condicion_pago)} / {Number(jornada.cantidad_cuotas || 0)} cuotas</dd></div>
+                  <div><dt>Total vendido</dt><dd>{formatCurrency(jornada.total_vendido)}</dd></div>
+                  <div><dt>Abonos</dt><dd>{formatCurrency(jornada.total_abonos)}</dd></div>
+                </dl>
+                <div className="jornada-mobile-actions">
+                  <button type="button" className="jornada-mobile-detail-toggle"
+                    aria-expanded={!!expandedRows?.[jornada.id]}
+                    aria-controls={`jornada-mobile-detail-${jornada.id}`}
+                    onClick={() => toggleMobileDetail(jornada)}>
+                    <i className={`pi ${expandedRows?.[jornada.id] ? 'pi-chevron-up' : 'pi-chevron-down'}`} aria-hidden="true" />
+                    {expandedRows?.[jornada.id] ? "Ocultar ventas" : "Ver ventas"}
+                  </button>
+                  {renderAccionBody(jornada)}
+                </div>
+                <div id={`jornada-mobile-detail-${jornada.id}`} hidden={!expandedRows?.[jornada.id]} className="jornada-mobile-detail">
+                  {expandedRows?.[jornada.id] && <>
+                    <div className="jornada-mobile-notes">
+                      <p><strong>Fecha de registro:</strong> {formatDate(jornada.fecha)}</p>
+                      {jornada.observaciones && <p><strong>Observaciones:</strong> {jornada.observaciones}</p>}
+                    </div>
+                    {renderJornadaDetalle(jornada)}
+                    {!detailLoading[jornada.id] && !jornadaDetails[jornada.id] && <Button label="Reintentar" rounded outlined onClick={() => handleRowExpand({ data: jornada })} />}
+                  </>}
+                </div>
+              </article>
+            ))}
+            {!jornadasFiltradas.length && <p className="text-center text-muted py-3">No hay jornadas para los filtros seleccionados.</p>}
+            <Paginator first={pagination.first} rows={pagination.rows} totalRecords={jornadasFiltradas.length}
+              rowsPerPageOptions={[5, 10, 20, 50]} onPageChange={event => { pagination.onPage(event); refreshTooltips(true); }}
+              template="RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+              currentPageReportTemplate="{first} a {last} de {totalRecords}" />
+          </div>
+
           <DataTable
             value={jornadasFiltradas}
             expandedRows={expandedRows}
@@ -1027,10 +1047,10 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             onRowCollapse={() => refreshTooltips(true)}
             rowExpansionTemplate={renderJornadaDetalle}
             paginator
-            paginatorPosition="both"
+            paginatorPosition="bottom"
             first={pagination.first}
             rows={pagination.rows}
-            onPage={pagination.onPage}
+            onPage={event => { pagination.onPage(event); refreshTooltips(true); }}
             onValueChange={pagination.onValueChange}
             rowsPerPageOptions={[5, 10, 20, 50]}
             stripedRows
@@ -1042,14 +1062,14 @@ const JornadasModule: React.FC<Props> = ({ initialJornadas = [], empresas = [] }
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
             emptyMessage="No hay jornadas para los filtros seleccionados."
           >
-            <Column expander style={{ width: "3.5rem" }} />
-            <Column field="empresa_nombre" header="Empresa" sortable style={{ minWidth: "22rem" }} body={renderEmpresaBody} />
-            <Column field="fecha" header="Fecha" sortable body={(jornada: Jornada) => formatDate(jornada.fecha)} style={{ minWidth: "9rem" }} />
-            <Column field="ventas_count" header="Ventas" sortable body={(jornada: Jornada) => <span className="fw-semibold">{Number(jornada.ventas_count || 0)}</span>} bodyClassName="text-center" style={{ width: "7rem" }} />
-            <Column field="total_vendido" header="Total vendido" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_vendido)} bodyClassName="text-center" style={{ minWidth: "10rem" }} />
-            <Column field="total_abonos" header="Abonos" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_abonos)} bodyClassName="text-center" style={{ minWidth: "10rem" }} />
-            <Column field="estado" header="Estado" sortable body={renderEstadoBody} style={{ width: "7.5rem" }} />
-            <Column header="Accion" body={renderAccionBody} bodyClassName="text-end" style={{ width: "8.5rem" }} />
+            <Column expander style={{ width: "3rem" }} />
+            <Column field="empresa_nombre" header="Empresa" sortable style={{ minWidth: "14rem" }} body={renderEmpresaBody} />
+            <Column field="fecha" header="Fecha" sortable body={(jornada: Jornada) => formatDate(jornada.fecha)} style={{ minWidth: "6.5rem" }} />
+            <Column field="ventas_count" header="Ventas" sortable body={(jornada: Jornada) => <span className="fw-semibold">{Number(jornada.ventas_count || 0)}</span>} bodyClassName="text-center" style={{ width: "4rem" }} />
+            <Column field="total_vendido" header="Total vendido" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_vendido)} bodyClassName="text-center" style={{ minWidth: "8rem" }} />
+            <Column field="total_abonos" header="Abonos" sortable body={(jornada: Jornada) => formatCurrency(jornada.total_abonos)} bodyClassName="text-center" style={{ minWidth: "8rem" }} />
+            <Column field="estado" header="Estado" sortable body={renderEstadoBody} style={{ width: "6rem" }} />
+            <Column header="Accion" body={renderAccionBody} bodyClassName="text-end" style={{ width: "7rem" }} />
           </DataTable>
         </div>
       </section>

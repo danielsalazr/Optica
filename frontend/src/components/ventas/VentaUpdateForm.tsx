@@ -66,7 +66,7 @@ export default function VentaUpdateForm({ data, ventaData }) {
     return (
         <div className="sale-create-page">
             <VentaForm data={data} ventaData={dataVenta} disabled={esVentaContadoRemisionada} />
-            <div className="container-md px-0 mt-5">
+            <div className="sale-edit-remisiones mt-3">
                 <RemisionesPanel
                     ventaId={Number(dataVenta?.id || dataVenta?.pedido || 0)}
                     items={dataVenta.ventas ?? []}

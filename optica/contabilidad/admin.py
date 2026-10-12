@@ -1,5 +1,12 @@
 from django.contrib import admin
 from django.contrib import admin
+from usuarios.admin_policy import OperationalReadOnlyAdmin
+from django import forms
+from django.db import transaction
+from django.core.exceptions import ValidationError as FormValidationError
+from rest_framework.exceptions import ValidationError as ApiValidationError
+from .serializers import AbonoSerializer
+from .payments import sync_payments, validate_payment_change
 from .models import (
     MediosDePago,
     EstadoVenta,
@@ -62,8 +69,58 @@ custom_admin_site = CustomAdminSite(name='custom_admin')
 # admin.site.register(MediosDePago)
 # admin.site.register(Abonos)
 
+class AbonoAdminForm(forms.ModelForm):
+    class Meta:
+        model = Abonos
+        fields = '__all__'
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.errors:
+            return cleaned
+        data = {key: value.pk if hasattr(value, 'pk') else value for key, value in cleaned.items()}
+        if self.instance.pk:
+            data['venta'] = self.instance.venta_id
+        try:
+            serializer = AbonoSerializer(self.instance if self.instance.pk else None, data=data, partial=bool(self.instance.pk))
+            serializer.is_valid(raise_exception=True)
+        except ApiValidationError as error:
+            raise FormValidationError(str(error.detail))
+        return cleaned
+
+
 @admin.register(Abonos)
-class AbonosAdmin(admin.ModelAdmin):
+class AbonosAdmin(OperationalReadOnlyAdmin):
+    form = AbonoAdminForm
+    actions = None
+
+    def get_readonly_fields(self, request, obj=None):
+        return super().get_readonly_fields(request, obj)
+
+    @transaction.atomic
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        if request.method == 'POST':
+            sale_id = request.POST.get('venta')
+            if object_id:
+                sale_id = Abonos.objects.filter(pk=object_id).values_list('venta_id', flat=True).first()
+            if sale_id:
+                Ventas.objects.select_for_update().filter(pk=sale_id).first()
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        sync_payments(obj.venta)
+
+    def has_delete_permission(self, request, obj=None):
+        contado = obj and obj.venta and (obj.venta.condicion_pago or '').strip().lower() == 'contado'
+        return super().has_delete_permission(request, obj) and not (obj and obj.abono_masivo_id) and not contado
+
+    @transaction.atomic
+    def delete_model(self, request, obj):
+        sale = Ventas.objects.select_for_update().get(pk=obj.venta_id)
+        validate_payment_change(sale, obj, delete=True)
+        super().delete_model(request, obj)
+        sync_payments(sale)
     list_display = (
         'id',
         'n_pedidoVenta',
@@ -83,7 +140,15 @@ class AbonosAdmin(admin.ModelAdmin):
 
 # @admin.register(Saldos, site=custom_admin_site)
 @admin.register(Saldos,)
-class SaldosAdmin(admin.ModelAdmin):
+class SaldosAdmin(OperationalReadOnlyAdmin):
+    actions = None
+    readonly_fields = ('venta', 'cliente', 'saldo', 'fecha_Vencimiento')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
     list_display = (
         'id',
         'venta',
@@ -95,7 +160,7 @@ class SaldosAdmin(admin.ModelAdmin):
 
 
 @admin.register(HistoricoSaldos)
-class HistoricoSaldosAdmin(admin.ModelAdmin):
+class HistoricoSaldosAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         'venta',
@@ -108,7 +173,7 @@ class HistoricoSaldosAdmin(admin.ModelAdmin):
 
 
 @admin.register(ItemsVenta)
-class ItemsVentaAdmin(admin.ModelAdmin):
+class ItemsVentaAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'venta',
         'articulo',
@@ -133,7 +198,7 @@ class TipoVentaAdmin(admin.ModelAdmin):
     )
 
 @admin.register(Ventas)
-class VentasAdmin(admin.ModelAdmin):
+class VentasAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         'cliente_id',
@@ -197,6 +262,13 @@ class FotosInline(admin.StackedInline):
 class ArticulosAdmin(admin.ModelAdmin):
     inlines = [FotosInline]
 
+    def get_readonly_fields(self, request, obj=None):
+        from inventario.models import ConfiguracionArticulo
+        fields = super().get_readonly_fields(request, obj)
+        if obj and ConfiguracionArticulo.objects.filter(articulo=obj, controla=True).exists():
+            return (*fields, 'tipo_articulo')
+        return fields
+
     list_display = (
         'id',
         'nombre',
@@ -238,16 +310,25 @@ class EstadoPedidoVentaAdmin(admin.ModelAdmin):
         'nombre',
     )
 
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(HistoricoEstadoPedidoVenta)
-class HistoricoEstadoPedidoVentaAdmin(admin.ModelAdmin):
+class HistoricoEstadoPedidoVentaAdmin(OperationalReadOnlyAdmin):
     list_display = ('id', 'venta', 'estado_anterior', 'estado_nuevo', 'origen', 'usuario', 'fecha')
     search_fields = ('venta__id', 'venta__cliente_id', 'estado_anterior__nombre', 'estado_nuevo__nombre')
     list_filter = ('origen', 'estado_nuevo', 'fecha')
 
 
 @admin.register(PedidoVenta)
-class EstadoPedidoVentaAdmin(admin.ModelAdmin):
+class PedidoVentaAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         #'cliente',
@@ -258,7 +339,7 @@ class EstadoPedidoVentaAdmin(admin.ModelAdmin):
 
 
 @admin.register(ItemsPEdidoVenta)
-class ItemsPEdidoVentaAdmin(admin.ModelAdmin):
+class ItemsPEdidoVentaAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         'pedido',
@@ -268,13 +349,13 @@ class ItemsPEdidoVentaAdmin(admin.ModelAdmin):
 
 
 @admin.register(FotosVentas)
-class FotosVentasAdmin(admin.ModelAdmin):
+class FotosVentasAdmin(OperationalReadOnlyAdmin):
     list_display = ('id', 'venta', 'foto')
     search_fields = ('venta__id',)
 
 
 @admin.register(Remision)
-class RemisionAdmin(admin.ModelAdmin):
+class RemisionAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         'venta',
@@ -288,7 +369,7 @@ class RemisionAdmin(admin.ModelAdmin):
 
 
 @admin.register(RemisionItem)
-class RemisionItemAdmin(admin.ModelAdmin):
+class RemisionItemAdmin(OperationalReadOnlyAdmin):
     list_display = (
         'id',
         'remision',
@@ -305,7 +386,7 @@ class RemisionItemAdmin(admin.ModelAdmin):
 
 
 @admin.register(Jornada)
-class JornadaAdmin(admin.ModelAdmin):
+class JornadaAdmin(OperationalReadOnlyAdmin):
     list_display = ('id', 'empresa', 'sucursal', 'fecha', 'estado', 'responsable')
     list_filter = ('estado', 'fecha', 'empresa', 'sucursal')
     search_fields = ('empresa__nombre', 'sucursal')
@@ -355,7 +436,7 @@ class CitaAgendaAdmin(admin.ModelAdmin):
 
 
 @admin.register(CitaAgendaRegistro)
-class CitaAgendaRegistroAdmin(admin.ModelAdmin):
+class CitaAgendaRegistroAdmin(OperationalReadOnlyAdmin):
     list_display = (
         "nombre_completo",
         "identificacion",

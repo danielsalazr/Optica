@@ -4,13 +4,17 @@
 import '@/styles/selectwithImage.css';
 
 import React, { useEffect, useMemo, useState } from "react";
-import { DataTable, DataTableFilterMeta } from "primereact/datatable";
+import { DataTable } from "primereact/datatable";
 import { useTablePagination } from '@/hooks/useTablePagination';
+import { useMobileLayout } from '@/hooks/useMobileLayout';
+import { Paginator } from 'primereact/paginator';
+import AbonosMobileList from './AbonosMobileList';
+import { useAuth } from '@/components/auth/AuthProvider';
+import '@/styles/abonos-workspace.css';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
-import { Tooltip } from "primereact/tooltip";
+import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
-import { FilterMatchMode } from "primereact/api";
 import { Tag } from "primereact/tag";
 import { Dialog } from "primereact/dialog";
 import { Dropdown } from "primereact/dropdown";
@@ -104,6 +108,7 @@ type AbonoMasivoDetail = {
 };
 
 type EditFormState = {
+  snapshot: string;
   id: number | null;
   venta: number | null;
   cliente_id: number | null;
@@ -114,6 +119,7 @@ type EditFormState = {
 };
 
 const createEditState = (): EditFormState => ({
+  snapshot: "",
   id: null,
   venta: null,
   cliente_id: null,
@@ -163,12 +169,13 @@ function parseCurrencyValue(value: string | number | undefined) {
 }
 
 function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData = [] }: AbonosDataProps) {
+  const { can } = useAuth();
   const pagination = useTablePagination('abonos', 10, [5, 10, 20, 50, 100]);
   const massivePagination = useTablePagination('abonos-masivos', 10, [5, 10, 20, 50]);
   const toastRef = React.useRef<Toast | null>(null);
-  const [filters, setFilters] = useState<DataTableFilterMeta>({
-    global: { value: "", matchMode: FilterMatchMode.CONTAINS },
-  });
+  const isMobile = useMobileLayout();
+  const [sortMeta, setSortMeta] = useState([{ field: 'id', order: -1 }]);
+  const [massiveSort, setMassiveSort] = useState({ field: 'id', order: -1 });
   const [globalFilterValue, setGlobalFilterValue] = useState("");
   const [tableData, setTableData] = useState<AbonoDataRow[]>(data);
   const [massiveTableData, setMassiveTableData] = useState<AbonoMasivoSummary[]>(massiveData);
@@ -203,12 +210,12 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
         ...item,
         idLabel: item.id ? `#${item.id}` : "-",
         facturaLabel: item.factura_id ? `#${item.factura_id}` : "-",
-        clienteLabel: item.cliente.toString().trim() || "Sin cliente",
-        cedulaLabel: item.cedula.toString() || "Sin documento",
-        metodoPagoLabel: item.nombre.toString().trim() || "Sin medio de pago",
-        fechaLabel: item.fecha.toString() || "-",
+        clienteLabel: String(item.cliente ?? '').trim() || "Sin cliente",
+        cedulaLabel: String(item.cedula ?? '') || "Sin documento",
+        metodoPagoLabel: String(item.nombre ?? '').trim() || "Sin medio de pago",
+        fechaLabel: String(item.fecha ?? '') || "-",
         fechaRegistroLabel: item.fechaRegistro?.toString().trim() || "-",
-        precioLabel: item.precio.toString() || "$ 0",
+        precioLabel: String(item.precio ?? '') || "$ 0",
         isAbonoMasivo: !!item.abono_masivo_id,
       })),
     [tableData]
@@ -251,7 +258,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
   const totalsByMethod = useMemo(() => {
     const totals = new Map<string, number>();
     tableData.forEach((item) => {
-      const key = item.nombre.toString().trim() || "Sin medio de pago";
+      const key = String(item.nombre ?? '').trim() || "Sin medio de pago";
       totals.set(key, (totals.get(key) || 0) + parseCurrencyValue(item.precio as string | number));
     });
 
@@ -305,6 +312,44 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
   const totalVentasImpactadas = useMemo(
     () => filteredMassiveData.reduce((acc, item) => acc + Number(item.cantidad_ventas || 0), 0),
     [filteredMassiveData]
+  );
+
+  const searchRows = (rows, fields) => {
+    const query = globalFilterValue.trim().toLocaleLowerCase('es');
+    return rows.filter(row => !query || fields.some(field =>
+      String(row[field] ?? '').toLocaleLowerCase('es').includes(query)
+    ));
+  };
+  const visibleAbonos = searchRows(preparedData, globalFilterFields).sort((a, b) => {
+    for (const sort of sortMeta || []) {
+      const result = String(a[sort.field] ?? '').localeCompare(String(b[sort.field] ?? ''), 'es', { numeric: true });
+      if (result) return result * sort.order;
+    }
+    return 0;
+  });
+  const visibleMassive = searchRows(filteredMassiveData, massiveGlobalFilterFields).sort((a, b) =>
+    String(a[massiveSort.field] ?? '').localeCompare(String(b[massiveSort.field] ?? ''), 'es', { numeric: true }) * massiveSort.order
+  );
+  const activePagination = activeView === 'abonos' ? pagination : massivePagination;
+  const visibleCount = activeView === 'abonos' ? visibleAbonos.length : visibleMassive.length;
+  const paginatorTemplate = isMobile
+    ? 'RowsPerPageDropdown FirstPageLink PrevPageLink NextPageLink LastPageLink CurrentPageReport'
+    : 'RowsPerPageDropdown FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport';
+
+  useEffect(() => {
+    pagination.setFirst(0);
+    massivePagination.setFirst(0);
+  }, [globalFilterValue, massiveTipoFilter, massiveFechaDesde, massiveFechaHasta]);
+
+  useEffect(() => {
+    if (activePagination.first >= visibleCount) activePagination.setFirst(0);
+  }, [visibleCount, activePagination.first]);
+
+  const renderPaginator = () => (
+    <Paginator first={activePagination.first} rows={activePagination.rows}
+      onPageChange={activePagination.onPage} totalRecords={visibleCount}
+      rowsPerPageOptions={activeView === 'abonos' ? [5, 10, 20, 50, 100] : [5, 10, 20, 50]}
+      template={paginatorTemplate} currentPageReportTemplate="{first} - {last} de {totalRecords}" />
   );
 
   const fetchMassiveDetailById = async (abonoMasivoId: number) => {
@@ -398,6 +443,8 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 <div><span className="label">Estado pago</span><strong>{item.estado_pago || "-"}</strong></div>
                 <div><span className="label">Medio de pago</span><strong>{item.medioDePago || "-"}</strong></div>
                 <div><span className="label">Fecha abono</span><strong>{safeDateLabel(item.fecha)}</strong></div>
+                <div><span className="label">Fecha registro</span><strong>{safeDateLabel(item.fecha_registro)}</strong></div>
+                {item.descripcion ? <div className="abonos-detail-note"><span className="label">Observaciones</span><strong>{item.descripcion}</strong></div> : null}
               </div>
             </article>
           ))}
@@ -409,6 +456,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
   const openEditModal = (row: PreparedAbonoRow) => {
     setActionError(null);
     setEditForm({
+      snapshot: String(row.snapshot || ""),
       id: row.id ? Number(row.id) : null,
       venta: row.factura_id ? Number(row.factura_id) : null,
       cliente_id: row.cedula ? Number(row.cedula) : null,
@@ -440,6 +488,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
     setActionError(null);
 
     const payload = {
+      snapshot: editForm.snapshot,
       id: editForm.id,
       venta: editForm.venta,
       cliente_id: editForm.cliente_id,
@@ -471,6 +520,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
           Number(item.id) === editForm.id
             ? {
                 ...item,
+                snapshot: req.data.snapshot,
                 precio: new Intl.NumberFormat("es-CO", {
                   style: "currency",
                   currency: "COP",
@@ -521,7 +571,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: deleteTarget.id }),
+        body: JSON.stringify({ id: deleteTarget.id, snapshot: deleteTarget.snapshot }),
       });
 
       if (!req.res.ok) {
@@ -550,23 +600,15 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
 
   const tableHeader = (
     <div className="abonos-header d-flex w-100 justify-content-between align-items-center gap-2 flex-wrap">
-      <div className="d-flex flex-column">
-        <span className="text-muted small">
-          {activeView === "abonos"
-            ? "Consulta rapida por cliente, documento, venta o medio de pago."
-            : "Consulta los lotes de abono masivo y despliega las ventas impactadas."}
-        </span>
-      </div>
+      {renderPaginator()}
       <span className="p-input-icon-left abonos-search">
         <i className="pi pi-search" />
         <InputText
+          aria-label={activeView === 'abonos' ? 'Buscar abonos' : 'Buscar abonos masivos'}
           value={globalFilterValue}
           onChange={(event) => {
             const value = event.target.value;
             setGlobalFilterValue(value);
-            setFilters({
-              global: { value, matchMode: FilterMatchMode.CONTAINS },
-            });
           }}
           placeholder={activeView === "abonos" ? "Buscar abonos..." : "Buscar abonos masivos..."}
         />
@@ -577,7 +619,6 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
   return (
     <>
       <Toast ref={toastRef} position="top-right" />
-      <Tooltip target=".abonos-action-tooltip" />
 
       <Dialog
         header={editForm.id ? `Editar abono #${editForm.id}` : "Editar abono"}
@@ -692,7 +733,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
       >
         <div className="d-flex flex-column gap-3">
           <p className="mb-0">
-            ?Seguro que deseas eliminar el abono{" "}
+            Deseas eliminar el abono{" "}
             <strong>{deleteTarget?.idLabel || ""}</strong> de la venta{" "}
             <strong>{deleteTarget?.facturaLabel || ""}</strong>
           </p>
@@ -732,6 +773,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
         }
         visible={massiveDetailOpen}
         style={{ width: "min(92vw, 54rem)" }}
+        className="abonos-detail-dialog"
         modal
         draggable={false}
         resizable={false}
@@ -768,7 +810,9 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
               </div>
             </div>
 
-            <div className="table-modern table-responsive">
+            {isMobile ? (
+              <AbonosMobileList detailItems={massiveDetail.abonos ?? []} formatDate={safeDateLabel} />
+            ) : <div className="table-modern table-responsive">
               <table className="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
@@ -814,17 +858,13 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div>}
           </div>
         ) : null}
       </Dialog>
 
       <div className="abonos-module">
-        <div className="ventas-toolbar mb-1 gap-3">
-          <h1 className="ventas-page-title mb-0">Abonos</h1>
-        </div>
-
-        <div className="abonos-summary">
+        {activeView === 'abonos' ? <div className="abonos-summary">
           <div className="abonos-summary-card">
             <span className="label">Registros</span>
             <span className="value">
@@ -861,16 +901,16 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
               }).format(totalsByOrigin.masivo)}
             </span>
           </div>
-        </div>
+        </div> : null}
 
         <div className="abonos-view-toggle mb-3">
           <button
             type="button"
             className={`btn ${activeView === "abonos" ? "btn-primary" : "btn-outline-primary"}`}
+            aria-pressed={activeView === 'abonos'}
             onClick={() => {
               setActiveView("abonos");
               setGlobalFilterValue("");
-              setFilters({ global: { value: "", matchMode: FilterMatchMode.CONTAINS } });
             }}
           >
             Abonos individuales
@@ -878,10 +918,10 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
           <button
             type="button"
             className={`btn ${activeView === "masivos" ? "btn-primary" : "btn-outline-primary"}`}
+            aria-pressed={activeView === 'masivos'}
             onClick={() => {
               setActiveView("masivos");
               setGlobalFilterValue("");
-              setFilters({ global: { value: "", matchMode: FilterMatchMode.CONTAINS } });
             }}
           >
             Abonos masivos
@@ -890,7 +930,9 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
 
         {activeView === "abonos" ? (
           <>
-            <div className="abonos-payment-badges">
+            <details className="abonos-method-summary" open={!isMobile}>
+              <summary>Resumen por medio de pago</summary>
+              <div className="abonos-payment-badges">
               {totalsByMethod.map((item) => (
                 <div key={item.name} className="abonos-payment-badge">
                   <span className="method">{item.name}</span>
@@ -903,14 +945,20 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                   </span>
                 </div>
               ))}
-            </div>
+              </div>
+            </details>
 
             <div className="ventas-card">
+              {tableHeader}
+              {isMobile ? <>
+                <AbonosMobileList rows={visibleAbonos.slice(pagination.first, pagination.first + pagination.rows)}
+                  onEdit={openEditModal} onDelete={confirmDelete} onMassiveDetail={openMassiveDetail} />
+                {renderPaginator()}
+              </> :
               <DataTable
-                value={preparedData}
-                header={tableHeader}
+                value={visibleAbonos}
                 paginator
-                paginatorPosition="both"
+                paginatorPosition="bottom"
                 first={pagination.first}
                 rows={pagination.rows}
                 onPage={pagination.onPage}
@@ -919,30 +967,29 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 stripedRows
                 showGridlines
                 dataKey="id"
-                filters={filters}
-                globalFilterFields={globalFilterFields}
                 emptyMessage="No se encontraron abonos."
                 responsiveLayout="scroll"
                 sortMode="multiple"
+                multiSortMeta={sortMeta}
+                onSort={(event) => { setSortMeta(event.multiSortMeta || []); pagination.setFirst(0); }}
                 removableSort
-                className="abonos-table p-datatable-sm"
-                paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
+                className="abonos-table abonos-individual-table p-datatable-sm"
+                paginatorTemplate={paginatorTemplate}
                 currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
               >
                 <Column field="id" header="Pago" sortable body={(row: PreparedAbonoRow) => (
                   <span className="badge text-bg-dark remisiones-badge">{row.idLabel}</span>
-                )} style={{ width: "7rem" }} />
+                )} style={{ width: "4rem" }} />
                 <Column field="factura_id" header="Venta" sortable body={(row: PreparedAbonoRow) => (
                   <span className="badge text-bg-primary remisiones-badge">{row.facturaLabel}</span>
-                )} style={{ width: "7rem" }} />
-                <Column field="cedulaLabel" header="Documento" sortable />
-                <Column field="clienteLabel" header="Cliente" sortable />
+                )} style={{ width: "4rem" }} />
+                <Column field="clienteLabel" header="Cliente" sortable body={(row) => <div><strong>{row.clienteLabel}</strong><div className="small text-muted">{row.cedulaLabel}</div></div>} />
                 <Column field="metodoPagoLabel" header="Medio de pago" sortable body={(row: PreparedAbonoRow) => (
                   <Tag value={row.metodoPagoLabel} severity="success" rounded />
-                )} />
+                )} style={{ width: '8rem' }} />
                 <Column field="fechaLabel" header="Fecha" sortable body={(row: PreparedAbonoRow) => (
                   <span className="abonos-date-cell">{row.fechaLabel}</span>
-                )} />
+                )} style={{ width: '6rem' }} />
                 <Column header="Tipo" body={(row: PreparedAbonoRow) => (
                   row.isAbonoMasivo ? (
                     <button type="button" className="abonos-massive-trigger" onClick={() => openMassiveDetail(row)}>
@@ -951,21 +998,17 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                   ) : (
                     <Tag value="Abono individual" severity="info" rounded />
                   )
-                )} style={{ width: "10rem" }} />
+                )} style={{ width: "8rem" }} />
                 <Column field="precioLabel" header="Valor" sortable body={(row: PreparedAbonoRow) => (
                   <span className="fw-semibold">{row.precioLabel}</span>
-                )} bodyClassName="text-end" style={{ width: "10rem" }} />
-                <Column header="Acciones" bodyClassName="text-center" style={{ width: "8rem" }} body={(row: PreparedAbonoRow) => (
+                )} bodyClassName="text-end" style={{ width: "8rem" }} />
+                <Column header="Acciones" bodyClassName="text-center" style={{ width: "6rem" }} body={(row: PreparedAbonoRow) => (
                   <div className="d-flex justify-content-center gap-2">
-                    <button type="button" className="btn btn-sm btn-outline-primary abonos-action-tooltip" data-pr-tooltip="Editar abono" data-pr-position="top" onClick={() => openEditModal(row)}>
-                      <i className="pi pi-pencil" />
-                    </button>
-                    <button type="button" className="btn btn-sm btn-outline-danger abonos-action-tooltip" data-pr-tooltip="Eliminar abono" data-pr-position="top" onClick={() => confirmDelete(row)}>
-                      <i className="pi pi-trash" />
-                    </button>
+                    <Button type="button" disabled={!can('change_abonos')} aria-label={`Editar abono ${row.idLabel}`} className="abonos-row-action" icon="pi pi-pencil" rounded outlined tooltip="Editar abono" tooltipOptions={{ position: 'top' }} onClick={() => openEditModal(row)} />
+                    <Button type="button" disabled={!can('delete_abonos')} aria-label={`Eliminar abono ${row.idLabel}`} className="abonos-row-action" icon="pi pi-trash" severity="danger" rounded outlined tooltip="Eliminar abono" tooltipOptions={{ position: 'top' }} onClick={() => confirmDelete(row)} />
                   </div>
                 )} />
-              </DataTable>
+              </DataTable>}
             </div>
           </>
         ) : (
@@ -987,8 +1030,9 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
 
             <div className="abonos-massive-filters mb-3">
               <div className="abonos-massive-filter-item">
-                <label className="form-label">Tipo</label>
+                <label className="form-label" htmlFor="abonos-masivos-tipo">Tipo</label>
                 <Dropdown
+                  inputId="abonos-masivos-tipo"
                   value={massiveTipoFilter}
                   options={massiveTipoOptions}
                   onChange={(e) => setMassiveTipoFilter(e.value)}
@@ -996,8 +1040,9 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 />
               </div>
               <div className="abonos-massive-filter-item">
-                <label className="form-label">Desde</label>
+                <label className="form-label" htmlFor="abonos-masivos-desde">Desde</label>
                 <Calendar
+                  inputId="abonos-masivos-desde"
                   value={massiveFechaDesde}
                   onChange={(e) => setMassiveFechaDesde(e.value ?? null)}
                   dateFormat="dd/mm/yy"
@@ -1007,8 +1052,9 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 />
               </div>
               <div className="abonos-massive-filter-item">
-                <label className="form-label">Hasta</label>
+                <label className="form-label" htmlFor="abonos-masivos-hasta">Hasta</label>
                 <Calendar
+                  inputId="abonos-masivos-hasta"
                   value={massiveFechaHasta}
                   onChange={(e) => setMassiveFechaHasta(e.value ?? null)}
                   dateFormat="dd/mm/yy"
@@ -1026,7 +1072,6 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                     setMassiveFechaDesde(null);
                     setMassiveFechaHasta(null);
                     setGlobalFilterValue("");
-                    setFilters({ global: { value: "", matchMode: FilterMatchMode.CONTAINS } });
                   }}
                 >
                   Limpiar filtros
@@ -1035,11 +1080,25 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
             </div>
 
             <div className="ventas-card">
+              {tableHeader}
+              {isMobile ? <>
+                <AbonosMobileList massiveRows={visibleMassive.slice(massivePagination.first, massivePagination.first + massivePagination.rows)}
+                  formatDate={safeDateLabel} expandedRows={expandedMassiveRows}
+                  onToggleMassive={(row) => {
+                    const key = row.id;
+                    const opening = !expandedMassiveRows?.[key];
+                    setExpandedMassiveRows(prev => ({ ...(prev || {}), [key]: opening }));
+                    if (opening) handleMassiveRowExpand({ data: row });
+                  }} renderMassiveDetail={renderMassiveExpansion} />
+                {renderPaginator()}
+              </> :
               <DataTable
-                value={filteredMassiveData}
-                header={tableHeader}
+                value={visibleMassive}
+                sortField={massiveSort.field}
+                sortOrder={massiveSort.order}
+                onSort={(event) => { setMassiveSort({ field: event.sortField, order: event.sortOrder }); massivePagination.setFirst(0); }}
                 paginator
-                paginatorPosition="both"
+                paginatorPosition="bottom"
                 first={massivePagination.first}
                 rows={massivePagination.rows}
                 onPage={massivePagination.onPage}
@@ -1048,16 +1107,14 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 stripedRows
                 showGridlines
                 dataKey="id"
-                filters={filters}
-                globalFilterFields={massiveGlobalFilterFields}
                 emptyMessage="No se encontraron abonos masivos."
                 responsiveLayout="scroll"
                 expandedRows={expandedMassiveRows}
                 onRowToggle={(event) => setExpandedMassiveRows(event.data)}
                 onRowExpand={handleMassiveRowExpand}
                 rowExpansionTemplate={renderMassiveExpansion}
-                className="abonos-table p-datatable-sm"
-                paginatorTemplate="RowsPerPageDropdown CurrentPageReport PrevPageLink PageLinks NextPageLink"
+                className="abonos-table abonos-massive-table p-datatable-sm"
+                paginatorTemplate={paginatorTemplate}
                 currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords}"
               >
                 <Column expander style={{ width: '3rem' }} />
@@ -1068,7 +1125,7 @@ function AbonosData({ data = [], generalData = { mediosPago: [] }, massiveData =
                 <Column field="cantidad_ventas" header="Ventas" sortable body={(row: AbonoMasivoSummary) => <span className="fw-semibold">{row.cantidad_ventas || 0}</span>} style={{ width: '7rem' }} />
                 <Column field="cantidad_abonos" header="Abonos" sortable body={(row: AbonoMasivoSummary) => <span className="fw-semibold">{row.cantidad_abonos || 0}</span>} style={{ width: '7rem' }} />
                 <Column field="total" header="Total" sortable body={(row: AbonoMasivoSummary) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(row.total || 0)} bodyClassName="text-end" style={{ width: '10rem' }} />
-              </DataTable>
+              </DataTable>}
             </div>
           </>
         )}

@@ -1,163 +1,49 @@
-// @ts-nocheck
-//'use client';
+import Link from 'next/link';
+import { buildAdminUrl } from '@/utils/js/env';
+import SalesIndicator from '@/components/SalesIndicator';
+import styles from './home.module.css';
+import { currentUser } from '@/lib/server-api';
+import { can } from '@/lib/access';
+import { redirect } from 'next/navigation';
 
-import Image from "next/image";
-import Link from "next/link";
-//import { useEffect } from 'react';
-import styles from "./page.module.css";
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Footer from "@/components/Footer";
-import { buildAdminUrl } from "@/utils/js/env";
-import SalesIndicator from "@/components/SalesIndicator";
-// import 'bootstrap/dist/js/bootstrap.bundle.min';
-
-
-// Puedes usar revalidate: X para actualizar los datos cada X segundos:
-
-// async function getData() {
-//   const res = await fetch("https://api.example.com/posts", {
-//     next: { revalidate: 10 }, // 🔄 Revalida cada 10 segundos (ISR)
-//   });
-//   return res.json();
-// }
+const modules = [
+  { title: 'Inventario', description: 'Existencias y movimientos', href: '/inventario', icon: 'pi-box' },
+  { title: 'Ventas', description: 'Pedidos y clientes', href: '/ventas', icon: 'pi-shopping-bag' },
+  { title: 'Remisiones', description: 'Entregas y tickets', href: '/remisiones', icon: 'pi-truck' },
+  { title: 'Jornadas', description: 'Ventas por empresa', href: '/jornadas', icon: 'pi-calendar' },
+  { title: 'Abonos', description: 'Pagos y distribuciones', href: '/abonos', icon: 'pi-wallet' },
+  { title: 'Saldos', description: 'Cartera pendiente', href: '/saldos', icon: 'pi-dollar' },
+  { title: 'Reportes', description: 'Consulta de resultados', href: '/reportes', icon: 'pi-chart-bar' },
+  { title: 'Impresoras', description: 'Configura tu equipo', href: '/impresoras', icon: 'pi-print' },
+];
 
 export default async function Home() {
+  const user = await currentUser();
+  if (!user) redirect('/login');
+  const adminUrl = buildAdminUrl('admin/');
   return (
-    // <div className={styles.page}>
-      <>
-
-<div className="container-fluid d-flex w-100 vh-100 ">
-  <div className="row w-100">
-  <main className="p-3">
-          <SalesIndicator />
-        </main>
-    <div className="col-sm-6 col-md-6 mb-3  mx-auto">
-      <div className="card">
-        <div className="card-header">
-          <h3>Seleccione un modulo</h3>
+    <main className={styles.home}>
+      <section className={styles.modules} aria-labelledby="home-modules-title">
+        <div className={styles.heading}>
+          <div><h2 id="home-modules-title">Tu espacio de trabajo</h2><p>Elige un modulo para continuar.</p></div>
+          {can(user, 'view_ventas') && can(user, 'add_ventas') && <Link href="/ventas/crearVenta" className={styles.create}><i className="pi pi-plus" aria-hidden="true" /> Crear venta</Link>}
         </div>
-        <div className="card-body d-flex flex-column">
-          <Link href="ventas" type="button" className="btn btn-primary btn-lg my-1">Ventas</Link>
-          <Link href="abonos" type="button" className="btn btn-primary btn-lg my-1">Abonos</Link>
-          <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
-          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Pedidos</a>
-          <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Saldos</Link>
-          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Administrador</a>
-          {/* <Link href="reportes" type="button" className="btn btn-primary btn-lg my-1">Reportes</Link>
-          <a href={buildAdminUrl("admin/")} className="btn btn-primary btn-lg my-1">Administrador</a> */}
-          {/* {'{'}% comment %{'}'} <button type="button" className="btn btn-primary btn-lg my-1">Crear Proveedor</button>
-          <button type="button" className="btn btn-primary btn-lg my-1" /> {'{'}% endcomment %{'}'} */}
-           {/* <form>
-            <div className="form-group">
-              <label htmlFor="email">Correo electrónico:</label>
-              <input type="email" className="form-control" id="email" placeholder="Ingrese su correo electrónico" />
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">Contraseña:</label>
-              <input type="password" className="form-control" id="password" placeholder="Ingrese su contraseña" />
-            </div>
-            <button type="submit" className="btn btn-primary">
-              Iniciar sesión
-            </button>
-          </form>  */}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-      {/* <pre>{JSON.stringify(data, null, 2)}</pre>  
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/newutm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docsutm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-        
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learnutm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templatesframework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.orgutm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-        
-        
-      </footer> */}
-    </>
+        <nav className={styles.grid} aria-label="Accesos a los modulos">
+          {modules.filter(module => can(user, `view_${module.href.slice(1)}`)).map(module => (
+            <Link key={module.href} href={module.href} className={styles.tile} prefetch={false}>
+              <i className={`pi ${module.icon} ${styles.icon}`} aria-hidden="true" />
+              <span><strong>{module.title}</strong><small>{module.description}</small></span>
+              <i className={`pi pi-arrow-up-right ${styles.arrow}`} aria-hidden="true" />
+            </Link>
+          ))}
+          {user?.is_staff && <a href={adminUrl} className={styles.tile}><i className={`pi pi-list ${styles.icon}`} aria-hidden="true" /><span><strong>Pedidos</strong><small>Gestion en el backend</small></span><i className={`pi pi-arrow-up-right ${styles.arrow}`} aria-hidden="true" /></a>}
+          {user?.is_staff && <a href={adminUrl} className={styles.tile}><i className={`pi pi-cog ${styles.icon}`} aria-hidden="true" /><span><strong>Administrador</strong><small>Configuracion general</small></span><i className={`pi pi-arrow-up-right ${styles.arrow}`} aria-hidden="true" /></a>}
+        </nav>
+      </section>
+      {can(user, 'view_resumen') && <section className={styles.summary} aria-labelledby="home-summary-title">
+        <h2 id="home-summary-title">Resumen del negocio</h2>
+        <SalesIndicator />
+      </section>}
+    </main>
   );
 }

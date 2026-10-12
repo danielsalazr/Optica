@@ -4,7 +4,7 @@
 import React from 'react'
 
 import VentasData from '@/components/ventas/VentasData';
-import { buildServerBackendUrl } from '@/utils/js/env';
+import { serverApiFetch } from '@/lib/server-api';
 
 import '@/styles/selectwithImage.css';
 import '@/styles/ventas-workspace.css';
@@ -31,7 +31,7 @@ const currencyFormatter = new Intl.NumberFormat('es-CO', {
 const formatMoney = (value: unknown) => currencyFormatter.format(Number(value || 0));
 
 async function getDataVentas() {
-  const res = await fetch(buildServerBackendUrl("venta/"), {
+  const res = await serverApiFetch("venta/", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -42,7 +42,7 @@ async function getDataVentas() {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildServerBackendUrl("ventas/?solo_catalogos=1"), {
+  const res = await serverApiFetch("ventas/?solo_catalogos=1", {
     cache: "no-store",
   });
   if (!res.ok) {

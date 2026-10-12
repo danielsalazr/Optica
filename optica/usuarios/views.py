@@ -18,6 +18,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from .serializers import ClienteSerializer, EmpresaSerializer
+from .permissions import ApplicationPermission
 
 
 from rich.console import Console
@@ -37,7 +38,7 @@ def infoCliente(request, cedula = 0):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class Empresas(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [ApplicationPermission]
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
         empresas = Empresa.objects.order_by('nombre').values(
@@ -71,7 +72,7 @@ class Empresas(APIView):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class Cliente(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [ApplicationPermission]
     #permission_classes = (IsAuthenticated, )
     def get(self, request):
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)

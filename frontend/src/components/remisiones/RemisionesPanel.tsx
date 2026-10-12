@@ -3,10 +3,15 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { callApi } from "@/utils/js/api";
+import { useAuth } from '@/components/auth/AuthProvider';
 import { DataTable, DataTableExpandedRows, DataTableFilterMeta } from "primereact/datatable";
 import { useTablePagination } from '@/hooks/useTablePagination';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
+import { Button } from 'primereact/button';
+import { Paginator } from 'primereact/paginator';
+import { balanceDate, localISODate } from '@/utils/balances';
+import '@/styles/sale-remisiones.css';
 import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
 import { swalconfirmation } from "@/utils/js/sweetAlertFunctions";
@@ -80,11 +85,12 @@ const RemisionesPanel: React.FC<Props> = ({
   cliente,
   onCreated,
 }) => {
+  const { can } = useAuth();
   const [localItems, setLocalItems] = useState<VentaItem[]>(items || []);
   const pagination = useTablePagination('remisiones-venta', 5, [5, 10, 20]);
   const [localRemisiones, setLocalRemisiones] = useState<Remision[]>(remisiones || []);
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
-  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [fecha, setFecha] = useState<string>(() => localISODate(new Date()));
   const [observacion, setObservacion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -136,18 +142,7 @@ const RemisionesPanel: React.FC<Props> = ({
     [cantidades]
   );
 
-  const formatearFecha = (valor: string) => {
-    if (!valor) return "";
-    const fechaLocal = new Date(valor);
-    if (Number.isNaN(fechaLocal.getTime())) {
-      return valor;
-    }
-    return fechaLocal.toLocaleDateString("es-CO", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
+  const formatearFecha = (valor: string) => balanceDate(valor);
 
   const remisionesTableData = useMemo<RemisionTableRow[]>(() => {
     return (localRemisiones || []).map((remision) => {
@@ -173,7 +168,14 @@ const RemisionesPanel: React.FC<Props> = ({
     });
   }, [localRemisiones]);
 
+  const mobileRemisiones = remisionesTableData.filter((row) =>
+    [row.id, row.venta, row.articulosResumen, row.fechaLegible, row.creadoLegible, row.observacion || '']
+      .join(' ').toLowerCase().includes(globalFilterValue.toLowerCase())).sort((a, b) => b.id - a.id);
+  const mobilePaginator = <Paginator first={pagination.first} rows={pagination.rows} totalRecords={mobileRemisiones.length}
+    onPageChange={pagination.onPage} rowsPerPageOptions={[5, 10, 20]} template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown" currentPageReportTemplate="{first}-{last} de {totalRecords}" />;
+
   const handleGlobalFilterChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    pagination.setFirst(0);
     const value = event.target.value;
     setFilters((prev) => {
       const globalFilter = prev.global ?? { value: "", matchMode: FilterMatchMode.CONTAINS };
@@ -190,7 +192,7 @@ const RemisionesPanel: React.FC<Props> = ({
 
   const remisionesHeader = useMemo(
     () => (
-      <div className="d-flex flex-wrap w-100 justify-content-between align-items-center gap-3">
+      <div className="remision-history-header">
         <h5 className="mb-0">Remisiones generadas</h5>
         <span className="p-input-icon-left">
           {/* <i className="pi pi-search" /> */}
@@ -212,39 +214,22 @@ const RemisionesPanel: React.FC<Props> = ({
       }
 
       return (
-        <div className="table-modern table-responsive px-3 pb-3">
-          <table className="table table-sm align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Articulo</th>
-                <th className="text-center">En esta remision</th>
-                <th className="text-center">Precio</th>
-                <th className="text-center">Descuento</th>
-                <th className="text-center">Total</th>
-                <th className="text-center">Total despachado</th>
-                <th className="text-center">Pendiente</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="remision-detail">
+          <div className="remision-detail-meta"><span>Registrada: {remision.creadoLegible}</span>
+            {remision.observacion && <span>Observacion: {remision.observacion}</span>}
+            {remision.anulado && <strong className="text-danger">Remision anulada</strong>}
+          </div>
+          <div className="remision-detail-items">
               {remision.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.articulo?.nombre || `Item ${item.itemVenta}`}</td>
-                  <td className="text-center fw-semibold">{item.cantidad}</td>
-                  <td className="text-center">{moneyformat(item.precioUnitario - 0)}</td>
-                  <td className="text-center">
-                    {item.descuento ? `${item.descuento}%` : "0%"}
-                  </td>
-                  <td className="text-center fw-semibold">
-                    {moneyformat(
-                      (item.precioUnitario - 0) * (item.cantidad - 0)
-                    )}
-                  </td>
-                  <td className="text-center text-primary">{item.cantidadDespachada}</td>
-                  <td className="text-center text-danger">{item.restante}</td>
-                </tr>
+                <div className="remision-detail-item" key={item.id}>
+                  <strong>{item.articulo?.nombre || `Item ${item.itemVenta}`}</strong>
+                  <div><span>En esta remision: <b>{item.cantidad}</b></span><span>Total: <b>{moneyformat(Number(item.totalRemisionado || 0))}</b></span></div>
+                  <div><span>Unitario: {moneyformat(Number(item.precioUnitario || 0))}</span>
+                    <span>Descuento: {item.descuento ? item.tipoDescuento === 'porcentaje' ? `${item.descuento} %` : moneyformat(Number(item.descuento)) : 'Sin descuento'}</span></div>
+                  <small>Despachado: {item.cantidadDespachada} / Pendiente: {item.restante}</small>
+                </div>
               ))}
-            </tbody>
-          </table>
+          </div>
         </div>
       );
     },
@@ -254,7 +239,7 @@ const RemisionesPanel: React.FC<Props> = ({
   const limpiarFormulario = () => {
     setCantidades({});
     setObservacion("");
-    setFecha(new Date().toISOString().split("T")[0]);
+    setFecha(localISODate(new Date()));
   };
 
   const actualizarItemsDesdeRemision = (remision: Remision) => {
@@ -366,7 +351,7 @@ const RemisionesPanel: React.FC<Props> = ({
   }
 
   return (
-    <section className="remision-section">
+    <section className="remision-section sale-remisiones-workspace">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <h2 className="venta-section-title mb-0">Remisiones</h2>
         <div className="remision-client-info text-muted small">
@@ -382,7 +367,9 @@ const RemisionesPanel: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="ventas-card remision-card mb-4">
+      <div className="remision-workspace-grid">
+      <div className="ventas-card remision-card remision-create-card">
+        <h3 className="remision-block-title">Nueva remision</h3>
         <form onSubmit={handleSubmit}>
           <div className="row g-3 mb-3">
             <div className="col-sm-6 col-md-4">
@@ -418,8 +405,6 @@ const RemisionesPanel: React.FC<Props> = ({
               <thead>
                 <tr>
                   <th>Articulo</th>
-                  <th className="text-center">Factura</th>
-                  <th className="text-center">Despachado</th>
                   <th className="text-center">Pendiente</th>
                   <th className="text-center">A remitir</th>
                 </tr>
@@ -438,16 +423,15 @@ const RemisionesPanel: React.FC<Props> = ({
                         <div className="d-flex flex-column">
                           <span className="fw-semibold">{nombreArticulo}</span>
                           <span className="text-muted small">
-                            ID item: {item.id}
+                            Vendidos: {item.cantidad} / Despachados: {Number(item.remisionado || 0)}
                           </span>
                         </div>
                       </td>
-                      <td className="text-center">{item.cantidad}</td>
-                      <td className="text-center text-primary">{item.remisionado - 0}</td>
                       <td className="text-center text-danger">{pendiente}</td>
                       <td className="text-center" style={{ maxWidth: 120 }}>
                         <input
                           type="number"
+                          aria-label={`Cantidad a remitir de ${nombreArticulo}`}
                           className="form-control text-center"
                           min={0}
                           max={pendiente}
@@ -476,23 +460,26 @@ const RemisionesPanel: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="ventas-actions mt-4">
-            <button
+          <div className="remision-create-actions">
+            <span>{totalSeleccionado} unidades seleccionadas</span>
+            <Button
               type="submit"
-              className="btn btn-success"
-              disabled={loading || totalSeleccionado === 0}
-            >
-              {loading ? "Creando..." : "Generar remision"}
-            </button>
+              rounded
+              icon="pi pi-send"
+              label={loading ? 'Creando...' : 'Generar remision'}
+              loading={loading}
+              disabled={!can('add_remisiones') || loading || totalSeleccionado === 0}
+            />
           </div>
         </form>
       </div>
 
-      <div className="remision-list">
+      <div className="remision-list ventas-card remision-history-card">
         {localRemisiones.length === 0 ? (
           <div className="text-muted fst-italic">Aun no hay remisiones asociadas a esta venta.</div>
         ) : (
-          <DataTable
+          <>
+          <div className="remision-history-desktop"><DataTable
             value={remisionesTableData}
             header={remisionesHeader}
             globalFilterFields={["id", "venta", "observacion", "articulosResumen", "fechaLegible", "creadoLegible"]}
@@ -511,43 +498,46 @@ const RemisionesPanel: React.FC<Props> = ({
             expandedRows={expandedRows}
             onRowToggle={(e) => setExpandedRows(e.data as DataTableExpandedRows)}
             rowExpansionTemplate={renderRemisionItems}
-            className="ventas-card remision-card"
+            sortField="id" sortOrder={-1}
+            className="p-datatable-sm"
+            paginatorTemplate="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+            currentPageReportTemplate="{first}-{last} de {totalRecords}"
           >
             <Column expander style={{ width: "3rem" }} />
             <Column
               header="Remision"
+              field="id" sortable
               body={(row: RemisionTableRow) => <span className="fw-semibold">#{row.id}</span>}
-              style={{ width: "8rem" }}
+              style={{ width: "5rem" }}
             />
-            <Column
-              header="Venta"
-              body={(row: RemisionTableRow) => <span className="badge text-bg-primary px-3 py-2">#{row.venta}</span>}
-              style={{ width: "8rem" }}
-            />
-            <Column field="fechaLegible" header="Fecha" style={{ minWidth: "10rem" }} />
-            <Column field="creadoLegible" header="Creada" style={{ minWidth: "10rem" }} />
+            <Column field="fechaLegible" header="Fecha" style={{ width: '6rem' }} />
             <Column
               field="totalItems"
-              header="Items"
+              header="Unid."
               body={(row: RemisionTableRow) => <span className="text-center d-block">{row.totalItems}</span>}
-              style={{ width: "6rem" }}
+              style={{ width: "3.5rem" }}
             />
             <Column
               header="Articulos"
-              body={(row: RemisionTableRow) =>
-                row.articulosResumen ? row.articulosResumen : <span className="text-muted">Sin articulos</span>
-              }
-              style={{ minWidth: "16rem" }}
+              body={(row: RemisionTableRow) => <span>{row.articulosResumen}{row.anulado && <small className="d-block text-danger">Anulada</small>}</span>}
             />
-            <Column
-              header="Observacion"
-              body={(row: RemisionTableRow) =>
-                row.observacion ? row.observacion : <span className="text-muted">Sin nota</span>
-              }
-              style={{ minWidth: "14rem" }}
-            />
-          </DataTable>
+          </DataTable></div>
+          <div className="remision-history-mobile">
+            {remisionesHeader}
+            {mobilePaginator}
+            {mobileRemisiones.slice(pagination.first, pagination.first + pagination.rows).map((row) => <article className="remision-history-mobile-item" key={row.id}>
+              <div><strong>#{row.id}</strong><span>{row.fechaLegible}</span><span>{row.totalItems} unid.</span></div>
+              <p>{row.articulosResumen}</p>
+              {row.anulado && <small className="text-danger">Anulada</small>}
+              <Button text size="small" label={expandedRows?.[row.id] ? 'Ocultar detalle' : 'Ver detalle'} icon="pi pi-list" aria-expanded={Boolean(expandedRows?.[row.id])} onClick={() => setExpandedRows((prev) => ({ ...prev, [row.id]: !prev?.[row.id] }))} />
+              {expandedRows?.[row.id] && renderRemisionItems(row)}
+            </article>)}
+            {!mobileRemisiones.length && <p>No se encontraron remisiones.</p>}
+            {mobilePaginator}
+          </div>
+          </>
         )}
+      </div>
       </div>
     </section>
   );

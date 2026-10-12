@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Dialog } from "primereact/dialog";
 import { Button } from "primereact/button";
 import { buildPrintAgentUrl } from "@/utils/js/env";
+import { useAuth } from '@/components/auth/AuthProvider';
 import "@/styles/style.css";
 
 type PrinterInfo = {
@@ -156,6 +157,7 @@ function buildPreviewText(profile: PrinterProfile, printerName: string): string 
 }
 
 function PrinterConfigModule() {
+  const { can } = useAuth();
   const [token, setToken] = useState("");
   const [serviceOnline, setServiceOnline] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -293,6 +295,7 @@ function PrinterConfigModule() {
   };
 
   const handleSavePrinter = async (documentType: DocumentType) => {
+    if (!can('change_impresoras')) { setError('No tienes permiso para modificar la configuracion de impresoras.'); return; }
     const printerName = selection[documentType];
     if (!printerName) {
       setError(`Selecciona una impresora para ${documentType}.`);
@@ -395,6 +398,7 @@ function PrinterConfigModule() {
   };
 
   const handleSaveProfile = async () => {
+    if (!can('change_impresoras')) { setError('No tienes permiso para modificar los perfiles de impresion.'); return; }
     if (!selectedProfilePrinter) {
       setError("Selecciona una impresora para configurar su perfil.");
       return;

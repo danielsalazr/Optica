@@ -130,6 +130,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     const tipo_descuento = formData.getAll("tipo_descuento")
     const descripcionAbono = formData.getAll("descripcionAbono")
     const fechaAbono = formData.getAll("fechaAbono")
+    const abonoIds = formData.getAll('abonoId');
 
     console.log(numero_articulo)
     console.log(metodoPago)
@@ -144,7 +145,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
     if (fechaInicio) {
         formData.set('fecha_inicio', fechaInicio);
     }
-    if (fechaVencimiento) {
+    if (formData.has('fecha_Vencimiento')) {
         formData.set('fecha_vencimiento', fechaVencimiento);
     }
     if (compromisoPago) {
@@ -177,6 +178,7 @@ export const handleFormSubmit = async (e, formRef, usuario, empresa, iti) => {
         return {
             venta: id,
             cliente_id: cliente_id,
+            id: abonoIds[index] || undefined,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
             precio: precioAbonos[index],
@@ -316,6 +318,10 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     const tipo_descuento = formData.getAll("tipo_descuento")
     const descripcionAbono = formData.getAll("descripcionAbono")
     const fechaAbono = formData.getAll("fechaAbono")
+    const abonoIds = formData.getAll('abonoId');
+    formData.set('abonos_reemplazar', 'true');
+    const originalAbonoIds = JSON.parse(formData.get('abonosOriginales') || '[]');
+    formData.set('abonos_eliminados', JSON.stringify(originalAbonoIds.filter((id) => !abonoIds.includes(id))));
 
     console.log(numero_articulo)
     console.log(metodoPago)
@@ -330,7 +336,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
     if (fechaInicio) {
         formData.set('fecha_inicio', fechaInicio);
     }
-    if (fechaVencimiento) {
+    if (formData.has('fecha_Vencimiento')) {
         formData.set('fecha_vencimiento', fechaVencimiento);
     }
     if (compromisoPago) {
@@ -363,6 +369,7 @@ export const handleFormSubmitUpdate = async (e, formRef, usuario, empresa, iti) 
         return {
             venta: id,
             cliente_id: cliente_id,
+            id: abonoIds[index] || undefined,
             medioDePago: metodo_Pago,
             descripcion: descripcionAbono[index],
             precio: precioAbonos[index],

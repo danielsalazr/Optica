@@ -2,11 +2,11 @@
 import React from "react";
 import "@/styles/style.css";
 import ReportesModule from "@/components/reportes/ReportesModule";
-import { buildBackendUrl } from "@/utils/js/env";
+import { serverApiFetch } from '@/lib/server-api';
 
 async function getReportesData() {
   try {
-    const res = await fetch(buildBackendUrl("reportes/data/"), {
+    const res = await serverApiFetch("reportes/data/", {
       cache: "no-store",
     });
 

@@ -25,11 +25,15 @@ import Spinner from 'react-bootstrap/Spinner';
 
 import { callApi, IP_URL } from '@/utils/js/api';
 import { buildBackendUrl, buildMediaUrl } from '@/utils/js/env';
+import { useAuth, PermissionGate } from '@/components/auth/AuthProvider';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { InputText } from 'primereact/inputtext';
+import { Paginator } from 'primereact/paginator';
 import { useTablePagination } from '@/hooks/useTablePagination';
+import { useMobileLayout } from '@/hooks/useMobileLayout';
 import VentasTooltip from './VentasTooltip';
+import VentasMobileList from './VentasMobileList';
 const Galleria = dynamic(() => import('primereact/galleria').then(module => module.Galleria), { loading: SecondaryLoading });
 import '@/styles/style.css';
 
@@ -192,6 +196,7 @@ const toDateInputValue = (value?: string | null) => {
 };
 
 function VentasData(props) {
+  const { can } = useAuth();
   let { header, data, generalData } = props;
   const [templateAbono, setTemplateAbono] = useState(0);
   const [show, setShow] = useState(false);
@@ -223,6 +228,7 @@ function VentasData(props) {
   const detailCache = useRef(new Map());
   const [expandedRows, setExpandedRows] = useState(null);
   const [detailLoading, setDetailLoading] = useState({});
+  const [detailErrors, setDetailErrors] = useState({});
   const [estadoPagoFilter, setEstadoPagoFilter] = useState('todos');
   const [estadoPedidoFilter, setEstadoPedidoFilter] = useState('todos');
   const [globalFilter, setGlobalFilter] = useState('');
@@ -232,6 +238,10 @@ function VentasData(props) {
   const tooltipRef = useRef<any>(null);
   const { first, rows, setFirst, onPage: handleTablePage } = useTablePagination('ventas', 10, [5, 10, 20, 50]);
   const [selectedVentas, setSelectedVentas] = useState([]);
+  const mobileLayout = useMobileLayout();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [tableSort, setTableSort] = useState({ field: 'id', order: -1 });
+
   const [estadoModalOpen, setEstadoModalOpen] = useState(false);
   const [estadoModalRow, setEstadoModalRow] = useState(null);
   const [estadoTargetSlug, setEstadoTargetSlug] = useState('');
@@ -574,6 +584,24 @@ function VentasData(props) {
     });
   }, [dataTablee, estadoPagoFilter, estadoPedidoFilter, fechaDesde, fechaHasta, globalFilter]);
 
+  const mobileSales = useMemo(() => {
+    if (!mobileLayout) return [];
+    const rawFields = { precio: 'precioRaw', totalAbono: 'totalAbonoRaw', saldo: 'saldoRaw' };
+    const field = rawFields[tableSort.field] || tableSort.field;
+    return [...filteredData].sort((left, right) => {
+      if (!tableSort.order) return 0;
+      const a = left[field] ?? '';
+      const b = right[field] ?? '';
+      const comparison = typeof a === 'number' && typeof b === 'number' ? a - b
+        : String(a).localeCompare(String(b), 'es', { numeric: true });
+      return comparison * tableSort.order;
+    });
+  }, [filteredData, tableSort, mobileLayout]);
+
+  useEffect(() => {
+    if (first >= filteredData.length && first !== 0) setFirst(0);
+  }, [filteredData.length, first]);
+
   const bulkEstadoKeys = useMemo(
     () => [...new Set((selectedVentas ?? []).map((row) => identifyEstadoPedidoKey(row.estadoPedidoNombre)))],
     [selectedVentas]
@@ -863,13 +891,13 @@ function VentasData(props) {
   const handleFetchVentas = async (withToggle = true) => {
     //etLoading(true);
 
-    const res = await fetch(buildBackendUrl("venta/"), {
+    const { res, data: ventasData } = await callApi("venta/", {
       cache: "no-store", // ðŸ”¥ Equivalente a getServerSideProps (sin cachÃ©)
     });
     if (!res.ok) {
       throw new Error(`HTTP error! Status: ${res.status}`);
     }
-    let redata = await res.json();
+    let redata = ventasData;
 
     redata = redata.map((item) => {
       const precioRaw = Number(item.precioRaw ?? item.precio ?? 0);
@@ -1037,7 +1065,7 @@ function VentasData(props) {
           data-pr-tooltip="Actualizar estado del pedido"
           data-pr-position="top"
           onClick={() => handleEstadoPedidoAction(row)}
-          disabled={estadoLoading === row.id}
+          disabled={!can('change_ventas') || estadoLoading === row.id}
         >
           {estadoLoading === row.id ? (
             <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -1049,6 +1077,7 @@ function VentasData(props) {
         <button
           className="btn-action btn btn-sm btn-outline-primary ventas-action-tooltip"
           data-pr-tooltip="Remisiones"
+          disabled={!can('view_remisiones')}
           data-pr-position="top"
           onClick={() => handleRemisionModal(row)}
         >
@@ -1057,16 +1086,18 @@ function VentasData(props) {
         <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
           data-pr-tooltip="Editar venta"
+          disabled={!can('change_ventas')}
           data-pr-position="top"
           onClick={() => handleAction("editar", row)}
         >
-          <Link href={`/ventas/${row.id}`} prefetch={false}>
+          {can('change_ventas') && <Link href={`/ventas/${row.id}`} prefetch={false}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16zm9.5-13.5l4 4" /></svg>
-          </Link>
+          </Link>}
         </button>
         <button
           className="btn-action btn btn-sm btn-primary ventas-action-tooltip"
           data-pr-tooltip="Abonar a la venta"
+          disabled={!can('change_ventas') && !can('add_abonos')}
           data-pr-position="top"
           onClick={() => handleAction("abonar", row)}
         >
@@ -1086,11 +1117,16 @@ function VentasData(props) {
     const id = row.id;
     if (!id || detailCache.current.has(id)) return;
     setDetailLoading((prev) => ({ ...prev, [id]: true }));
+    setDetailErrors(prev => ({ ...prev, [id]: false }));
     try {
       const req = await callApi(`venta/${id}`);
       if (req.res.ok) {
         detailCache.current.set(id, req.data);
+      } else {
+        setDetailErrors(prev => ({ ...prev, [id]: true }));
       }
+    } catch {
+      setDetailErrors(prev => ({ ...prev, [id]: true }));
     } finally {
       setDetailLoading((prev) => ({ ...prev, [id]: false }));
     }
@@ -1133,7 +1169,9 @@ function VentasData(props) {
     if (!detalle) {
       return (
         <div className="px-3 py-2 text-muted">
-          {detailLoading[rowData.id] ? 'Cargando detalles' : 'No hay detalle disponible.'}
+          {detailLoading[rowData.id] ? 'Cargando detalles' : detailErrors[rowData.id] ? (
+            <><span>No se pudo cargar el detalle. </span><button type="button" className="btn btn-link btn-sm" onClick={() => ensureDetalle(rowData)}>Reintentar</button></>
+          ) : 'No hay detalle disponible.'}
         </div>
       );
     }
@@ -1253,6 +1291,7 @@ function VentasData(props) {
               <button
                 className="btn-action btn btn-sm btn-danger ventas-action-tooltip"
                 data-pr-tooltip="Anular venta"
+                disabled={!can('delete_ventas')}
                 data-pr-position="top"
                 onClick={() => handleAction("eliminar", rowData)}
               >
@@ -1885,13 +1924,9 @@ function VentasData(props) {
         </Modal.Footer>
       </Modal>
 
-      <div className="data-table-shell ventas-workspace">
-        <div className="ventas-table-primary-action">
-          <Link href="/ventas/crearVenta" className="btn btn-primary rounded-pill">
-            <i className="pi pi-plus me-2" aria-hidden="true" />
-            Crear venta
-          </Link>
-        </div>
+      <div className={`data-table-shell ventas-workspace ${mobileFiltersOpen ? 'mobile-filters-open' : ''} ${selectedVentas.length ? 'has-selection' : ''}`}>
+        <div id="ventas-filters-region" className="ventas-filters-layout">
+        <div className="ventas-filter-options">
         <div className="ventas-filter-group">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por estado de pago</div>
@@ -1936,7 +1971,7 @@ function VentasData(props) {
             </div>
           </div>
         </div>
-        <div className="ventas-filter-group">
+        <div className="ventas-filter-group ventas-date-filter">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por fecha de venta</div>
             <button
@@ -1958,22 +1993,21 @@ function VentasData(props) {
             </div>
           </div>
         </div>
-        <div className="ventas-controls">
-          <div className="ventas-date-range">
-            <div>
-              <label className="form-label small mb-1">Desde</label>
-              <input type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
-            </div>
-            <div>
-              <label className="form-label small mb-1">Hasta</label>
-              <input type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
-            </div>
+        </div>
+        <div className="ventas-filter-secondary">
+          <div className="ventas-table-primary-action">
+            <PermissionGate permission="add_ventas">
+            <Link href="/ventas/crearVenta" className="btn btn-primary rounded-pill" aria-label="Crear venta" title="Crear venta">
+              <i className="pi pi-plus me-2" aria-hidden="true" />
+              <span className="ventas-create-label">Crear venta</span>
+            </Link>
+            </PermissionGate>
           </div>
           <div className="ventas-bulk-controls">
             <button
               type="button"
               className="btn btn-outline-primary"
-              disabled={!selectedVentas.length}
+              disabled={!can('change_ventas') || !selectedVentas.length}
               onClick={handleOpenBulkModal}
             >
               Cambiar estado masivamente ({selectedVentas.length || 0})
@@ -1981,22 +2015,58 @@ function VentasData(props) {
             <button
               type="button"
               className="btn btn-outline-success"
-              disabled={!selectedVentas.length}
+              disabled={!can('add_remisiones') || !selectedVentas.length}
               onClick={handleOpenBulkRemisionModal}
             >
               Remisionar masivamente ({selectedVentas.length || 0})
             </button>
-            <span className="p-input-icon-left ventas-search">
-              <i className="pi pi-search" />
-              <InputText value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Buscar ventas..." aria-label="Buscar ventas por cliente, cedula u otros datos" />
-            </span>
+          </div>
+          <div className="ventas-date-range">
+            <div className="ventas-date-field">
+              <label className="form-label small mb-0" htmlFor="ventas-fecha-desde">Desde</label>
+              <input id="ventas-fecha-desde" type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
+            </div>
+            <div className="ventas-date-field">
+              <label className="form-label small mb-0" htmlFor="ventas-fecha-hasta">Hasta</label>
+              <input id="ventas-fecha-hasta" type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
+            </div>
           </div>
         </div>
+        </div>
 
-        <DataTable
+        <div className="ventas-pagination-toolbar">
+          <Paginator first={first} rows={rows} totalRecords={filteredData.length} rowsPerPageOptions={[5, 10, 20, 50]}
+            onPageChange={event => { handleTablePage(event); refreshVentasTooltips(true); }}
+            template={mobileLayout
+              ? 'RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink NextPageLink LastPageLink'
+              : 'RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink'}
+            currentPageReportTemplate="{first} a {last} de {totalRecords}" />
+          <div className="ventas-pagination-search">
+            <InputText value={globalFilter} onChange={event => { setGlobalFilter(event.target.value); setFirst(0); }} placeholder="Buscar ventas..." aria-label="Buscar ventas" />
+            {mobileLayout && <button type="button" className="btn btn-outline-secondary rounded-pill" aria-expanded={mobileFiltersOpen}
+              aria-controls="ventas-filters-region" onClick={() => setMobileFiltersOpen(open => !open)}>
+              <i className="pi pi-filter" aria-hidden="true" /> Filtros
+            </button>}
+          </div>
+        </div>
+        {mobileLayout ? (
+          <VentasMobileList sales={mobileSales} first={first} rows={rows} selected={selectedVentas} expanded={expandedRows}
+            onPage={event => { handleTablePage(event); refreshVentasTooltips(true); }}
+            onSelect={(sale, checked) => setSelectedVentas(previous => checked
+              ? previous.some(item => item.id === sale.id) ? previous : [...previous, sale]
+              : previous.filter(item => item.id !== sale.id))}
+            onExpand={sale => {
+              const wasExpanded = Boolean(expandedRows?.[sale.id]);
+              setExpandedRows(previous => ({ ...previous, [sale.id]: !wasExpanded }));
+              if (!wasExpanded) onRowExpand({ data: sale });
+              else onRowCollapse();
+            }}
+            onPayment={sale => handleAction('abonar', sale)} onState={handleEstadoPedidoAction} onRemissions={handleRemisionModal}
+            renderState={renderEstadoPedidoBadge} renderPayment={getEstadoPagoBadge} renderDetail={rowExpansionTemplate} />
+        ) : <DataTable
           value={filteredData}
           paginator
-          paginatorPosition="both"
+          paginatorPosition="bottom"
           first={first}
           rows={rows}
           rowsPerPageOptions={[5, 10, 20, 50]}
@@ -2004,8 +2074,9 @@ function VentasData(props) {
             handleTablePage(event);
             refreshVentasTooltips(true);
           }}
-          sortField="id"
-          sortOrder={-1}
+          sortField={tableSort.field}
+          sortOrder={tableSort.order}
+          onSort={event => setTableSort({ field: event.sortField, order: event.sortOrder })}
           stripedRows
           rowHover
           showGridlines
@@ -2046,7 +2117,7 @@ function VentasData(props) {
             body={(row) => getEstadoPagoBadge(row.estado || '')}
           />
           <Column header="Acciones" body={(row) => slots.Acciones(null, row)} />
-        </DataTable>
+        </DataTable>}
       </div>
     </>
   )

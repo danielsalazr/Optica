@@ -411,3 +411,17 @@ next-env.d.ts
 # Print agent local build artifacts
 print_agent/build-release.ps1
 print_agent/installer/output/
+
+# Ship the schema required by authentication despite the legacy migration exclusion.
+!optica/usuarios/migrations/
+optica/usuarios/migrations/*
+!optica/usuarios/migrations/0004_perfiles_acceso.py
+!optica/contabilidad/migrations/
+optica/contabilidad/migrations/*
+!optica/contabilidad/migrations/0035_abonomasivo_idempotencia.py
+!optica/contabilidad/migrations/0036_bodegas.py
+!optica/usuarios/migrations/0005_inventario_permisos.py
+!optica/usuarios/migrations/0006_alter_perfilacceso_options.py
+!optica/usuarios/migrations/0007_inventario_eliminar_items.py
+!optica/inventario/migrations/
+!optica/inventario/migrations/**

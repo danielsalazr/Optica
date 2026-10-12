@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from django.db import transaction
 from typing import Optional, Sequence, Tuple
 
 from django.db.models import F, Q, Sum
@@ -11,11 +12,11 @@ from django.utils.dateparse import parse_datetime
 from .models import EstadoPedidoVenta, HistoricoEstadoPedidoVenta, ItemsVenta
 
 ESTADOS_PEDIDO_DEFINICIONES: Sequence[Tuple[int, str, str]] = (
-    (1, "creado", "Pedido tomado"),
-    (2, "para_fabricacion", "Para enviar a Fabricar"),
-    (3, "en_fabricacion", "Enviado a Fabricar"),
-    (4, "listo_entrega", "Listo Para Entrega"),
-    (5, "entregado", "Entregado"),
+    (7, "creado", "Pedido tomado"),
+    (8, "para_fabricacion", "Para enviar a Fabricar"),
+    (9, "en_fabricacion", "Enviado a Fabricar"),
+    (10, "listo_entrega", "Listo Para Entrega"),
+    (11, "entregado", "Entregado"),
 )
 
 ESTADO_PEDIDO_ORDER = {slug: idx for idx, (_, slug, _) in enumerate(ESTADOS_PEDIDO_DEFINICIONES)}
@@ -68,6 +69,7 @@ def _registrar_historico_estado(venta, estado_anterior, estado_nuevo, *, usuario
     )
 
 
+@transaction.atomic
 def _save_estado(
     venta,
     slug: str,

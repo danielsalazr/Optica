@@ -211,6 +211,7 @@ class Ventas(models.Model):
     #cliente_id = models.ForeignKey(Clientes, on_delete=DO_NOTHING , verbose_name="Id de cliente", blank=True, null=True)
     cliente_id = models.BigIntegerField(default=0, verbose_name="Id de cliente", blank=True, null=True)
     empresaCliente = models.CharField(max_length=60,)
+    empresa = models.ForeignKey(Empresa, on_delete=models.PROTECT, related_name='ventas_asociadas', blank=True, null=True)
     detalle = models.TextField(default='', blank=True, null=True)
     observacion = models.TextField(default='', blank=True, null=True)
     precio = models.IntegerField(default=0, verbose_name="Precio")
@@ -245,6 +246,7 @@ class Ventas(models.Model):
     cuotas = models.IntegerField(default=1, verbose_name="Cuotas")
     ordenTrabajoLaboratorio = models.IntegerField(default=0, verbose_name="Orden de trabajo laboratorio", blank=True, null=True)
     jornada = models.ForeignKey(Jornada, on_delete=DO_NOTHING, related_name='ventas', blank=True, null=True)
+    bodega = models.ForeignKey('inventario.Bodega', on_delete=models.PROTECT, related_name='ventas', blank=True, null=True)
     
 
     class Meta:
@@ -255,6 +257,15 @@ class Ventas(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+    def save(self, *args, **kwargs):
+        if self.empresa_id is None and self.empresaCliente:
+            matches = list(Empresa.objects.filter(nombre=self.empresaCliente).values_list('pk', flat=True)[:2])
+            if len(matches) == 1:
+                self.empresa_id = matches[0]
+                if kwargs.get('update_fields') is not None:
+                    kwargs['update_fields'] = set(kwargs['update_fields']) | {'empresa'}
+        super().save(*args, **kwargs)
 
 
     def resumen(self):
@@ -378,6 +389,21 @@ class RemisionItem(models.Model):
     remision = models.ForeignKey(Remision, on_delete=models.CASCADE, related_name="items")
     item_venta = models.ForeignKey(ItemsVenta, on_delete=models.PROTECT, related_name="remisiones_items")
     cantidad = models.IntegerField(default=0)
+    precio_articulo_original = models.IntegerField(null=True, editable=False)
+    cantidad_venta_original = models.IntegerField(null=True, editable=False)
+    total_articulo_original = models.IntegerField(null=True, editable=False)
+    descuento_original = models.IntegerField(null=True, editable=False)
+    tipo_descuento_original = models.CharField(max_length=20, null=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            item = self.item_venta
+            self.precio_articulo_original = item.precio_articulo or 0
+            self.cantidad_venta_original = item.cantidad or 0
+            self.total_articulo_original = item.totalArticulo or 0
+            self.descuento_original = item.descuento or 0
+            self.tipo_descuento_original = item.tipo_descuento or 'precio'
+        super().save(*args, **kwargs)
 
     class Meta:
         managed = True
@@ -401,6 +427,8 @@ class AbonoMasivo(models.Model):
     jornada = models.ForeignKey(Jornada, on_delete=DO_NOTHING, blank=True, null=True)
     cliente = models.ForeignKey(Clientes, on_delete=DO_NOTHING, blank=True, null=True)
     creado_en = models.DateTimeField(auto_now_add=True)
+    clave_operacion = models.UUIDField(unique=True, blank=True, null=True, editable=False)
+    solicitud_hash = models.CharField(max_length=64, blank=True, default='', editable=False)
 
     class Meta:
         managed = True

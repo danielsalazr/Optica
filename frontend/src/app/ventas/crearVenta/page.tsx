@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 
 import React from 'react'
 import VentasForm from '@/components/ventas/VentasForm';
-import { buildServerBackendUrl } from '@/utils/js/env';
+import { serverApiFetch } from '@/lib/server-api';
 import '@/styles/selectwithImage.css';
 
 async function getData() {
-    const res = await fetch(buildServerBackendUrl("ventas/?solo_catalogos=1"), {
+    const res = await serverApiFetch("ventas/?solo_catalogos=1", {
       cache: "no-store", // 🔥 Equivalente a getServerSideProps (sin caché)
     });
     if (!res.ok) {

@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls, name='admin'),
     path('', include('contabilidad.urls')),
     path('usuarios/', include('usuarios.urls')),
+    path('inventario/', include('inventario.urls')),
 
     
     #url(r'^media/(?P<path>.*)$', serve,{'document_root': settings.MEDIA_ROOT}), 

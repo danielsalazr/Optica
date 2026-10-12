@@ -2,12 +2,12 @@
 import React from 'react';
 
 import SaldosModule from '@/components/saldos/SaldosModule';
-import { buildServerBackendUrl } from '@/utils/js/env';
+import { serverApiFetch } from '@/lib/server-api';
 import '@/styles/style.css';
 
 
 async function getSaldosData() {
-  const res = await fetch(buildServerBackendUrl("reportes/data/"), {
+  const res = await serverApiFetch("saldos/", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -17,7 +17,7 @@ async function getSaldosData() {
 }
 
 async function page() {
-  let data = { informe_cartera: [] };
+  let data = { rows: [], fecha_referencia: null };
   let fetchError = null;
 
   try {
@@ -26,7 +26,7 @@ async function page() {
     fetchError = error instanceof Error ? error.message : 'Error desconocido';
   }
 
-  return <SaldosModule rows={data.informe_cartera ?? []} fetchError={fetchError} />;
+  return <SaldosModule rows={data.rows ?? []} referenceDate={data.fecha_referencia} fetchError={fetchError} />;
 }
 
 export default page;

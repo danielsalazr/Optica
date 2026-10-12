@@ -20,6 +20,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.exceptions import ValidationError
+from rest_framework.fields import IntegerField
 
 # from .serializers import InventorySerializer
 
@@ -62,6 +64,11 @@ from .models import (
     CitaAgendaRegistro,
 )
 from usuarios.models import Clientes, Empresa
+from .abonos_masivos import AplicarSerializer, ObjetivoSerializer, aplicar_abono_masivo, resolver_objetivo
+from .payments import (prepare_sale_payments, sync_payments, payment_total,
+                       payment_snapshot, validate_payment_change, validate_sale_items,
+                       sale_snapshot, check_sale_snapshot, check_payment_snapshot)
+from inventario.services import InventoryAtomicMixin, bloquear_articulos, reservar_venta, liberar_venta, despachar, revertir_remision
 
 from utils.diccionarios import (
     agrupar_datos,
@@ -145,20 +152,8 @@ class PublicVentaTrackingView(APIView):
             )
 
         cliente = Clientes.objects.filter(cedula=venta.cliente_id).values('nombre').first()
-        total_abonos = (
-            Abonos.objects.filter(venta_id=venta.id)
-            .aggregate(total=Coalesce(Sum('precio'), 0))
-            .get('total')
-            or venta.totalAbono
-            or 0
-        )
-        saldo_registrado = (
-            Saldos.objects.filter(venta_id=venta.id)
-            .order_by('-id')
-            .values_list('saldo', flat=True)
-            .first()
-        )
-        saldo = saldo_registrado if saldo_registrado is not None else max((venta.precio or 0) - total_abonos, 0)
+        total_abonos = payment_total(venta)
+        saldo = (venta.precio or 0) - total_abonos
 
         estado_slug = identify_estado_pedido_slug(getattr(venta.estado_pedido, 'nombre', None))
         actual_index = ESTADO_PEDIDO_ORDER.get(estado_slug, 0)
@@ -341,7 +336,9 @@ class VentasP(APIView):
         articulos = Articulos.objects.all().values()
         empresa = Empresa.objects.all().values()
         vendedores = Vendedor.objects.all().values()
-        estados_pedido = EstadoPedidoVenta.objects.all().order_by('id').values('id', 'nombre')
+        estados_pedido = EstadoPedidoVenta.objects.filter(
+            id__in=[estado_id for estado_id, _, _ in ESTADOS_PEDIDO_DEFINICIONES]
+        ).order_by('id').values('id', 'nombre')
         jornadas = Jornada.objects.select_related('empresa').filter(
             estado__in=['planned', 'in_progress']
         ).order_by('-fecha_inicio', '-fecha', '-id').values(
@@ -485,6 +482,7 @@ class ReportesDataView(APIView):
 
         informe_ventas_qs = (
             Ventas.objects.select_related('estado', 'estado_pedido', 'vendedor')
+            .annotate(paid=Coalesce(Sum('abonos__precio'), 0))
             .all()
             .order_by('-fecha', '-id')
         )
@@ -499,8 +497,8 @@ class ReportesDataView(APIView):
                     'cliente': clientes_map.get(venta.cliente_id, ''),
                     'empresa': venta.empresaCliente,
                     'precio': venta.precio,
-                    'totalAbono': venta.totalAbono,
-                    'saldo': max((venta.precio or 0) - (venta.totalAbono or 0), 0),
+                    'totalAbono': venta.paid,
+                    'saldo': (venta.precio or 0) - venta.paid,
                     'estado_pago': venta.estado.nombre if venta.estado else None,
                     'estado_pedido': venta.estado_pedido.nombre if venta.estado_pedido else None,
                     'vendedor': venta.vendedor.nombre if getattr(venta, 'vendedor', None) else None,
@@ -508,31 +506,8 @@ class ReportesDataView(APIView):
                 }
             )
 
-        cartera_qs = (
-            Saldos.objects.select_related('venta')
-            .filter(saldo__gt=0, venta__anulado=False)
-            .order_by('-venta__fecha', '-venta__id')
-        )
-
-        informe_cartera = []
-        for saldo in cartera_qs:
-            venta = saldo.venta
-            informe_cartera.append(
-                {
-                    'venta_id': venta.id,
-                    'fecha': venta.fecha,
-                    'cliente_id': venta.cliente_id,
-                    'cliente': clientes_map.get(venta.cliente_id, ''),
-                    'empresa': venta.empresaCliente,
-                    'precio': venta.precio,
-                    'totalAbono': venta.totalAbono,
-                    'saldo': saldo.saldo,
-                    'fecha_vencimiento': venta.fecha_vencimiento or saldo.fecha_Vencimiento,
-                    'condicion_pago': venta.condicion_pago,
-                    'cuotas': venta.cuotas,
-                    'estado_pago': venta.estado.nombre if venta.estado else None,
-                }
-            )
+        from .saldos import cartera_rows
+        informe_cartera = cartera_rows()
 
         return Response(
             {
@@ -610,6 +585,10 @@ def _build_venta_payload(request):
         if value is not None:
             payload[key] = value
 
+    for key in ('fecha_inicio', 'fecha_vencimiento'):
+        if key in request.data and request.data.get(key) in ('', None):
+            payload[key] = None
+
     foto_formula = request.FILES.get('foto_formula')
     if foto_formula is not None:
         payload['foto_formula'] = foto_formula
@@ -619,6 +598,14 @@ def _build_venta_payload(request):
         payload['foto'] = fotos_venta[0]
 
     return payload
+
+
+def _json_field(request, name, default):
+    try:
+        value = request.data.get(name)
+        return json.loads(value) if isinstance(value, str) else default if value is None else value
+    except (ValueError, TypeError):
+        raise ValidationError({name: 'La informacion enviada tiene un formato incorrecto.'})
 
 
 def _sync_fotos_venta(venta, fotos_venta):
@@ -633,12 +620,14 @@ def _sync_fotos_venta(venta, fotos_venta):
         venta.save(update_fields=['foto'])
 
 
-class Venta(APIView):
+class Venta(InventoryAtomicMixin, APIView):
     #permission_classes = (IsAuthenticated, )
     def get(self, request, id=0,):
 
         console.log(id)
         if id != 0:
+            original_sale = get_object_or_404(Ventas, pk=id)
+            original_snapshot = sale_snapshot(original_sale)
   
             query = f"""
                   select 
@@ -648,7 +637,7 @@ class Venta(APIView):
                       MIN(T3.foto) as foto 
                   from contabilidad_ventas T0
                   inner join contabilidad_itemsventa T1 on T1.venta_id = T0.id 
-                  left join usuarios_empresa T2 on T2.nombre = T0.empresaCliente
+                  left join usuarios_empresa T2 on T2.id = T0.empresa_id
                   left join contabilidad_fotosarticulos T3 on  T3.articulo_id = T1.articulo_id 
                   left join contabilidad_articulos T4 on T4.id = T1.articulo_id
                   where T0.id = {id}
@@ -689,6 +678,10 @@ class Venta(APIView):
                 # results = cursor.fetchall()
 
             lista.update({'abonos': results})
+            lista['snapshot'] = original_snapshot
+            for payment in results:
+                original = Abonos(**{field.attname: payment[field.attname] for field in Abonos._meta.concrete_fields})
+                payment['snapshot'] = payment_snapshot(original)
 
             remisiones_qs = Remision.objects.filter(
                 venta_id=id
@@ -697,7 +690,7 @@ class Venta(APIView):
             ).order_by('fecha', 'id')
 
             remisiones_totales = RemisionItem.objects.filter(
-                item_venta__venta_id=id
+                item_venta__venta_id=id, remision__anulado=False
             ).values('item_venta_id').annotate(
                 total=Coalesce(Sum('cantidad'), 0)
             )
@@ -726,6 +719,11 @@ class Venta(APIView):
 
             venta_instance = Ventas.objects.select_related('jornada__empresa').filter(id=id).first()
             if venta_instance:
+                from inventario.models import Movimiento
+                from inventario.services import bodega_venta
+                lista.update({'bodega_id': bodega_venta(venta_instance),
+                              'bodega_nombre': venta_instance.bodega.nombre if venta_instance.bodega_id else 'Bodega principal',
+                              'bodega_bloqueada': Movimiento.objects.filter(venta=venta_instance, tipo='salida').exists()})
                 historico_estado = list(
                     HistoricoEstadoPedidoVenta.objects.select_related('estado_anterior', 'estado_nuevo', 'usuario')
                     .filter(venta_id=id)
@@ -761,7 +759,10 @@ class Venta(APIView):
                     reverse=True,
                 )
 
+                abonado_actual = payment_total(venta_instance)
                 lista.update({
+                    'totalAbono': abonado_actual,
+                    'saldo': (venta_instance.precio or 0) - abonado_actual,
                     'jornada': venta_instance.jornada_id,
                     'jornadaNombre': str(venta_instance.jornada) if venta_instance.jornada else None,
                     'jornadaEstado': venta_instance.jornada.estado if venta_instance.jornada else None,
@@ -824,10 +825,10 @@ class Venta(APIView):
                 
                 T0.precio,
                 T0.empresaCliente,
-                T0.totalAbono,
+                COALESCE(T4.total_abonos, 0) as totalAbono,
                 T0.cuotas,
                 #sum(T2.precio) as abono,
-                T4.saldo,
+                T0.precio - COALESCE(T4.total_abonos, 0) as saldo,
                 #T0.precio - sum(T2.precio) as saldo, 
                 T3.nombre as estado,
                 T5.id as estado_pedido_id,
@@ -846,7 +847,8 @@ class Venta(APIView):
             left join usuarios_clientes T1 on T0.cliente_id = T1.cedula
             #left join contabilidad_abonos T2 on T0.id = T2.venta_id
             inner join contabilidad_estadoventa T3 on T0.estado_id = T3.id
-            LEFT join contabilidad_saldos T4 on T4.venta_id  = T0.id
+            LEFT JOIN (SELECT venta_id, SUM(precio) as total_abonos
+                       FROM contabilidad_abonos GROUP BY venta_id) T4 on T4.venta_id = T0.id
             LEFT join contabilidad_estadopedidoventa T5 on T5.id = T0.estado_pedido_id
             LEFT join contabilidad_jornada T6 on T6.id = T0.jornada_id
             LEFT join usuarios_empresa T7 on T7.id = T6.empresa_id
@@ -881,13 +883,11 @@ class Venta(APIView):
     def post(self, request):
         console.log(request.data)
 
-        venta = json.loads(request.data['venta'])
-        abono = json.loads(request.data['abonos'])
-        saldo = json.loads(request.data['saldo'])
-
-        primer_abono = abono[0] if isinstance(abono, list) and abono else {}
-        medioDePago = primer_abono.get('medioDePago', '')
-        precio = primer_abono.get('precio', 0)
+        venta = _json_field(request, 'venta', [])
+        if not isinstance(venta, list) or any(not isinstance(row, dict) for row in venta):
+            raise ValidationError({'venta': 'Debe enviar una lista de articulos.'})
+        abono = _json_field(request, 'abonos', [])
+        saldo = {}
 
         console.log(venta) 
         console.log(abono)
@@ -895,7 +895,12 @@ class Venta(APIView):
 
         fotos_venta = request.FILES.getlist('foto')
 
-        serializer = VentaSerializer(data=_build_venta_payload(request))
+        if not isinstance(abono, list) or any(not isinstance(row, dict) for row in abono):
+            raise ValidationError({'abonos': 'Debe enviar una lista de abonos.'})
+        payload = _build_venta_payload(request)
+        venta = validate_sale_items(venta, payload.get('precio'))
+        payload['totalAbono'] = sum(IntegerField(min_value=0).run_validation(row.get('precio') or 0) for row in abono)
+        serializer = VentaSerializer(data=payload)
         #serializer = VentaSerializer(data=listdata, many=True)
 
         if not serializer.is_valid():
@@ -903,13 +908,17 @@ class Venta(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         venta_obj = serializer.save()
+        prepared, _, _ = prepare_sale_payments(abono, venta_obj, venta_obj.cliente_id, venta_obj.precio, request.user, replace=True)
+        saldo = {'venta': venta_obj.pk, 'cliente': venta_obj.cliente_id,
+                 'saldo': venta_obj.precio - payload['totalAbono']}
         _sync_fotos_venta(venta_obj, fotos_venta)
+        for item in venta:
+            item['venta'] = venta_obj.id
+        saldo['venta'] = venta_obj.id
 
         console.log(request.data)
         # data_copy['saldo'] = saldo['saldo']
         serializerVenta = ItemsVentaSerializer(data=venta, many=True)
-        if medioDePago != "":
-            serializerAbono = AbonoSerializer(data=abono, many=True)
         estado_creado_obj = get_estado_pedido_by_slug('creado')
         pedido_payload = {
             'estado': estado_creado_obj.id,
@@ -937,10 +946,6 @@ class Venta(APIView):
             console.log(serializerVenta.errors)
             return Response(serializerVenta.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        if medioDePago != "" and precio > 0:
-            if not serializerAbono.is_valid():
-                console.log(serializerAbono.errors)
-                return Response(serializerAbono.errors, status=status.HTTP_400_BAD_REQUEST)
             
         
         if not serializerItemsPedidoVenta.is_valid():
@@ -962,14 +967,16 @@ class Venta(APIView):
         
 
         serializerVenta.save()
-        if medioDePago != "":
-            serializerAbono.save()
+        for payment in prepared:
+            payment.save()
         
         serializerItemsPedidoVenta.save()
         
         # if medioDePago != "":
         serializerSaldo.save()
         serializerHistoricoSaldo.save()
+        sync_payments(venta_obj)
+        reservar_venta(venta_obj)
         
 
         return Response({'Venta creada': 'ok'}, status=status.HTTP_200_OK)
@@ -987,19 +994,25 @@ class Venta(APIView):
         if not factura:
             return Response({'detail': 'Debe indicar la venta que desea actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        venta_items = json.loads(request.data.get('venta', '[]'))
-        abonos = json.loads(request.data.get('abonos', '[]'))
-        saldo = json.loads(request.data.get('saldo', '{}'))
+        venta_items = _json_field(request, 'venta', [])
+        if not isinstance(venta_items, list) or any(not isinstance(row, dict) for row in venta_items):
+            raise ValidationError({'venta': 'Debe enviar una lista de articulos.'})
+        abonos = _json_field(request, 'abonos', [])
+        saldo = {}
         console.log(venta_items)
         console.log(abonos)
         console.log(saldo)
 
         fotos_venta = request.FILES.getlist('foto')
 
-        venta = Ventas.objects.get(id=factura)
+        factura = IntegerField(min_value=1).run_validation(factura)
+        venta = get_object_or_404(Ventas.objects.select_for_update(), pk=factura)
+        check_sale_snapshot(venta, request.data.get('venta_snapshot'))
+        if venta.anulado:
+            raise ValidationError({'venta': 'No es posible editar una venta anulada.'})
 
         condicion_pago_objetivo = (request.data.get('condicion_pago') or venta.condicion_pago or '').strip().lower()
-        if condicion_pago_objetivo == 'contado' and venta.remisiones.exists():
+        if 'contado' in (condicion_pago_objetivo, (venta.condicion_pago or '').strip().lower()) and venta.remisiones.exists():
             return Response(
                 {'detail': 'No es posible editar una venta de contado despues de haber sido remisionada.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1012,12 +1025,29 @@ class Venta(APIView):
         # except MiModelo.DoesNotExist:
         #     return Response(status=status.HTTP_404_NOT_FOUND)
         
-        serializer = VentaSerializer(venta, data=_build_venta_payload(request))
+        payload = _build_venta_payload(request)
+        normalized_items = validate_sale_items(venta_items, payload.get('precio', venta.precio), venta=venta)
+        if venta_items:
+            venta_items = normalized_items
+        cliente_id = IntegerField().run_validation(payload.get('cliente_id', venta.cliente_id))
+        if cliente_id != venta.cliente_id and Abonos.objects.filter(venta=venta).exists():
+            raise ValidationError({'cliente_id': 'No se puede cambiar el cliente de una venta con abonos registrados.'})
+        prepared, removed, payment_amount = prepare_sale_payments(
+            abonos, venta, cliente_id, IntegerField(min_value=0).run_validation(payload.get('precio', venta.precio)),
+            request.user, replace=str(request.data.get('abonos_reemplazar', '')).lower() == 'true',
+            removed_ids=_json_field(request, 'abonos_eliminados', []),
+            snapshots=_json_field(request, 'abonos_snapshots', {}),
+        )
+        payload['totalAbono'] = payment_amount
+        serializer = VentaSerializer(venta, data=payload)
         if not serializer.is_valid():
             console.log(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             # console.log(serializer.data)
 
+        articulos_actuales = list(ItemsVenta.objects.filter(venta=venta).values_list('articulo_id', flat=True))
+        bloquear_articulos(articulos_actuales + [item.get('articulo') for item in venta_items])
+        liberar_venta(venta)
         venta_actualizada = serializer.save()
         if fotos_venta:
             _sync_fotos_venta(venta_actualizada, fotos_venta)
@@ -1043,6 +1073,9 @@ class Venta(APIView):
                 articulo_id = int(item_data.get("articulo"))
                 item_existente = existing_by_articulo.get(articulo_id)
                 if item_existente:
+                    delivered = item_existente.remisiones_items.filter(remision__anulado=False).aggregate(total=Sum('cantidad'))['total'] or 0
+                    if item_data['cantidad'] < delivered:
+                        raise ValidationError({'venta': 'La cantidad no puede ser inferior a las unidades ya remisionadas.'})
                     item_existente.cantidad = int(item_data.get("cantidad") or 0)
                     item_existente.precio_articulo = int(item_data.get("precio_articulo") or 0)
                     item_existente.descuento = int(item_data.get("descuento") or 0)
@@ -1055,7 +1088,7 @@ class Venta(APIView):
                     if items_serializer.is_valid():
                         items_serializer.save()
                     else:
-                        console.log(items_serializer.errors)
+                        items_serializer.is_valid(raise_exception=True)
 
             # Eliminar items que no vienen en la solicitud y no tienen remisiones
             ItemsVenta.objects.filter(
@@ -1063,27 +1096,10 @@ class Venta(APIView):
                 remisiones_items__isnull=True
             ).exclude(articulo_id__in=requested_articulos).delete()
         
-        if abonos:
-        # Eliminamos abonos antiguos (o actualizamos según tu lógica de negocio)
-            Abonos.objects.filter(venta=factura).delete()
-            
-            abonos_serializer = AbonoSerializer(data=abonos, many=True)
-            if abonos_serializer.is_valid():
-                abonos_serializer.save()
-            else:
-                console.log(abonos_serializer.errors)
-        if saldo:
-            saldo_obj, created = Saldos.objects.update_or_create(
-                venta=venta,
-                defaults={'saldo': saldo.get('saldo', 0)}
-            )
-            
-            # También actualizamos el histórico
-            historico_serializer = HistoricoSaldosSerializer(data=saldo)
-            if historico_serializer.is_valid():
-                historico_serializer.save()
-            else:
-                console.log(historico_serializer.errors)
+        for payment in removed:
+            payment.delete()
+        for payment in prepared:
+            payment.save()
 
         try:
             pedido = PedidoVenta.objects.get(venta=venta)
@@ -1093,12 +1109,10 @@ class Venta(APIView):
         except PedidoVenta.DoesNotExist:
             pass
 
-        total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
-            total=Coalesce(Sum('precio'), 0)
-        ).get('total') or 0
-        venta.totalAbono = total_abonos_db
-        venta.save(update_fields=['totalAbono'])
+        sync_payments(venta, clear_due='fecha_vencimiento' in payload and payload['fecha_vencimiento'] is None)
+        reservar_venta(venta)
         maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
+        sync_estado_entrega_por_remision(venta, usuario=request.user, origen='automatico')
 
 
         # return Response(serializer.data)
@@ -1110,7 +1124,7 @@ class Venta(APIView):
         console.log(request.data)
         # console.log(id)
         id = request.data['id']
-        venta = Ventas.objects.get(id=id)
+        venta = Ventas.objects.select_for_update().get(id=id)
         # abono = Abonos.objects.filter(factura=venta.factura).first()
         # saldo = Saldos.objects.get(factura=venta)
 
@@ -1130,6 +1144,7 @@ class Venta(APIView):
             venta.usuarioAnulacion = request.user.id
             venta.anulado = 1
             venta.save()
+            liberar_venta(venta)
         # abono.delete()
         # venta.delete()
         # saldo.delete()
@@ -1176,38 +1191,14 @@ class AppointmentRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class Abono(APIView):
+class Abono(InventoryAtomicMixin, APIView):
     def _actualizar_totales_venta(self, venta):
-        total_abono = (
-            Abonos.objects.filter(venta=venta)
-            .aggregate(total=Coalesce(Sum('precio'), 0))
-            .get('total')
-            or 0
-        )
-
-        venta.totalAbono = total_abono
-
-        saldo = Saldos.objects.filter(venta=venta).first()
-        if saldo:
-            saldo.saldo = max((venta.precio or 0) - total_abono, 0)
-            saldo.save(update_fields=['saldo'])
-            saldo_actual = saldo.saldo
-        else:
-            saldo_actual = max((venta.precio or 0) - total_abono, 0)
-
-        if venta.anulado:
-            venta.estado_id = 4
-        elif saldo_actual == 0:
-            venta.estado_id = 3
-        elif total_abono > 0:
-            venta.estado_id = 2
-        else:
-            venta.estado_id = 1
-
-        venta.save(update_fields=['totalAbono', 'estado'])
-        return total_abono, saldo_actual
+        return sync_payments(venta)
 
     def get(self, request, factura=None):
+
+        payments = Abonos.objects.filter(venta_id=factura) if factura else Abonos.objects.all()
+        snapshots = {payment.pk: payment_snapshot(payment) for payment in payments}
 
         mediosPago = MediosDePago.objects.all().values()
             
@@ -1250,6 +1241,8 @@ class Abono(APIView):
                 results = [dict(zip(columns, row)) for row in cursor.fetchall()]
                 # console.log(facturaSearched)
 
+            for row in results:
+                row['snapshot'] = snapshots.get(row['id'], '')
             return Response(results, status=status.HTTP_200_OK)
         
         abonos = Abonos.objects.all().values()
@@ -1281,6 +1274,8 @@ class Abono(APIView):
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
             
 
+        for row in results:
+            row['snapshot'] = snapshots.get(row['id'], '')
         return Response(results, status=status.HTTP_200_OK)
         # return JsonResponse({'accion': 'valid'}, status=200)
 
@@ -1291,17 +1286,18 @@ class Abono(APIView):
         if not factura_raw:
             return Response({'detail': 'Debe indicar la venta a la que aplica el abono.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            venta = Ventas.objects.get(pk=int(factura_raw))
+            venta = Ventas.objects.select_for_update().get(pk=int(factura_raw))
         except (Ventas.DoesNotExist, ValueError, TypeError):
             return Response({'detail': 'La venta indicada no existe.'}, status=status.HTTP_404_NOT_FOUND)
 
-        saldo = get_object_or_404(Saldos, venta=venta)
         console.log(venta)
         # metodoPago = MediosDePago.objects.get(id=metodoPago)
     
 
         data_copy = request.data.copy()
         data_copy['factura'] = venta.id
+        data_copy['venta'] = venta.pk
+        data_copy.setdefault('cliente_id', venta.cliente_id)
         if data_copy.get('fecha') and not data_copy.get('fecha_abono'):
             data_copy['fecha_abono'] = data_copy.get('fecha')
 
@@ -1314,22 +1310,7 @@ class Abono(APIView):
             #console.log(serializer.data)
             serializer.save()
 
-            total_Abono = Abonos.objects.filter(
-                venta=venta
-            ).aggregate(total=Sum('precio'))#['total']
-            
-            venta.totalAbono = total_Abono.get('total')
-            saldo.saldo = venta.precio - total_Abono.get('total')
-            # venta.save()
-            saldo.save()
-
-            if saldo.saldo  != venta.precio and saldo.saldo  != 0:
-                venta.estado_id = 2
-                
-            elif saldo.saldo  == 0:
-                # cambiar el estado de la venta a pagada
-                venta.estado_id = 3
-            venta.save()
+            sync_payments(venta)
             maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
 
             # return JsonResponse({'accion': 'ok'}{'accion': 'ok'}, status=201)
@@ -1343,9 +1324,13 @@ class Abono(APIView):
         abono_id = request.data.get('id') or factura
         if not abono_id:
             return Response({'detail': 'Debe indicar el abono que desea actualizar.'}, status=status.HTTP_400_BAD_REQUEST)
+        abono_id = IntegerField(min_value=1).run_validation(abono_id)
 
         abono = get_object_or_404(Abonos, pk=abono_id)
+        venta = get_object_or_404(Ventas.objects.select_for_update(), pk=abono.venta_id)
+        abono = get_object_or_404(Abonos, pk=abono_id)
         data = request.data.copy()
+        check_payment_snapshot(abono, data.get('snapshot'))
 
         if not data.get('venta') and abono.venta_id:
             data['venta'] = abono.venta_id
@@ -1357,11 +1342,12 @@ class Abono(APIView):
         serializer = AbonoSerializer(abono, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            total_abono, saldo_actual = self._actualizar_totales_venta(abono.venta)
+            total_abono, saldo_actual = self._actualizar_totales_venta(venta)
             return Response(
                 {
                     'accion': 'ok',
                     'id': abono.id,
+                    'snapshot': payment_snapshot(abono),
                     'totalAbono': total_abono,
                     'saldo': saldo_actual,
                 },
@@ -1374,9 +1360,15 @@ class Abono(APIView):
         abono_id = request.data.get('id') or factura
         if not abono_id:
             return Response({'detail': 'Debe indicar el abono que desea eliminar.'}, status=status.HTTP_400_BAD_REQUEST)
+        abono_id = IntegerField(min_value=1).run_validation(abono_id)
 
         abono = get_object_or_404(Abonos, pk=abono_id)
-        venta = abono.venta
+        venta = get_object_or_404(Ventas.objects.select_for_update(), pk=abono.venta_id)
+        abono = get_object_or_404(Abonos, pk=abono_id)
+        if abono.abono_masivo_id:
+            raise ValidationError('No se puede eliminar individualmente un abono perteneciente a un pago masivo.')
+        validate_payment_change(venta, abono, delete=True)
+        check_payment_snapshot(abono, request.data.get('snapshot'))
 
         with transaction.atomic():
             abono.delete()
@@ -1405,8 +1397,8 @@ class JornadaView(APIView):
 
         jornadas_qs = jornadas_qs.annotate(
             ventas_count=Count('ventas', distinct=True),
-            total_vendido=Coalesce(Sum('ventas__precio'), 0),
-            total_abonos=Coalesce(Sum('ventas__totalAbono'), 0),
+            total_vendido=Coalesce(Sum('ventas__precio', filter=Q(ventas__anulado=False)), 0),
+            total_abonos=Coalesce(Sum('ventas__totalAbono', filter=Q(ventas__anulado=False)), 0),
         ).order_by('-fecha', '-id')
 
         serializer = JornadaSerializer(jornadas_qs, many=True)
@@ -1430,7 +1422,7 @@ class JornadaView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class JornadaDetailView(APIView):
+class JornadaDetailView(InventoryAtomicMixin, APIView):
     def get(self, request, jornada_id):
         jornada = get_object_or_404(
             Jornada.objects.select_related('empresa', 'responsable'),
@@ -1459,6 +1451,7 @@ class JornadaDetailView(APIView):
         items_map = defaultdict(list)
         unidades_por_venta = defaultdict(int)
         total_unidades = 0
+        ventas_vigentes = {venta.pk for venta in ventas if not venta.anulado}
 
         for item in ItemsVenta.objects.filter(venta_id__in=venta_ids).select_related('articulo').order_by('venta_id', 'id'):
             cantidad = int(item.cantidad or 0)
@@ -1474,7 +1467,8 @@ class JornadaDetailView(APIView):
             }
             items_map[item.venta_id].append(item_payload)
             unidades_por_venta[item.venta_id] += cantidad
-            total_unidades += cantidad
+            if item.venta_id in ventas_vigentes:
+                total_unidades += cantidad
 
         ventas_payload = []
         total_vendido = 0
@@ -1484,14 +1478,15 @@ class JornadaDetailView(APIView):
         for venta in ventas:
             cliente = clientes_map.get(venta.cliente_id)
             total_abono_db = int(abonos_map.get(venta.id, 0) or 0)
-            total_abono = max(total_abono_db, int(venta.totalAbono or 0))
+            total_abono = total_abono_db
             precio = int(venta.precio or 0)
             saldo = max(precio - total_abono, 0)
             articulos = items_map.get(venta.id, [])
 
-            total_vendido += precio
-            total_abonos += total_abono
-            total_saldos += saldo
+            if not venta.anulado:
+                total_vendido += precio
+                total_abonos += total_abono
+                total_saldos += saldo
 
             ventas_payload.append({
                 'id': venta.id,
@@ -1542,12 +1537,12 @@ class JornadaDetailView(APIView):
         return Response(payload, status=status.HTTP_200_OK)
 
     def patch(self, request, jornada_id):
-        jornada = get_object_or_404(Jornada, pk=jornada_id)
+        jornada = get_object_or_404(Jornada.objects.select_for_update(), pk=jornada_id)
         payload_keys = {key for key in request.data.keys() if key != 'csrfmiddlewaretoken'}
         requested_estado = request.data.get('estado')
         is_estado_only_change = bool(requested_estado) and payload_keys.issubset({'estado'})
 
-        if is_estado_only_change:
+        if 'estado' in payload_keys:
             allowed_transitions = {
                 'planned': {'in_progress'},
                 'in_progress': {'closed'},
@@ -1556,18 +1551,16 @@ class JornadaDetailView(APIView):
             requested_estado = str(requested_estado)
             current_estado = str(jornada.estado)
 
-            if requested_estado == current_estado:
-                return Response(JornadaSerializer(jornada).data, status=status.HTTP_200_OK)
-
-            if requested_estado not in allowed_transitions.get(current_estado, set()):
+            if requested_estado != current_estado and requested_estado not in allowed_transitions.get(current_estado, set()):
                 return Response(
                     {'detail': 'No es posible cambiar la jornada a ese estado.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            jornada.estado = requested_estado
-            jornada.save(update_fields=['estado'])
-            return Response(JornadaSerializer(jornada).data, status=status.HTTP_200_OK)
+            if is_estado_only_change:
+                jornada.estado = requested_estado
+                jornada.save(update_fields=['estado'])
+                return Response(JornadaSerializer(jornada).data, status=status.HTTP_200_OK)
 
         if jornada.estado == 'closed':
             return Response(
@@ -1576,6 +1569,11 @@ class JornadaDetailView(APIView):
             )
 
         payload = request.data.copy()
+        if 'empresa' in payload and str(payload.get('empresa') or '') != str(jornada.empresa_id) and jornada.ventas.exists():
+            return Response(
+                {'detail': 'No es posible cambiar la empresa de una jornada con ventas asociadas.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if jornada.estado == 'in_progress':
             if 'empresa' in payload and str(payload.get('empresa') or '') != str(jornada.empresa_id):
                 return Response(
@@ -1597,7 +1595,7 @@ class JornadaDetailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, jornada_id):
-        jornada = get_object_or_404(Jornada, pk=jornada_id)
+        jornada = get_object_or_404(Jornada.objects.select_for_update(), pk=jornada_id)
         if jornada.estado in ['in_progress', 'closed']:
             return Response(
                 {'detail': 'No es posible eliminar una jornada que ya fue iniciada.'},
@@ -1622,11 +1620,16 @@ class JornadaDetailView(APIView):
 
 
 def _parse_estado_pedido_fecha(raw_value):
-    if not raw_value:
+    if raw_value is None or raw_value == '':
         return None
-    parsed = parse_datetime(str(raw_value))
+    if not isinstance(raw_value, str):
+        raise ValidationError({'fecha_estado': 'Indique una fecha y hora validas.'})
+    try:
+        parsed = parse_datetime(raw_value)
+    except (ValueError, TypeError, OverflowError):
+        raise ValidationError({'fecha_estado': 'Indique una fecha y hora validas.'})
     if parsed is None:
-        return None
+        raise ValidationError({'fecha_estado': 'Indique una fecha y hora validas.'})
 
     if settings.USE_TZ:
         if timezone.is_naive(parsed):
@@ -1638,18 +1641,14 @@ def _parse_estado_pedido_fecha(raw_value):
     return parsed
 
 def _sync_total_abono_venta(venta):
-    total_abonos_db = Abonos.objects.filter(venta=venta).aggregate(
-        total=Coalesce(Sum('precio'), 0)
-    ).get('total') or 0
-    total_abono_actual = max(total_abonos_db, venta.totalAbono or 0)
-    if total_abono_actual != (venta.totalAbono or 0):
-        venta.totalAbono = total_abono_actual
-        venta.save(update_fields=['totalAbono'])
-    return total_abono_actual
+    # Reading the advance must not overwrite cached totals during a state request.
+    return payment_total(venta)
 
 
 
 def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, usuario=None, origen='manual', fecha_estado=None):
+    if venta.anulado:
+        return False, 'No se puede cambiar el estado de una venta anulada.'
     estado_slug = (estado_slug or '').strip()
     motivo_sin_anticipo = (motivo_sin_anticipo or '').strip()
 
@@ -1748,9 +1747,9 @@ def _apply_estado_pedido_change(venta, estado_slug, motivo_sin_anticipo='', *, u
     return True, data
 
 
-class VentaEstadoPedidoView(APIView):
+class VentaEstadoPedidoView(InventoryAtomicMixin, APIView):
     def post(self, request, venta_id):
-        venta = get_object_or_404(Ventas, pk=venta_id)
+        venta = get_object_or_404(Ventas.objects.select_for_update(), pk=venta_id)
         ok, result = _apply_estado_pedido_change(
             venta,
             request.data.get('estado'),
@@ -1764,7 +1763,7 @@ class VentaEstadoPedidoView(APIView):
         return Response(result, status=status.HTTP_200_OK)
 
 
-class VentaEstadoPedidoMasivoView(APIView):
+class VentaEstadoPedidoMasivoView(InventoryAtomicMixin, APIView):
     def post(self, request):
         venta_ids = request.data.get('venta_ids') or []
         estado_slug = request.data.get('estado')
@@ -1773,7 +1772,7 @@ class VentaEstadoPedidoMasivoView(APIView):
         if not isinstance(venta_ids, list) or not venta_ids:
             return Response({'detail': 'Debe seleccionar al menos una venta.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        ventas = list(Ventas.objects.filter(id__in=venta_ids).select_related('estado_pedido'))
+        ventas = list(Ventas.objects.select_for_update().filter(id__in=venta_ids).select_related('estado_pedido').order_by('pk'))
         if len(ventas) != len(set(venta_ids)):
             return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1810,173 +1809,55 @@ class VentaEstadoPedidoMasivoView(APIView):
             status=status.HTTP_200_OK,
         )
 
+class AbonoMasivoCatalogos(APIView):
+    def get(self, request):
+        return Response({
+            'empresas': list(Empresa.objects.order_by('nombre').values('id', 'nombre', 'nit')),
+            'clientes': list(Clientes.objects.order_by('nombre').values('cedula', 'nombre')),
+            'mediosPago': list(MediosDePago.objects.order_by('nombre').values('id', 'nombre')),
+            # Closing a commercial event must not prevent collecting its outstanding debt.
+            'jornadas': list(Jornada.objects.order_by('-fecha_inicio', '-id').values(
+                'id', 'fecha', 'fecha_inicio', 'estado', 'empresa__nombre', 'sucursal',
+            )),
+        })
+
+
 class AbonoMasivoPreview(APIView):
     def get(self, request):
-        tipo = (request.GET.get('tipo') or '').strip()
-        empresa_id = request.GET.get('empresa_id')
-        jornada_id = request.GET.get('jornada_id')
-        cliente_id = request.GET.get('cliente_id')
-
-        qs = Ventas.objects.filter(anulado=False)
-
-        if tipo == 'empresa':
-            if not empresa_id:
-                return Response({'detail': 'Debe indicar la empresa.'}, status=status.HTTP_400_BAD_REQUEST)
-            empresa = Empresa.objects.filter(id=empresa_id).first()
-            if not empresa:
-                return Response({'detail': 'Empresa no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-            qs = qs.filter(empresaCliente=empresa.nombre)
-        elif tipo == 'jornada':
-            if not jornada_id:
-                return Response({'detail': 'Debe indicar la jornada.'}, status=status.HTTP_400_BAD_REQUEST)
-            qs = qs.filter(jornada_id=jornada_id)
-        elif tipo == 'cliente':
-            if not cliente_id:
-                return Response({'detail': 'Debe indicar el cliente.'}, status=status.HTTP_400_BAD_REQUEST)
-            qs = qs.filter(cliente_id=cliente_id)
-        else:
-            return Response({'detail': 'Tipo de previsualización no válido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        qs = qs.annotate(
+        serializer = ObjetivoSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        _, filtro = resolver_objetivo(serializer.validated_data)
+        qs = Ventas.objects.filter(anulado=False, **filtro).annotate(
             total_abonos=Coalesce(Sum('abonos__precio'), 0),
             saldo=F('precio') - Coalesce(Sum('abonos__precio'), 0),
         ).filter(saldo__gt=0)
-
-        ventas = qs.values(
-            'id',
-            'cliente_id',
-            'empresaCliente',
-            'jornada_id',
-            'precio',
-            'total_abonos',
-            'saldo',
-            'cuotas',
-            'fecha',
-        ).order_by('fecha', 'id')
-
-        return Response(list(ventas), status=status.HTTP_200_OK)
+        rows = list(qs.values(
+            'id', 'cliente_id', 'empresaCliente', 'jornada_id', 'precio',
+            'total_abonos', 'saldo', 'cuotas', 'fecha', 'fecha_inicio',
+            'fecha_vencimiento', 'condicion_pago', 'detalle',
+        ).order_by('fecha', 'id'))
+        # Separate queries avoid multiplying the payment sum by the number of items.
+        by_id = {row['id']: row for row in rows}
+        for row in rows:
+            row['articulos'] = []
+            row['abonos'] = []
+        for item in ItemsVenta.objects.filter(venta_id__in=by_id).values(
+            'venta_id', 'articulo__nombre', 'cantidad', 'precio_articulo', 'totalArticulo',
+        ).order_by('id'):
+            by_id[item.pop('venta_id')]['articulos'].append(item)
+        for abono in Abonos.objects.filter(venta_id__in=by_id).values(
+            'venta_id', 'id', 'precio', 'fecha_abono', 'medioDePago__nombre',
+        ).order_by('-fecha_abono', '-id'):
+            by_id[abono.pop('venta_id')]['abonos'].append(abono)
+        return Response(rows)
 
 
 class AbonoMasivoApply(APIView):
     def post(self, request):
-        data = request.data
-        tipo = (data.get('tipo') or '').strip()
-        empresa_id = data.get('empresa_id')
-        jornada_id = data.get('jornada_id')
-        cliente_id = data.get('cliente_id')
-        medio_id = data.get('medioDePago') or data.get('medioPago')
-        descripcion = data.get('descripcion')
-        fecha = data.get('fecha')
-        items = data.get('items', [])
-
-        if not tipo:
-            return Response({'detail': 'Debe indicar el tipo de abono masivo.'}, status=status.HTTP_400_BAD_REQUEST)
-        if not medio_id:
-            return Response({'detail': 'Debe indicar el medio de pago.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if isinstance(items, str):
-            try:
-                items = json.loads(items)
-            except json.JSONDecodeError:
-                return Response({'detail': 'Items no es un JSON válido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not isinstance(items, list) or not items:
-            return Response({'detail': 'Debe indicar al menos un item para abonar.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        empresa = None
-        jornada = None
-        cliente = None
-        nombre_objetivo = None
-
-        if tipo == 'empresa':
-            if not empresa_id:
-                return Response({'detail': 'Debe indicar la empresa.'}, status=status.HTTP_400_BAD_REQUEST)
-            empresa = Empresa.objects.filter(id=empresa_id).first()
-            if not empresa:
-                return Response({'detail': 'Empresa no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-            nombre_objetivo = empresa.nombre
-        elif tipo == 'jornada':
-            if not jornada_id:
-                return Response({'detail': 'Debe indicar la jornada.'}, status=status.HTTP_400_BAD_REQUEST)
-            jornada = Jornada.objects.filter(id=jornada_id).first()
-            if not jornada:
-                return Response({'detail': 'Jornada no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-            nombre_objetivo = str(jornada)
-        elif tipo == 'cliente':
-            if not cliente_id:
-                return Response({'detail': 'Debe indicar el cliente.'}, status=status.HTTP_400_BAD_REQUEST)
-            cliente = Clientes.objects.filter(cedula=cliente_id).first()
-            if not cliente:
-                return Response({'detail': 'Cliente no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-            nombre_objetivo = f"{cliente.nombre} {cliente.apellido}".strip()
-        else:
-            return Response({'detail': 'Tipo de abono masivo inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        with transaction.atomic():
-            abono_masivo = AbonoMasivo.objects.create(
-                tipo=tipo,
-                nombre_objetivo=nombre_objetivo,
-                empresa=empresa,
-                jornada=jornada,
-                cliente=cliente,
-            )
-
-            creados = []
-            for item in items:
-                venta_id = item.get('venta') or item.get('venta_id') or item.get('id')
-                monto = item.get('monto') or item.get('aplicar') or 0
-                try:
-                    monto = float(monto)
-                except (TypeError, ValueError):
-                    monto = 0
-
-                if not venta_id or monto <= 0:
-                    continue
-
-                venta = Ventas.objects.filter(id=venta_id).first()
-                if not venta:
-                    continue
-
-                cliente_obj = Clientes.objects.filter(cedula=venta.cliente_id).first()
-                if not cliente_obj:
-                    continue
-
-                abono_data = {
-                    'venta': venta.id,
-                    'cliente_id': venta.cliente_id,
-                    'precio': int(monto),
-                    'medioDePago': medio_id,
-                    'descripcion': descripcion,
-                    'abono_masivo': abono_masivo.id,
-                }
-                if fecha:
-                    abono_data['fecha_abono'] = fecha
-
-                serializer = AbonoSerializer(data=abono_data)
-                if serializer.is_valid():
-                    serializer.save()
-                    creados.append(venta.id)
-                else:
-                    console.log(serializer.errors)
-
-                total_abono = Abonos.objects.filter(venta=venta).aggregate(total=Sum('precio')).get('total') or 0
-                venta.totalAbono = total_abono
-                saldo_obj, _ = Saldos.objects.get_or_create(
-                    venta=venta,
-                    defaults={'cliente': cliente_obj, 'saldo': 0}
-                )
-                saldo_obj.saldo = max((venta.precio or 0) - total_abono, 0)
-
-                if saldo_obj.saldo != (venta.precio or 0) and saldo_obj.saldo != 0:
-                    venta.estado_id = 2
-                elif saldo_obj.saldo == 0:
-                    venta.estado_id = 3
-
-                venta.save()
-                saldo_obj.save()
-                maybe_mark_para_fabricacion(venta, usuario=request.user, origen='automatico')
-
-        return Response({'accion': 'ok', 'creados': creados}, status=status.HTTP_201_CREATED)
+        serializer = AplicarSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = aplicar_abono_masivo(serializer.validated_data, request.user)
+        return Response(result, status=status.HTTP_200_OK if result['reintento'] else status.HTTP_201_CREATED)
 
 
 class AbonoMasivoList(APIView):
@@ -2055,8 +1936,8 @@ class AbonoMasivoDetail(APIView):
                         'descripcion': abono.descripcion,
                         'medioDePago': abono.medioDePago.nombre if abono.medioDePago else None,
                         'venta_precio': int(abono.venta.precio or 0) if abono.venta else 0,
-                        'venta_total_abono': int(abono.venta.totalAbono or 0) if abono.venta else 0,
-                        'venta_saldo': max(int((abono.venta.precio or 0) - (abono.venta.totalAbono or 0)), 0) if abono.venta else 0,
+                        'venta_total_abono': payment_total(abono.venta) if abono.venta else 0,
+                        'venta_saldo': max(int(abono.venta.precio or 0) - payment_total(abono.venta), 0) if abono.venta else 0,
                         'estado_pago': abono.venta.estado.nombre if abono.venta and abono.venta.estado else None,
                     }
                     for abono in abonos
@@ -2066,7 +1947,7 @@ class AbonoMasivoDetail(APIView):
         )
 
 
-class RemisionView(APIView):
+class RemisionView(InventoryAtomicMixin, APIView):
     def _build_totals_map(self, venta_id=None):
         filtros = {}
         if venta_id is not None:
@@ -2156,6 +2037,7 @@ class RemisionView(APIView):
 
         if serializer.is_valid():
             remision = serializer.save()
+            despachar(remision, request.user)
             totales_map = self._build_totals_map(remision.venta_id)
             sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
             remision_data = RemisionSerializer(
@@ -2184,11 +2066,16 @@ class RemisionView(APIView):
             detalle_anulacion = 'Remision anulada manualmente.'
 
         with transaction.atomic():
+            Ventas.objects.select_for_update().get(pk=remision.venta_id)
+            remision = Remision.objects.select_for_update().get(pk=remision.pk)
+            if remision.anulado:
+                return Response({'detail': 'La remision ya fue anulada.'}, status=400)
             remision.anulado = True
             remision.detalleAnulacion = detalle_anulacion
             remision.usuarioAnulacion = getattr(request.user, 'id', None)
             remision.fechaAnulacion = timezone.now()
             remision.save(update_fields=['anulado', 'detalleAnulacion', 'usuarioAnulacion', 'fechaAnulacion'])
+            revertir_remision(remision, request.user)
 
             sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
 
@@ -2249,21 +2136,28 @@ class RemisionMasivaView(RemisionView):
         observacion = (request.data.get('observacion') or '').strip()
         remisiones = request.data.get('remisiones')
 
+        if remisiones is not None and (not isinstance(remisiones, list) or not remisiones):
+            raise ValidationError({'remisiones': 'Debe enviar una lista no vacia de remisiones.'})
+
         payloads = []
         if isinstance(remisiones, list) and remisiones:
             for remision in remisiones:
+                if not isinstance(remision, dict) or not isinstance(remision.get('items', []), list):
+                    raise ValidationError({'remisiones': 'Debe enviar remisiones con una lista de articulos.'})
                 try:
-                    venta_id = int(remision.get('venta_id'))
+                    venta_id = IntegerField(min_value=1).run_validation(remision.get('venta_id'))
                 except (TypeError, ValueError):
                     return Response({'detail': 'Una o mas ventas de la remision masiva son invalidas.'}, status=status.HTTP_400_BAD_REQUEST)
 
                 items_payload = []
                 for item in remision.get('items') or []:
+                    if not isinstance(item, dict):
+                        raise ValidationError({'items': 'Los articulos de la remision tienen un formato invalido.'})
                     try:
-                        item_venta_id = int(item.get('itemVenta') or item.get('item_venta_id'))
-                        cantidad = int(item.get('cantidad'))
+                        item_venta_id = IntegerField(min_value=1).run_validation(item.get('itemVenta') or item.get('item_venta_id'))
+                        cantidad = IntegerField(min_value=0).run_validation(item.get('cantidad'))
                     except (TypeError, ValueError):
-                        continue
+                        raise ValidationError({'items': 'El articulo y su cantidad deben ser numeros enteros.'})
                     if cantidad > 0:
                         items_payload.append({
                             'itemVenta': item_venta_id,
@@ -2299,9 +2193,13 @@ class RemisionMasivaView(RemisionView):
                 })
 
         venta_ids_requeridos = [payload['venta_id'] for payload in payloads]
-        ventas_map = {venta.id: venta for venta in Ventas.objects.filter(id__in=venta_ids_requeridos)}
+        ventas_map = {venta.id: venta for venta in Ventas.objects.select_for_update().filter(id__in=venta_ids_requeridos).order_by('id')}
         if len(ventas_map) != len(set(venta_ids_requeridos)):
             return Response({'detail': 'Una o mas ventas no fueron encontradas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        bloquear_articulos(ItemsVenta.objects.filter(venta_id__in=venta_ids_requeridos).values_list('articulo_id', flat=True))
+        from inventario.services import bloquear_bodegas, bodega_venta
+        bloquear_bodegas([bodega_venta(venta) for venta in ventas_map.values()])
 
         creadas = []
         omitidas = []
@@ -2335,6 +2233,7 @@ class RemisionMasivaView(RemisionView):
                         continue
 
                     remision = serializer.save()
+                    despachar(remision, request.user)
                     sync_estado_entrega_por_remision(remision.venta, usuario=request.user, origen='automatico')
                     remision_data = RemisionSerializer(
                         remision,

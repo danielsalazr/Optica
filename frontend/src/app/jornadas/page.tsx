@@ -3,10 +3,10 @@ export const dynamic = 'force-dynamic';
 
 import React from "react";
 import JornadasModule from "@/components/jornadas/JornadasModule";
-import { buildServerBackendUrl } from "@/utils/js/env";
+import { serverApiFetch } from '@/lib/server-api';
 
 async function fetchJornadas() {
-  const response = await fetch(buildServerBackendUrl("jornadas/"), {
+  const response = await serverApiFetch("jornadas/", {
     cache: "no-store",
   });
 
@@ -18,7 +18,7 @@ async function fetchJornadas() {
 }
 
 async function fetchEmpresas() {
-  const response = await fetch(buildServerBackendUrl("usuarios/Empresas/"), {
+  const response = await serverApiFetch("usuarios/Empresas/", {
     cache: "no-store",
   });
 
@@ -43,7 +43,7 @@ async function JornadasPage() {
   }
 
   return (
-    <div className="container py-4">
+    <div className="page-shell jornadas-page">
       {fetchError ? (
         <div className="alert alert-danger" role="alert">
           Error cargando jornadas: {fetchError}

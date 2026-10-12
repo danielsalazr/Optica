@@ -1,4 +1,5 @@
 import math
+from django.db import connection
 from datetime import datetime, time
 
 from django.db.models import Sum
@@ -41,6 +42,7 @@ console = Console()
 
 
 class JornadaSerializer(serializers.ModelSerializer):
+    cantidad_cuotas = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     empresa_nombre = serializers.CharField(source='empresa.nombre', read_only=True)
     responsable_nombre = serializers.SerializerMethodField(read_only=True)
     ventas_count = serializers.IntegerField(read_only=True)
@@ -76,8 +78,16 @@ class JornadaSerializer(serializers.ModelSerializer):
             return full_name or obj.responsable.get_username()
         return None
 
+    def validate(self, attrs):
+        inicio = attrs.get('fecha_inicio', getattr(self.instance, 'fecha_inicio', None))
+        vencimiento = attrs.get('fecha_vencimiento', getattr(self.instance, 'fecha_vencimiento', None))
+        if inicio and vencimiento and vencimiento < inicio:
+            raise serializers.ValidationError({'fecha_vencimiento': 'El vencimiento no puede ser anterior al inicio de pagos.'})
+        return attrs
+
 
 class VentaSerializer(serializers.ModelSerializer):
+    cuotas = serializers.IntegerField(min_value=1, max_value=2147483647, required=False)
     # empresaCliente = serializers.CharField(source='empresaCliente.nombre', read_only=True)
     # empresaCliente = serializers.CharField(source='empresaCliente.nombre', )
     # empresa_id = serializers.PrimaryKeyRelatedField(
@@ -93,6 +103,7 @@ class VentaSerializer(serializers.ModelSerializer):
                   'precio',
                   'cliente_id',
                   'empresaCliente',
+                  'empresa',
                   'vendedor',
                   "totalAbono",
                   'fecha',
@@ -106,10 +117,12 @@ class VentaSerializer(serializers.ModelSerializer):
                   'foto',
                   'foto_formula',
                   'jornada',
+                  'bodega',
         ]
         # read_only_fields = ('campo1', 'campo2')
 
         extra_kwargs = {
+            'empresa': {'read_only': True},
             'detalle': {'required': False},
             'observacion': {'required': False},
               'estado' : {'required': False},
@@ -143,7 +156,8 @@ class VentaSerializer(serializers.ModelSerializer):
             nombre = str(raw_value).strip()
             if not nombre:
                 return None
-            return Empresa.objects.filter(nombre__iexact=nombre).first()
+            matches = list(Empresa.objects.filter(nombre__iexact=nombre)[:2])
+            return matches[0] if len(matches) == 1 else None
 
     def _normalizar_condicion_pago(self, condicion):
         return (condicion or '').strip().lower()
@@ -179,30 +193,56 @@ class VentaSerializer(serializers.ModelSerializer):
         return result
 
     def _assign_empresa_nombre(self, validated_data):
-        empresa = getattr(self, '_empresa_obj', None)
-        raw_value = validated_data.get('empresaCliente')
-        if raw_value not in (None, ''):
-            empresa = self._extract_empresa(raw_value)
+        empresa = validated_data.get('empresa', getattr(self.instance, 'empresa', None))
         if empresa:
             validated_data['empresaCliente'] = empresa.nombre
             self._empresa_obj = empresa
+        elif 'empresa' in validated_data:
+            validated_data['empresaCliente'] = 'Particular'
         return empresa
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        empresa = getattr(self, '_empresa_obj', None)
-        raw_empresa = attrs.get('empresaCliente')
-        if raw_empresa not in (None, ''):
+        inicio = attrs.get('fecha_inicio', getattr(self.instance, 'fecha_inicio', None))
+        vencimiento = attrs.get('fecha_vencimiento', getattr(self.instance, 'fecha_vencimiento', None))
+        condicion = self._normalizar_condicion_pago(attrs.get('condicion_pago', getattr(self.instance, 'condicion_pago', '')))
+        if condicion != 'contado' and inicio and vencimiento and vencimiento < inicio:
+            raise serializers.ValidationError({'fecha_vencimiento': 'El vencimiento no puede ser anterior al inicio de pagos.'})
+        cliente_id = attrs.get('cliente_id', getattr(self.instance, 'cliente_id', None))
+        if not Clientes.objects.filter(pk=cliente_id).exists():
+            raise serializers.ValidationError({'cliente_id': 'El cliente seleccionado no existe.'})
+        if 'bodega' in attrs:
+            bodega = attrs['bodega']
+            if bodega and not bodega.activa:
+                raise serializers.ValidationError({'bodega': 'La bodega seleccionada esta inactiva.'})
+            if self.instance:
+                from inventario.models import Movimiento
+                from inventario.services import principal
+                previous = self.instance.bodega_id or principal().pk
+                target = bodega.pk if bodega else principal().pk
+                if previous != target and Movimiento.objects.filter(venta=self.instance, tipo='salida').exists():
+                    raise serializers.ValidationError({'bodega': 'No se puede cambiar la bodega despues de un despacho.'})
+        if 'empresaCliente' in attrs:
+            raw_empresa = attrs['empresaCliente']
             empresa = self._extract_empresa(raw_empresa)
-        elif not empresa and self.instance:
-            empresa = self._extract_empresa(self.instance.empresaCliente)
+            if raw_empresa not in (None, '', 'Particular') and empresa is None:
+                raise serializers.ValidationError({'empresaCliente': 'La empresa seleccionada no existe.'})
+            attrs['empresa'] = empresa
+        else:
+            empresa = getattr(self.instance, 'empresa', None)
+            if not empresa and self.instance:
+                empresa = self._extract_empresa(self.instance.empresaCliente)
 
         if empresa:
             self._empresa_obj = empresa
 
-        jornada = attrs.get('jornada')
+        jornada = attrs.get('jornada', getattr(self.instance, 'jornada', None))
         if jornada:
-            if jornada.estado == 'closed':
+            if connection.in_atomic_block:
+                jornada = Jornada.objects.select_for_update().get(pk=jornada.pk)
+                if 'jornada' in attrs:
+                    attrs['jornada'] = jornada
+            if jornada.estado == 'closed' and (not self.instance or self.instance.jornada_id != jornada.pk):
                 raise serializers.ValidationError({'jornada': 'La jornada seleccionada ya se encuentra cerrada.'})
             if not empresa:
                 raise serializers.ValidationError({'empresaCliente': 'Seleccione una empresa valida antes de asociar una jornada.'})
@@ -347,10 +387,38 @@ class ItemsVentaSerializer(serializers.ModelSerializer):
 class AbonoSerializer(serializers.ModelSerializer):
     # factura = serializers.PrimaryKeyRelatedField(source='venta', queryset=Ventas.objects.all())
     venta = serializers.PrimaryKeyRelatedField(queryset=Ventas.objects.all())
+    precio = serializers.IntegerField(min_value=1, max_value=2147483647)
     
     class Meta:
         model = Abonos
         fields = ['venta','cliente_id','precio','medioDePago', 'descripcion', 'abono_masivo', 'fecha', 'fecha_abono']
+        read_only_fields = ('fecha',)
+
+    def validate(self, attrs):
+        from .payments import payment_total, validate_payment_change
+
+        instance = self.instance
+        if attrs.get('abono_masivo') and (not instance or attrs['abono_masivo'].pk != instance.abono_masivo_id) and not self.context.get('mass_payment'):
+            raise serializers.ValidationError('Los abonos masivos deben registrarse mediante su modulo.')
+        venta = attrs.get('venta', instance.venta if instance else None)
+        if not venta or venta.anulado:
+            raise serializers.ValidationError('No se puede registrar o modificar un abono de una venta anulada.')
+        if instance and venta.pk != instance.venta_id:
+            raise serializers.ValidationError({'venta': 'No se puede trasladar un abono a otra venta.'})
+        cliente_id = attrs.get('cliente_id', instance.cliente_id if instance else venta.cliente_id)
+        if cliente_id != venta.cliente_id or not Clientes.objects.filter(pk=cliente_id).exists():
+            raise serializers.ValidationError({'cliente_id': 'El cliente debe corresponder a la venta.'})
+        attrs['cliente_id'] = cliente_id
+        if instance and instance.abono_masivo_id:
+            for key in ('precio', 'medioDePago', 'abono_masivo'):
+                if key in attrs and attrs[key] != getattr(instance, key):
+                    raise serializers.ValidationError('No se puede alterar la distribucion de un abono masivo desde un abono individual.')
+        if not self.context.get('sale_batch'):
+            validate_payment_change(venta, instance, attrs)
+            remaining = (venta.precio or 0) - payment_total(venta, instance.pk if instance else None)
+            if attrs.get('precio', instance.precio if instance else 0) > remaining:
+                raise serializers.ValidationError({'precio': 'El abono supera el saldo pendiente de la venta.'})
+        return attrs
     
     extra_kwargs = {
         'descripcion': {'required': False},
@@ -499,20 +567,21 @@ class RemisionItemSerializer(serializers.ModelSerializer):
 
     def get_precioUnitario(self, obj):
         item_venta = obj.item_venta
-        cantidad = item_venta.cantidad or 0
+        cantidad = obj.cantidad_venta_original if obj.cantidad_venta_original is not None else item_venta.cantidad or 0
         if cantidad > 0:
-            return (item_venta.totalArticulo or 0) / cantidad
-        return item_venta.precio_articulo or 0
+            total = obj.total_articulo_original if obj.total_articulo_original is not None else item_venta.totalArticulo or 0
+            return total / cantidad
+        return obj.precio_articulo_original if obj.precio_articulo_original is not None else item_venta.precio_articulo or 0
 
     def get_totalRemisionado(self, obj):
         precio_unitario = self.get_precioUnitario(obj) or 0
         return precio_unitario * (obj.cantidad or 0)
 
     def get_descuento(self, obj):
-        return obj.item_venta.descuento or 0
+        return obj.descuento_original if obj.descuento_original is not None else obj.item_venta.descuento or 0
 
     def get_tipoDescuento(self, obj):
-        return obj.item_venta.tipo_descuento or 'precio'
+        return obj.tipo_descuento_original if obj.tipo_descuento_original is not None else obj.item_venta.tipo_descuento or 'precio'
 
 
 class RemisionSerializer(serializers.ModelSerializer):
@@ -585,11 +654,7 @@ class RemisionSerializer(serializers.ModelSerializer):
         total = 0
         for item in obj.items.all():
             cantidad = item.cantidad or 0
-            cantidad_factura = item.item_venta.cantidad or 0
-            if cantidad_factura > 0:
-                precio_unitario = (item.item_venta.totalArticulo or 0) / cantidad_factura
-            else:
-                precio_unitario = item.item_venta.precio_articulo or 0
+            precio_unitario = RemisionItemSerializer(context=self.context).get_precioUnitario(item)
             total += precio_unitario * cantidad
         return total
 
@@ -618,14 +683,17 @@ class RemisionSerializer(serializers.ModelSerializer):
         venta = self._get_venta(obj)
         if not venta:
             return 0
-        return venta.totalAbono or 0
+        from .payments import payment_total
+        if not hasattr(obj, '_payment_total'):
+            obj._payment_total = payment_total(venta)
+        return obj._payment_total
 
     def get_saldoVenta(self, obj):
         venta = self._get_venta(obj)
         if not venta:
             return 0
         total = venta.precio or 0
-        total_abono = venta.totalAbono or 0
+        total_abono = self.get_totalAbonado(obj)
         return max(total - total_abono, 0)
 
     def _get_venta(self, obj):
@@ -676,34 +744,44 @@ class RemisionSerializer(serializers.ModelSerializer):
         if not venta:
             return 0
         total = venta.precio or 0
-        total_abono = venta.totalAbono or 0
-        saldo = max(total - total_abono, 0)
         cuotas = getattr(venta, 'cuotas', None) or 0
         if cuotas <= 0:
             return 0
-        return round(saldo / cuotas, 2)
+        return round(total / cuotas, 2)
 
     def get_cuotasPagadas(self, obj):
         venta = self._get_venta(obj)
         if not venta:
             return 0
         total = venta.precio or 0
-        total_abono = venta.totalAbono or 0
-        saldo = max(total - total_abono, 0)
+        total_abono = self.get_totalAbonado(obj)
         cuotas = getattr(venta, 'cuotas', None) or 0
         if cuotas <= 0:
             return 0
-        valor_cuota = round(saldo / cuotas, 2)
-        if valor_cuota <= 0:
+        if total <= 0:
             return 0
-        return round(total_abono / valor_cuota, 2)
+        return round(total_abono * cuotas / total, 2)
 
     def validate(self, attrs):
         venta = attrs['venta']
+        if connection.in_atomic_block:
+            venta = Ventas.objects.select_for_update().get(pk=venta.pk)
+            attrs['venta'] = venta
         items = attrs.get('items', [])
 
         if not items:
             raise serializers.ValidationError({'items': 'Debe incluir al menos un artículo para la remisión.'})
+
+        # Related fields were resolved before acquiring the sale lock.
+        queryset = ItemsVenta.objects.filter(pk__in=[item['item_venta'].pk for item in items])
+        if connection.in_atomic_block:
+            queryset = queryset.select_for_update()
+        current_items = {item.pk: item for item in queryset}
+        for element in items:
+            current = current_items.get(element['item_venta'].pk)
+            if current is None:
+                raise serializers.ValidationError({'items': 'Los articulos cambiaron. Actualice la validacion de la remision.'})
+            element['item_venta'] = current
 
         acumulado_por_item = {}
         errores = {}

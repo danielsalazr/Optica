@@ -27,7 +27,7 @@ type MedioPagoProps = {
 
 function MedioPago(props: MedioPagoProps) {
 
-    const { data, name, className, labelInput, required, setData } = props;
+    const { data, name, className, labelInput, required, setData, disabled = false } = props;
     const containerRef = useRef<HTMLDivElement | null>(null);
     const dropdownRef = useRef<HTMLDivElement | null>(null);
     const hiddenInputRef = useRef<HTMLInputElement | null>(null);
@@ -47,7 +47,7 @@ function MedioPago(props: MedioPagoProps) {
     );
 
     const [open, setOpen] = useState(false);
-    const toggleDropdown = () => setOpen(previous => !previous);
+    const toggleDropdown = () => { if (!disabled) setOpen(previous => !previous); };
 
     const selectOption = (element: MedioPagoOption) => {
         setSelectedOption({
@@ -85,7 +85,7 @@ function MedioPago(props: MedioPagoProps) {
         <div ref={containerRef}  className={className} >
             {labelInput && <label htmlFor="valor">{labelInput}</label>}
             <div className="custom-select">
-                <div className="selectedPayment form-select" onClick={toggleDropdown}>
+                <div className="selectedPayment form-select" onClick={toggleDropdown} aria-disabled={disabled}>
                     <img src={selectedOption.imgSrc} alt="Selected" />
                     <span>{selectedOption.text}</span>
                 </div>

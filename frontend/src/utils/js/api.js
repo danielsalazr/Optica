@@ -47,6 +47,7 @@ const ensureBaseUrl = () => {
 };
 
 const buildUrl = (endPoint = "") => {
+  if (typeof window !== 'undefined') return `/api/backend?path=${encodeURIComponent(endPoint)}`;
   const normalized = typeof window === "undefined"
     ? buildServerBackendUrl(endPoint)
     : buildBackendUrl(endPoint);
@@ -116,6 +117,9 @@ async function fetchJson(endPoint, options = {}) {
 
   const response = await fetch(url, config);
   const data = await parseResponseBody(response);
+  if (response.status === 401 && typeof window !== 'undefined') {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+  }
   return { res: response, data };
 }
 

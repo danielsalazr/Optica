@@ -88,8 +88,7 @@ function TablaArticulos(props: TablaArticulosProps) {
   const [selectizeLoaded, setSelectizeLoaded] = useState(false);
 
     const datatos = async () => {
-        const req =  await fetch(buildBackendUrl("articuloInfo/1"));
-        const data = await req.json();
+        const { data } = await callApi('articuloInfo/1');
     
         // console.log(data)
     }

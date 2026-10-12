@@ -1,5 +1,37 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
+
+
+APPLICATION_PERMISSIONS = [
+    (f'{action}_{module}', f'{label} {title}')
+    for module, title, actions in [
+        ('ventas', 'ventas', ['view', 'add', 'change', 'delete']),
+        ('remisiones', 'remisiones', ['view', 'add', 'delete']),
+        ('jornadas', 'jornadas', ['view', 'add', 'change', 'delete']),
+        ('abonos', 'abonos', ['view', 'add', 'change', 'delete']),
+        ('reportes', 'reportes', ['view']),
+        ('saldos', 'saldos', ['view']),
+        ('impresoras', 'configuracion de impresoras', ['view', 'change']),
+        ('resumen', 'resumen financiero del inicio', ['view']),
+        ('inventario', 'inventario', ['view', 'add', 'change', 'delete']),
+    ]
+    for action, label in [('view', 'Consultar'), ('add', 'Crear'), ('change', 'Modificar'), ('delete', 'Anular o eliminar')]
+    if action in actions
+]
+
+
+class PerfilAcceso(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil_acceso')
+    permisos_denegados = models.ManyToManyField('auth.Permission', blank=True, help_text='Prevalecen sobre los permisos del grupo o del usuario; no restringen superusuarios.')
+
+    class Meta:
+        verbose_name = 'restriccion de acceso'
+        verbose_name_plural = 'Restricciones de acceso'
+        permissions = APPLICATION_PERMISSIONS
+
+    def __str__(self):
+        return str(self.usuario)
 
 # Create your models here.
 class Usuarios(models.Model):

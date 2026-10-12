@@ -4,7 +4,7 @@ import '@/styles/style.css';
 import '@/styles/selectwithImage.css';
 import { moneyformat, fechaFormat } from '@/utils/js/utils';
 import AbonosData from '@/components/abonos/AbonosData';
-import { buildServerBackendUrl } from '@/utils/js/env';
+import { serverApiFetch } from '@/lib/server-api';
 
 type AbonoRow = {
   id: number | string;
@@ -56,7 +56,7 @@ function safeDateLabel(value: unknown) {
 }
 
 async function getDataAbonos() {
-  const res = await fetch(buildServerBackendUrl("abono/"), {
+  const res = await serverApiFetch("abono/", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -67,7 +67,7 @@ async function getDataAbonos() {
 }
 
 async function getGeneralData() {
-  const res = await fetch(buildServerBackendUrl("ventas/"), {
+  const res = await serverApiFetch("ventas/?solo_catalogos=1", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -78,7 +78,7 @@ async function getGeneralData() {
 }
 
 async function getMassiveAbonos() {
-  const res = await fetch(buildServerBackendUrl("abonos/masivo/"), {
+  const res = await serverApiFetch("abonos/masivo/", {
     cache: "no-store",
   });
   if (!res.ok) {
@@ -116,7 +116,7 @@ async function page() {
   });
 
   return (
-    <div className="page-shell page-shell-narrow">
+    <div className="page-shell abonos-page">
       {fetchError ? (
         <div className="alert alert-danger mx-3" role="alert">
           Error cargando abonos: {fetchError}

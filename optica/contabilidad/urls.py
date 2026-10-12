@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.views.static import serve
 from . import views
+from .saldos import SaldosView
 from django.conf import settings
 
 from django.conf.urls.static import static
@@ -23,6 +24,8 @@ urlpatterns = [
     # path('admin/', views.AbonosP.as_view(), name="admin"),
     path('reportes/', views.ReportesP.as_view(), name="reportes"),
     path('reportes/data/', views.ReportesDataView.as_view(), name="reportes-data"),
+    path('saldos/', SaldosView.as_view(), name='saldos'),
+    path('saldos/<int:venta_id>/', SaldosView.as_view(), name='saldos-detail'),
     path('informacionGeneral/', views.informacionGeneral, name="informacionGeneral"),
     # informacionGeneral
 
@@ -33,9 +36,10 @@ urlpatterns = [
     path('venta/estado-pedido/masivo/', views.VentaEstadoPedidoMasivoView.as_view(), name="venta-estado-pedido-masivo"),
     
     path('abono/', views.Abono.as_view(), name="abono"),
-    path('abono/<factura>', views.Abono.as_view(), name="abono"),
+    path('abono/<int:factura>', views.Abono.as_view(), name="abono"),
     path('abonos/masivo/', views.AbonoMasivoList.as_view(), name="abonos-masivo-list"),
     path('abonos/masivo/preview/', views.AbonoMasivoPreview.as_view(), name="abonos-masivo-preview"),
+    path('abonos/masivo/catalogos/', views.AbonoMasivoCatalogos.as_view(), name="abonos-masivo-catalogos"),
     path('abonos/masivo/aplicar/', views.AbonoMasivoApply.as_view(), name="abonos-masivo-aplicar"),
     path('abonos/masivo/<int:abono_masivo_id>/', views.AbonoMasivoDetail.as_view(), name="abonos-masivo-detail"),
     # path('abonar/<int:factura>', views.Abono.as_view(), name="abonar"),

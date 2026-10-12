@@ -2,20 +2,24 @@
 ﻿"use client";
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { DataTable, DataTableFilterMeta } from "primereact/datatable";
+import { DataTable } from "primereact/datatable";
 import { useTablePagination } from '@/hooks/useTablePagination';
+import { useMobileLayout } from '@/hooks/useMobileLayout';
+import RemisionesMobileList from './RemisionesMobileList';
 import { Column } from "primereact/column";
 import { InputText } from "primereact/inputtext";
+import { Paginator } from 'primereact/paginator';
 import { Tag } from "primereact/tag";
-import { FilterMatchMode } from "primereact/api";
 import { moneyformat } from "@/utils/js/utils";
 import { buildMediaUrl, buildPrintAgentUrl } from "@/utils/js/env";
 import { swalErr, swalconfirmation, swalQuestion } from "@/utils/js/sweetAlertFunctions";
 import { callApi } from "@/utils/js/api";
+import { useAuth } from '@/components/auth/AuthProvider';
 import { Dialog } from "primereact/dialog";
 import { Tooltip } from "primereact/tooltip";
 
 import "@/styles/style.css";
+import "@/styles/remisiones-workspace.css";
 
 type RemisionItem = {
   id: number;
@@ -158,13 +162,14 @@ const addDays = (date: Date, days: number) => {
 };
 
 const RemisionesData: React.FC<Props> = ({ data }) => {
+  const { can } = useAuth();
   const pagination = useTablePagination('remisiones', 10, [5, 10, 20, 50, 100]);
+  const mobileLayout = useMobileLayout();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [tableSort, setTableSort] = useState({ field: 'id', order: -1 });
   const [tableData, setTableData] = useState<RemisionRow[]>(data ?? []);
   const [activeRemision, setActiveRemision] = useState<PreparedRemisionRow | null>(null);
   const [expandedRows, setExpandedRows] = useState(null);
-  const [filters, setFilters] = useState<DataTableFilterMeta>({
-    global: { value: "", matchMode: FilterMatchMode.CONTAINS },
-  });
   const [globalFilterValue, setGlobalFilterValue] = useState<string>("");
   const [formulaOpen, setFormulaOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
@@ -430,22 +435,39 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         if (desde && remisionDate < desde) return false;
         if (hasta && remisionDate > hasta) return false;
       }
+      if (globalFilterValue.trim()) {
+        const search = globalFilterValue.trim().toLocaleLowerCase('es');
+        const fields = ['id', 'venta', 'clienteNombre', 'clienteCedula', 'empresaCliente', 'fechaFormateada',
+          'itemsCount', 'cantidadRemitida', 'totalDespachado', 'totalRemision', 'observacion', 'estadoRemision'];
+        if (!fields.some(field => String(row[field] ?? '').toLocaleLowerCase('es').includes(search))) return false;
+      }
       return true;
     });
-  }, [orderedData, estadoRemisionFilter, fechaDesde, fechaHasta]);
+  }, [orderedData, estadoRemisionFilter, fechaDesde, fechaHasta, globalFilterValue]);
+
+  const mobileRemissions = useMemo(() => mobileLayout ? [...filteredData].sort((a, b) => {
+    if (!tableSort.order) return 0;
+    const left = a[tableSort.field] ?? '';
+    const right = b[tableSort.field] ?? '';
+    return (typeof left === 'number' && typeof right === 'number' ? left - right
+      : String(left).localeCompare(String(right), 'es', { numeric: true })) * tableSort.order;
+  }) : [], [filteredData, tableSort, mobileLayout]);
+
+  useEffect(() => { pagination.setFirst(0); }, [estadoRemisionFilter, fechaDesde, fechaHasta, globalFilterValue]);
+  useEffect(() => {
+    if (pagination.first >= filteredData.length && pagination.first !== 0) pagination.setFirst(0);
+  }, [filteredData.length, pagination.first]);
 
   const columns = useMemo<ColumnMeta[]>(
     () => [
       { field: "id", header: "Remision", sortable: true },
       { field: "venta", header: "Venta", sortable: true },
       { field: "clienteNombre", header: "Cliente", sortable: true },
-      { field: "clienteCedula", header: "Documento" },
       { field: "empresaCliente", header: "Empresa" },
       { field: "fechaFormateada", header: "Fecha", sortable: true },
       { field: "estadoRemision", header: "Estado" },
       { field: "itemsCount", header: "Items", bodyClassName: "text-center" },
       { field: "cantidadRemitida", header: "Remitido", bodyClassName: "text-center" },
-      { field: "totalDespachado", header: "Despachado total", bodyClassName: "text-center" },
       { field: "totalRemision", header: "Total remision", bodyClassName: "text-end" },
     ],
     []
@@ -454,10 +476,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   const handleGlobalFilterChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      setFilters((prev) => ({
-        ...prev,
-        global: { value, matchMode: FilterMatchMode.CONTAINS },
-      }));
       setGlobalFilterValue(value);
     },
     []
@@ -468,7 +486,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
 
     const confirmed = await swalQuestion(
       "Anular remision",
-      `Se anulara la remision #${row.id}. Si esta remision completaba la entrega del pedido, la venta volvera a 'Listo Para Entrega'.`
+      `Se anulara la remision #${row.id}. Si sus articulos llevan inventario, las unidades despachadas se reintegraran a la bodega (sin duplicar devoluciones ya registradas). Confirma solo si la entrega no ocurrio o la mercancia ya regreso. Si completaba la entrega, la venta volvera a 'Listo Para Entrega'.`
     );
 
     if (!confirmed) return;
@@ -502,47 +520,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   }, []);
 
 
-  const tableHeader = useMemo(
-    () => ( 
-    <>
-      <div className="remisiones-header d-flex w-100 justify-content-between align-items-center gap-1 flex-wrap">
-        <div className="d-flex flex-column">
-          {/* <span className="fw-semibold">Listado de remisiones</span> */}
-          <span className="text-muted small">
-            Consulta rapida por cliente, fecha, documento o estado de remision.
-          </span>
-        </div>
-        <span className="p-input-icon-left remisiones-search">
-          <i className="pi pi-search" />
-          <InputText
-            value={globalFilterValue}
-            onChange={handleGlobalFilterChange}
-            placeholder="Buscar remisiones..."
-          />
-        </span>
-      </div>
-      </>
-    ),
-    [globalFilterValue, handleGlobalFilterChange]
-  );
-
-  const globalFilterFields = useMemo(
-    () => [
-      "id",
-      "venta",
-      "clienteNombre",
-      "clienteCedula",
-      "empresaCliente",
-      "fechaFormateada",
-      "itemsCount",
-      "cantidadRemitida",
-      "totalDespachado",
-      "totalRemision",
-      "observacion",
-    ],
-    []
-  );
-
   const getTotalRemision = useCallback((row: PreparedRemisionRow) => {
     return (row.items ?? []).reduce((acc, item) => {
       const totalItem =
@@ -557,7 +534,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
     return (
       <div className="ventas-card mt-3">
         <div className="row g-3 mb-3 align-items-stretch">
-          <div className="col-12 col-xl-4">
+          {!mobileLayout && <div className="col-12 col-xl-4">
             <div className="border rounded h-100 p-3 bg-light-subtle">
               <div className="text-muted small text-uppercase">Remision</div>
               <h4 className="mb-1">Detalle remision #{row.id}</h4>
@@ -576,15 +553,15 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                 </div>
               )}
             </div>
-          </div>
-          <div className="col-12 col-xl-4">
+          </div>}
+          {!mobileLayout && <div className="col-12 col-xl-4">
             <div className="border rounded h-100 p-3 bg-light-subtle">
               <div className="text-muted small text-uppercase">Cliente</div>
               <div className="fw-semibold mt-1">{row.clienteNombre}</div>
               <div className="text-muted small">Documento: {row.clienteCedula}</div>
               <div className="text-muted small">Empresa: {row.empresaCliente || "Sin empresa"}</div>
             </div>
-          </div>
+          </div>}
           <div className="col-12 col-xl-4">
             <div className="border rounded h-100 p-3 bg-light-subtle d-flex flex-column justify-content-between">
               <div>
@@ -610,10 +587,10 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                 <button type="button" className="btn btn-sm btn-outline-primary remisiones-action-tooltip" data-pr-tooltip="Ver formula" data-pr-position="top" onClick={() => handleFormulaModal(row)}>
                   Ver formula
                 </button>
-                <button type="button" className="btn btn-sm btn-primary remisiones-action-tooltip" data-pr-tooltip="Imprimir ticket" data-pr-position="top" onClick={() => handlePrintRemision(row)} disabled={printing}>
+                {!mobileLayout && <button type="button" className="btn btn-sm btn-primary remisiones-action-tooltip" data-pr-tooltip="Imprimir ticket" data-pr-position="top" onClick={() => handlePrintRemision(row)} disabled={printing}>
                   {printing ? "Imprimiendo..." : "Imprimir ticket"}
-                </button>
-                {!row.anulado && (
+                </button>}
+                {!row.anulado && can('delete_remisiones') && (
                   <button
                     type="button"
                     className="btn btn-sm btn-outline-danger remisiones-action-tooltip"
@@ -629,7 +606,24 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
           </div>
         </div>
 
-        <div className="table-modern table-responsive remisiones-detail-table">
+        {mobileLayout && <div className="small mb-3">
+          {row.observacion && <p className="mb-2"><strong>Observacion:</strong> {row.observacion}</p>}
+          {row.anulado && <p className="text-danger mb-2"><strong>Anulada el:</strong> {formatDate(row.fechaAnulacion)}{row.detalleAnulacion ? ` - ${row.detalleAnulacion}` : ''}</p>}
+        </div>}
+        {mobileLayout ? <div className="remisiones-mobile-items">
+          {(row.items ?? []).map(item => <div key={item.id} className="remisiones-mobile-item">
+            <strong>{item.articulo?.nombre || `Item ${item.itemVenta}`}</strong>
+            <dl>
+              <div><dt>Remitido</dt><dd>{item.cantidad}</dd></div>
+              <div><dt>Precio unitario</dt><dd>{moneyformat(Number(item.precioUnitario || 0))}</dd></div>
+              <div><dt>Descuento</dt><dd>{formatDescuento(item.descuento, item.tipoDescuento)}</dd></div>
+              <div><dt>Total</dt><dd>{moneyformat(Number(item.totalRemisionado || 0) || Number(item.precioUnitario || 0) * Number(item.cantidad || 0))}</dd></div>
+              <div><dt>Total despachado</dt><dd>{item.cantidadDespachada}</dd></div>
+              <div><dt>Pendiente</dt><dd>{item.restante}</dd></div>
+            </dl>
+          </div>)}
+          {!row.items?.length && <p className="text-muted small">Sin articulos registrados.</p>}
+        </div> : <div className="table-modern table-responsive remisiones-detail-table">
           <table className="table table-sm align-middle mb-0">
             <thead>
               <tr>
@@ -658,12 +652,21 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>}
 
         <div className="mt-4">
           <h5 className="mb-3">Abonos asociados</h5>
           {(row.abonos ?? []).length === 0 ? (
             <div className="text-muted small">No hay abonos registrados.</div>
+          ) : mobileLayout ? (
+            <div className="remisiones-mobile-payments">
+              {(row.abonos ?? []).map(abono => <div key={abono.id} className="remisiones-mobile-item">
+                <div className="remisiones-mobile-meta"><strong>{moneyformat(Number(abono.precio || 0))}</strong><span>{formatDate(abono.fecha)}</span></div>
+                <div className="small">{abono.medioPagoNombre || abono.medioDePago || '-'}</div>
+                {abono.descripcion && <div className="text-muted small">{abono.descripcion}</div>}
+              </div>)}
+              <div className="remisiones-mobile-meta fw-semibold"><span>Total abonos</span><span>{moneyformat((row.abonos ?? []).reduce((acc, abono) => acc + Number(abono.precio || 0), 0))}</span></div>
+            </div>
           ) : (
             <div className="table-modern table-responsive remisiones-detail-table">
               <table className="table table-sm align-middle mb-0">
@@ -709,16 +712,11 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
   };
 
   return (
-    <div className="remisiones-module">
+    <div className={`remisiones-module ${mobileFiltersOpen ? 'mobile-filters-open' : ''}`}>
       <Tooltip key={tooltipVersion} ref={tooltipRef} target=".remisiones-action-tooltip" showDelay={120} hideDelay={80} />
-      <div className="ventas-toolbar mb-1 gap-3">
-        <h1 className="ventas-page-title mb-0">Remisiones</h1>
-        <span className="badge text-bg-primary px-3 py-2">
-          {filteredData.length} registro{filteredData.length === 1 ? "" : "s"}
-        </span>
-      </div>
-
-      <div className="ventas-card mb-3">
+      <div className="remisiones-workspace ventas-card">
+      <div id="remisiones-filters">
+      <div className="remisiones-filter-group">
         <div className="d-flex flex-wrap align-items-center gap-2">
           <span className="small fw-semibold text-dark">Estado de remision</span>
           <button type="button" className={`btn btn-sm ${estadoRemisionFilter === 'todas' ? 'btn-secondary' : 'btn-outline-secondary'}`} onClick={() => setEstadoRemisionFilter('todas')}>Todas</button>
@@ -727,8 +725,8 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
         </div>
       </div>
 
-      <div className="ventas-card mb-3">
-        <div className="mb-3">
+      <div className="remisiones-filter-group remisiones-date-filter">
+        <div className="remisiones-date-presets">
           <div className="d-flex flex-wrap align-items-center gap-2">
             <div className="small fw-semibold text-dark">Filtro por fecha de remision</div>
             <button
@@ -750,24 +748,47 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             </div>
           </div>
         </div>
-        <div className="d-flex flex-wrap align-items-end gap-2">
-          <div>
-            <label className="form-label small mb-1">Desde</label>
-            <input type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
+        <div className="remisiones-date-range">
+          <div className="remisiones-date-field">
+            <label className="form-label small mb-0" htmlFor="remisiones-fecha-desde">Desde</label>
+            <input id="remisiones-fecha-desde" type="date" className="form-control" value={fechaDesde} onChange={(e) => handleFechaDesdeChange(e.target.value)} />
           </div>
-          <div>
-            <label className="form-label small mb-1">Hasta</label>
-            <input type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
+          <div className="remisiones-date-field">
+            <label className="form-label small mb-0" htmlFor="remisiones-fecha-hasta">Hasta</label>
+            <input id="remisiones-fecha-hasta" type="date" className="form-control" value={fechaHasta} onChange={(e) => handleFechaHastaChange(e.target.value)} />
           </div>
         </div>
       </div>
+      </div>
 
-      <div className="ventas-card">
-        <DataTable
+      <div className="remisiones-results">
+        <div className="remisiones-pagination-toolbar">
+          <Paginator first={pagination.first} rows={pagination.rows} totalRecords={filteredData.length}
+            rowsPerPageOptions={[5, 10, 20, 50, 100]}
+            onPageChange={event => { pagination.onPage(event); refreshRemisionTooltips(true); }}
+            template={mobileLayout
+              ? 'RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink NextPageLink LastPageLink'
+              : 'RowsPerPageDropdown CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink'}
+            currentPageReportTemplate="{first} a {last} de {totalRecords}" />
+          <div className="remisiones-workspace-search">
+            <InputText value={globalFilterValue} onChange={handleGlobalFilterChange} placeholder="Buscar remisiones..." aria-label="Buscar remisiones" />
+            {mobileLayout && <button type="button" className="btn btn-outline-secondary rounded-pill"
+              aria-expanded={mobileFiltersOpen} aria-controls="remisiones-filters" onClick={() => setMobileFiltersOpen(open => !open)}>
+              <i className="pi pi-filter" aria-hidden="true" /> Filtros
+            </button>}
+          </div>
+        </div>
+        {mobileLayout ? <RemisionesMobileList remissions={mobileRemissions} first={pagination.first} rows={pagination.rows}
+          expanded={expandedRows} printing={printing} formatMoney={moneyformat}
+          onPage={event => { pagination.onPage(event); refreshRemisionTooltips(true); }}
+          onExpand={row => setExpandedRows(previous => ({ ...previous, [row.id]: !previous?.[row.id] }))}
+          onPrint={handlePrintRemision} renderDetail={rowExpansionTemplate} /> : <DataTable
           value={filteredData}
-          header={tableHeader}
+          sortField={tableSort.field}
+          sortOrder={tableSort.order}
+          onSort={event => setTableSort({ field: event.sortField, order: event.sortOrder })}
           paginator
-          paginatorPosition="both"
+          paginatorPosition="bottom"
           first={pagination.first}
           rows={pagination.rows}
           onPage={(event) => {
@@ -786,8 +807,6 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
             refreshRemisionTooltips(true);
           }}
           rowExpansionTemplate={rowExpansionTemplate}
-          filters={filters}
-          globalFilterFields={globalFilterFields}
           emptyMessage="No se encontraron remisiones."
           responsiveLayout="scroll"
           className="remisiones-table p-datatable-sm"
@@ -810,7 +829,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                       #{row.id}
                     </span>
                   )}
-                  style={{ width: "8rem" }}
+                  style={{ width: "5rem" }}
                 />
               );
             }
@@ -827,7 +846,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                       #{row.venta}
                     </span>
                   )}
-                  style={{ width: "8rem" }}
+                  style={{ width: "5rem" }}
                 />
               );
             }
@@ -845,7 +864,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                       <span className="text-muted small">{row.clienteCedula}</span>
                     </div>
                   )}
-                  style={{ minWidth: "14rem" }}
+                  style={{ minWidth: "10rem" }}
                 />
               );
             }
@@ -862,7 +881,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                       {row.fechaFormateada}
                     </span>
                   )}
-                  style={{ minWidth: "10rem" }}
+                  style={{ minWidth: "6.5rem" }}
                 />
               );
             }
@@ -876,7 +895,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                   body={(row: PreparedRemisionRow) => (
                     <span className="fw-semibold">{row.empresaCliente}</span>
                   )}
-                  style={{ minWidth: "12rem" }}
+                  style={{ minWidth: "8rem" }}
                 />
               );
             }
@@ -950,7 +969,7 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
                     <span className="fw-semibold">{moneyformat(row.totalRemision)}</span>
                   )}
                   bodyClassName="text-end"
-                  style={{ width: "12rem" }}
+                  style={{ width: "8rem" }}
                 />
               );
             }
@@ -965,13 +984,15 @@ const RemisionesData: React.FC<Props> = ({ data }) => {
               />
             );
           })}
-        </DataTable>
+        </DataTable>}
+      </div>
       </div>
 
       <Dialog
         header={`Formula - Venta #${activeRemision?.venta ?? "--"}`}
         visible={formulaOpen}
         style={{ width: "70vw", maxWidth: "900px" }}
+        breakpoints={{ '767px': '95vw' }}
         onHide={() => setFormulaOpen(false)}
       >
         {formulaLoading && (
